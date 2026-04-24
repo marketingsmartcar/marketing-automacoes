@@ -1,0 +1,1517 @@
+{
+  "_tabelas": {
+    "tab1": {
+      "nome": "Tab 1",
+      "descricao": "COMBO PROMOCIONAL — compra de 4+ pneus do mesmo grupo",
+      "pagamento": "À Vista: Dinheiro / Pix / Cartão Débito",
+      "observacao": "Melhor preço. Válido para qualquer grupo de pneu."
+    },
+    "tab2": {
+      "nome": "Tab 2",
+      "descricao_pf": "RETIRA ou FORA COMBO — Cliente Final (PF)",
+      "descricao_pj": "RETIRA ou FORA COMBO — Cliente Revenda/CNPJ (Inclusive Promocional e Curva A)",
+      "pagamento_debito": "À Vista: Dinheiro / Pix / Cartão Débito",
+      "pagamento_credito": "Crédito à vista ou até 10x / Cartão Crédito",
+      "pagamento_boleto_pj": "Boleto: 7, 15 ou 30 dias (direto)"
+    },
+    "tab3": {
+      "nome": "Tab 3",
+      "descricao_pf": "RETIRA ou FORA COMBO — Todo grupo de pneu (PF)",
+      "descricao_pj": "RETIRA ou FORA COMBO — Todo grupo de pneu (Revenda/CNPJ)",
+      "pagamento_pf": "6x a 10x / Cartão Crédito",
+      "pagamento_boleto_pj": "Boleto: 15/30-20/40-30/60 dias"
+    }
+  },
+  "_gerado": "2026-04-22T19:00:56.347Z",
+  "_fonte": "Planilha Google Sheets: 12Ta-tSRYF62g4K78rzLvms1P4N_R9LOnvOTwd6pi5BU",
+  "entradas": [
+    {
+      "medida": "100/80-14",
+      "ref": "1008014",
+      "modelo": "Rinaldi SS-48 Sport  (Diant Tubeless)",
+      "tab1": 239,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "medida": "100/80-17",
+      "ref": "1008017",
+      "modelo": "Importado Sport  (Diant Tubeless)",
+      "tab1": 149,
+      "tab2": 159,
+      "tab3": 169
+    },
+    {
+      "medida": "100/90-10",
+      "ref": "1009010",
+      "modelo": "Rinaldi HB-37 Sport  (Diant/Tras Tubeless)",
+      "tab1": 229,
+      "tab2": 239,
+      "tab3": 249
+    },
+    {
+      "medida": "110/70-17",
+      "ref": "1107017",
+      "modelo": "Importado Sport  (Diant Tubeless)",
+      "tab1": 199,
+      "tab2": 209,
+      "tab3": 219
+    },
+    {
+      "medida": "110/90-17",
+      "ref": "1109017",
+      "modelo": "Rinaldi R-34 Trail  (Tras Tubetype)",
+      "tab1": 279,
+      "tab2": 289,
+      "tab3": 309
+    },
+    {
+      "medida": "12/4-24",
+      "ref": "12424",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 1499,
+      "tab2": 1589,
+      "tab3": 1679
+    },
+    {
+      "medida": "120/70-13",
+      "ref": "1207013",
+      "modelo": "Rinaldi HB-37 Sport  (Diant/Tras Tubeless)",
+      "tab1": 249,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "medida": "120/70-14",
+      "ref": "1207014",
+      "modelo": "Rinaldi SS-48 Sport  (Tras Tubeless)",
+      "tab1": 229,
+      "tab2": 249,
+      "tab3": 259
+    },
+    {
+      "medida": "130/70-12",
+      "ref": "1307012",
+      "modelo": "Rinaldi HB-37 Sport  (Diant/Tras Tubeless)",
+      "tab1": 249,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "medida": "130/70-13",
+      "ref": "1307013",
+      "modelo": "",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "130/70-17",
+      "ref": "1307017",
+      "modelo": "Importado Sport  (Tras Tubeless)",
+      "tab1": 239,
+      "tab2": 249,
+      "tab3": 269
+    },
+    {
+      "medida": "14/9-24",
+      "ref": "14924",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 1749,
+      "tab2": 1859,
+      "tab3": 1959
+    },
+    {
+      "medida": "14/9-28",
+      "ref": "14928",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 2499,
+      "tab2": 2649,
+      "tab3": 2799
+    },
+    {
+      "medida": "140/70-17",
+      "ref": "1407017",
+      "modelo": "Importado Sport  (Tras Tubeless)",
+      "tab1": 289,
+      "tab2": 299,
+      "tab3": 319
+    },
+    {
+      "medida": "140/80-18",
+      "ref": "1408018",
+      "modelo": "Rinaldi SW-43 Off-Road  (Tras Tubetype)",
+      "tab1": 379,
+      "tab2": 399,
+      "tab3": 419
+    },
+    {
+      "medida": "165/35 R 18",
+      "ref": "1653518",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "165/40 R 17",
+      "ref": "1654017",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "165/40 R 18",
+      "ref": "1654018",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "165/50 R 15",
+      "ref": "1655015",
+      "modelo": "Importado",
+      "tab1": 289,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "165/70 R 13",
+      "ref": "1657013",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 299,
+      "tab3": 309
+    },
+    {
+      "medida": "165/70 R 14",
+      "ref": "1657014",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "medida": "17.5-25",
+      "ref": "17525",
+      "modelo": "Tratores industriais",
+      "tab1": 2989,
+      "tab2": 3169,
+      "tab3": 3349
+    },
+    {
+      "medida": "175/55 R 16",
+      "ref": "1755516",
+      "modelo": "importado",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "medida": "175/60 R 13",
+      "ref": "1756013",
+      "modelo": "Importado",
+      "tab1": 189,
+      "tab2": 249,
+      "tab3": 259
+    },
+    {
+      "medida": "175/60 R 14",
+      "ref": "1756014",
+      "modelo": "Importado",
+      "tab1": 209,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Importado",
+      "tab1": 289,
+      "tab2": 309,
+      "tab3": 319
+    },
+    {
+      "medida": "175/65 R 15",
+      "ref": "1756515",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "175/70 R 13",
+      "ref": "1757013",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 299,
+      "tab3": 319
+    },
+    {
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Importado",
+      "tab1": 289,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "175/75 R 13",
+      "ref": "1757513",
+      "modelo": "Importado",
+      "tab1": 239,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "medida": "175/75 R 14",
+      "ref": "1757514",
+      "modelo": "Importado",
+      "tab1": 259,
+      "tab2": 279,
+      "tab3": 289
+    },
+    {
+      "medida": "175/80 R 14",
+      "ref": "1758014",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "18/4-30",
+      "ref": "18430",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 3109,
+      "tab2": 3299,
+      "tab3": 3489
+    },
+    {
+      "medida": "18/4-34",
+      "ref": "18434",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 3299,
+      "tab2": 3499,
+      "tab3": 3699
+    },
+    {
+      "medida": "185/35 R 17",
+      "ref": "1853517",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "185/35 R 18",
+      "ref": "1853518",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "medida": "185/55 R 14",
+      "ref": "1855514",
+      "modelo": "Importado",
+      "tab1": 229,
+      "tab2": 239,
+      "tab3": 249
+    },
+    {
+      "medida": "185/55 R 16",
+      "ref": "1855516",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "medida": "185/60 R 14",
+      "ref": "1856014",
+      "modelo": "Importado",
+      "tab1": 239,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "medida": "185/60 R 15",
+      "ref": "1856015",
+      "modelo": "Importado",
+      "tab1": 249,
+      "tab2": 299,
+      "tab3": 319
+    },
+    {
+      "medida": "185/65 R 14",
+      "ref": "1856514",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "medida": "185/65 R 15",
+      "ref": "1856515",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 299,
+      "tab3": 309
+    },
+    {
+      "medida": "185/70 R 13",
+      "ref": "1857013",
+      "modelo": "Dunlop Touring R-1",
+      "tab1": 369,
+      "tab2": 389,
+      "tab3": 409
+    },
+    {
+      "medida": "185/70 R 14",
+      "ref": "1857014",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "medida": "195/35 R 18",
+      "ref": "1953518",
+      "modelo": "Importado",
+      "tab1": 319,
+      "tab2": 359,
+      "tab3": 389
+    },
+    {
+      "medida": "195/40 R 17",
+      "ref": "1954017",
+      "modelo": "Importado",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 379
+    },
+    {
+      "medida": "195/45 R 17",
+      "ref": "1954517",
+      "modelo": "Importado",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "medida": "195/50 R 15",
+      "ref": "1955015",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 299,
+      "tab3": 319
+    },
+    {
+      "medida": "195/50 R 16",
+      "ref": "1955016",
+      "modelo": "Importado",
+      "tab1": 319,
+      "tab2": 339,
+      "tab3": 359
+    },
+    {
+      "medida": "195/55 R 15",
+      "ref": "1955515",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 299,
+      "tab3": 309
+    },
+    {
+      "medida": "195/55 R 16",
+      "ref": "1955516",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 379,
+      "tab3": 399
+    },
+    {
+      "medida": "195/60 R 15",
+      "ref": "1956015",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 299,
+      "tab3": 309
+    },
+    {
+      "medida": "195/60 R 16",
+      "ref": "1956016",
+      "modelo": "Importado",
+      "tab1": 369,
+      "tab2": 389,
+      "tab3": 419
+    },
+    {
+      "medida": "195/65 R 15",
+      "ref": "1956515",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "195/70 R 15",
+      "ref": "1957015",
+      "modelo": "Importado Carga Leve",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "195/75 R 16",
+      "ref": "1957516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 359,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "205/30 R 20",
+      "ref": "2053020",
+      "modelo": "Importado",
+      "tab1": 389,
+      "tab2": 419,
+      "tab3": 439
+    },
+    {
+      "medida": "205/35 R 18",
+      "ref": "2053518",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 389,
+      "tab3": 419
+    },
+    {
+      "medida": "205/35 R 20",
+      "ref": "2053520",
+      "modelo": "Importado",
+      "tab1": 369,
+      "tab2": 399,
+      "tab3": 419
+    },
+    {
+      "medida": "205/40 R 17",
+      "ref": "2054017",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "medida": "205/40 R 18",
+      "ref": "2054018",
+      "modelo": "Importado",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "medida": "205/45 R 17",
+      "ref": "2054517",
+      "modelo": "Importado",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "medida": "205/50 R 16",
+      "ref": "2055016",
+      "modelo": "Importado",
+      "tab1": 199,
+      "tab2": 229,
+      "tab3": 249
+    },
+    {
+      "medida": "205/50 R 17",
+      "ref": "2055017",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 389,
+      "tab3": 409
+    },
+    {
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "medida": "205/55 R 17",
+      "ref": "2055517",
+      "modelo": "Importado",
+      "tab1": 379,
+      "tab2": 409,
+      "tab3": 429
+    },
+    {
+      "medida": "205/60 R 15",
+      "ref": "2056015",
+      "modelo": "Importado HT",
+      "tab1": 319,
+      "tab2": 339,
+      "tab3": 359
+    },
+    {
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Importado HT",
+      "tab1": 349,
+      "tab2": 369,
+      "tab3": 389
+    },
+    {
+      "medida": "205/65 R 15",
+      "ref": "2056515",
+      "modelo": "Importado HT",
+      "tab1": 349,
+      "tab2": 369,
+      "tab3": 389
+    },
+    {
+      "medida": "205/65 R 16",
+      "ref": "2056516",
+      "modelo": "Importado HT",
+      "tab1": 399,
+      "tab2": 419,
+      "tab3": 449
+    },
+    {
+      "medida": "205/70 R 15",
+      "ref": "2057015",
+      "modelo": "Importado HT",
+      "tab1": 369,
+      "tab2": 389,
+      "tab3": 419
+    },
+    {
+      "medida": "205/75 R 16",
+      "ref": "2057516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 429,
+      "tab2": 459,
+      "tab3": 489
+    },
+    {
+      "medida": "215/30 R 20",
+      "ref": "2153020",
+      "modelo": "Importado",
+      "tab1": 429,
+      "tab2": 459,
+      "tab3": 479
+    },
+    {
+      "medida": "215/35 R 18",
+      "ref": "2153518",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "medida": "215/35 R 19",
+      "ref": "2153519",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 439,
+      "tab3": 459
+    },
+    {
+      "medida": "215/40 R 18",
+      "ref": "2154018",
+      "modelo": "Importado",
+      "tab1": 389,
+      "tab2": 419,
+      "tab3": 439
+    },
+    {
+      "medida": "215/45 R 17",
+      "ref": "2154517",
+      "modelo": "Importado",
+      "tab1": 349,
+      "tab2": 369,
+      "tab3": 389
+    },
+    {
+      "medida": "215/45 R 18",
+      "ref": "2154518",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "215/55 R 16",
+      "ref": "2155516",
+      "modelo": "Importado",
+      "tab1": 369,
+      "tab2": 389,
+      "tab3": 419
+    },
+    {
+      "medida": "215/55 R 17",
+      "ref": "2155517",
+      "modelo": "Importado",
+      "tab1": 429,
+      "tab2": 459,
+      "tab3": 479
+    },
+    {
+      "medida": "215/55 R 18",
+      "ref": "2155518",
+      "modelo": "Importado",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "medida": "215/60 R 16",
+      "ref": "2156016",
+      "modelo": "Importado",
+      "tab1": 389,
+      "tab2": 419,
+      "tab3": 439
+    },
+    {
+      "medida": "215/60 R 17",
+      "ref": "2156017",
+      "modelo": "Importado",
+      "tab1": 439,
+      "tab2": 469,
+      "tab3": 489
+    },
+    {
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Importado HT",
+      "tab1": 409,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "215/75 R 16",
+      "ref": "2157516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "215/75 R 17.5",
+      "ref": "215751750",
+      "modelo": "Importado Liso 16PR",
+      "tab1": 689,
+      "tab2": 729,
+      "tab3": 769
+    },
+    {
+      "medida": "215/80 R 16",
+      "ref": "2158016",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "medida": "225/30 R 20",
+      "ref": "2253020",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
+    },
+    {
+      "medida": "225/35 R 19",
+      "ref": "2253519",
+      "modelo": "Importado",
+      "tab1": 379,
+      "tab2": 399,
+      "tab3": 429
+    },
+    {
+      "medida": "225/35 R 20",
+      "ref": "2253520",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "225/40 R 18",
+      "ref": "2254018",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 379,
+      "tab3": 409
+    },
+    {
+      "medida": "225/40 R 19",
+      "ref": "2254019",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
+    },
+    {
+      "medida": "225/45 R 17",
+      "ref": "2254517",
+      "modelo": "Importado",
+      "tab1": 349,
+      "tab2": 369,
+      "tab3": 399
+    },
+    {
+      "medida": "225/45 R 18",
+      "ref": "2254518",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "225/50 R 18",
+      "ref": "2255018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "225/55 R 18",
+      "ref": "2255518",
+      "modelo": "Importado",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "medida": "225/55 R 19",
+      "ref": "2255519",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "225/60 R 17",
+      "ref": "2256017",
+      "modelo": "Importado HT",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "medida": "225/60 R 18",
+      "ref": "2256018",
+      "modelo": "Importado HT",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "225/65 R 16",
+      "ref": "2256516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 489,
+      "tab2": 519,
+      "tab3": 549
+    },
+    {
+      "medida": "225/65 R 17",
+      "ref": "2256517",
+      "modelo": "Importado HT",
+      "tab1": 499,
+      "tab2": 539,
+      "tab3": 569
+    },
+    {
+      "medida": "225/70 R 15",
+      "ref": "2257015",
+      "modelo": "Importado Carga Leve",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "medida": "225/70 R 16",
+      "ref": "2257016",
+      "modelo": "importado HT",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "225/75 R 16",
+      "ref": "2257516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "235/35 R 19",
+      "ref": "2353519",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "medida": "235/40 R 18",
+      "ref": "2354018",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "235/40 R 19",
+      "ref": "2354019",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "medida": "235/45 R 18",
+      "ref": "2354518",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "235/45 R 19",
+      "ref": "2354519",
+      "modelo": "Importado",
+      "tab1": 519,
+      "tab2": 549,
+      "tab3": 579
+    },
+    {
+      "medida": "235/45 R 20",
+      "ref": "2354520",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "medida": "235/50 R 18",
+      "ref": "2355018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "235/50 R 19",
+      "ref": "2355019",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "medida": "235/55 R 17",
+      "ref": "2355517",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "medida": "235/55 R 18",
+      "ref": "2355518",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "medida": "235/55 R 19",
+      "ref": "2355519",
+      "modelo": "Importado",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "medida": "235/60 R 16",
+      "ref": "2356016",
+      "modelo": "Importado HT",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "235/60 R 17",
+      "ref": "2356017",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "235/60 R 18",
+      "ref": "2356018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "235/65 R 17",
+      "ref": "2356517",
+      "modelo": "Importado HT",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "medida": "235/70 R 16",
+      "ref": "2357016",
+      "modelo": "Importado HT",
+      "tab1": 539,
+      "tab2": 569,
+      "tab3": 599
+    },
+    {
+      "medida": "235/75 R 15",
+      "ref": "2357515",
+      "modelo": "Importado HT",
+      "tab1": 509,
+      "tab2": 539,
+      "tab3": 569
+    },
+    {
+      "medida": "245/35 R 19",
+      "ref": "2453519",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
+    },
+    {
+      "medida": "245/35 R 20",
+      "ref": "2453520",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "245/40 R 18",
+      "ref": "2454018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "245/40 R 20",
+      "ref": "2454020",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "245/45 R 17",
+      "ref": "2454517",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "medida": "245/45 R 18",
+      "ref": "2454518",
+      "modelo": "Importado",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "medida": "245/45 R 19",
+      "ref": "2454519",
+      "modelo": "Importado",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "medida": "245/45 R 20",
+      "ref": "2454520",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "medida": "245/50 R 20",
+      "ref": "2455020",
+      "modelo": "Importado",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "medida": "245/65 R 17",
+      "ref": "2456517",
+      "modelo": "Importado HT",
+      "tab1": 549,
+      "tab2": 569,
+      "tab3": 599
+    },
+    {
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Importado HT",
+      "tab1": 559,
+      "tab2": 599,
+      "tab3": 629
+    },
+    {
+      "medida": "250-17",
+      "ref": "25017",
+      "modelo": "Rinaldi PD-29  Urbano  (Diant Tubetype)",
+      "tab1": 99,
+      "tab2": 109,
+      "tab3": 109
+    },
+    {
+      "medida": "255/30 R 19",
+      "ref": "2553019",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "medida": "255/35 R 19",
+      "ref": "2553519",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "medida": "255/40 R 19",
+      "ref": "2554019",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "255/40 R 21",
+      "ref": "2554021",
+      "modelo": "Importado",
+      "tab1": 649,
+      "tab2": 689,
+      "tab3": 709
+    },
+    {
+      "medida": "255/45 R 19",
+      "ref": "2554519",
+      "modelo": "Importado",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "medida": "255/50 R 19",
+      "ref": "2555019",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "255/55 R 19",
+      "ref": "2555519",
+      "modelo": "Importado HT",
+      "tab1": 599,
+      "tab2": 649,
+      "tab3": 679
+    },
+    {
+      "medida": "255/60 R 18",
+      "ref": "2556018",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 759,
+      "tab2": 809,
+      "tab3": 849
+    },
+    {
+      "medida": "255/75 R 15",
+      "ref": "2557515",
+      "modelo": "Firestone Destination HT",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1119
+    },
+    {
+      "medida": "265/50 R 20",
+      "ref": "2655020",
+      "modelo": "Importado HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Importado HT",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "medida": "265/60 R 20",
+      "ref": "2656020",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1399,
+      "tab2": 1479,
+      "tab3": 1599
+    },
+    {
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Importado HT",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "medida": "265/65 R 18",
+      "ref": "2656518",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 839,
+      "tab2": 889,
+      "tab3": 939
+    },
+    {
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Importado HT",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
+    },
+    {
+      "medida": "265/70 R 18",
+      "ref": "2657018",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1329
+    },
+    {
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Importado HT",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 749
+    },
+    {
+      "medida": "275-17",
+      "ref": "27517",
+      "modelo": "Rinaldi PD-29  Urbano  (Diant Tubetype)",
+      "tab1": 99,
+      "tab2": 109,
+      "tab3": 109
+    },
+    {
+      "medida": "275-18",
+      "ref": "27518",
+      "modelo": "Rinaldi BS-32  Urbano  (Diant Tubetype)",
+      "tab1": 119,
+      "tab2": 129,
+      "tab3": 139
+    },
+    {
+      "medida": "275/40 R 20",
+      "ref": "2754520",
+      "modelo": "Importado",
+      "tab1": 629,
+      "tab2": 669,
+      "tab3": 699
+    },
+    {
+      "medida": "275/45 R 20",
+      "ref": "2754520",
+      "modelo": "Importado",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "medida": "275/55 R 19",
+      "ref": "2755519",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1099,
+      "tab2": 1169,
+      "tab3": 1229
+    },
+    {
+      "medida": "275/55 R 20",
+      "ref": "2755520",
+      "modelo": "Importado HT",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "medida": "275/60 R 20",
+      "ref": "2756020",
+      "modelo": "Delinte DX-12 RT All Terrain",
+      "tab1": 1699,
+      "tab2": 1799,
+      "tab3": 1899
+    },
+    {
+      "medida": "275/65 R 18",
+      "ref": "2756518",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1299,
+      "tab2": 1379,
+      "tab3": 1459
+    },
+    {
+      "medida": "275/65 R 20",
+      "ref": "2756520",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1399,
+      "tab2": 1479,
+      "tab3": 1559
+    },
+    {
+      "medida": "275/70 R 18",
+      "ref": "2757018",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1099,
+      "tab2": 1169,
+      "tab3": 1259
+    },
+    {
+      "medida": "275/70 R 22.5",
+      "ref": "275702250",
+      "modelo": "Importado Liso",
+      "tab1": 1599,
+      "tab2": 1699,
+      "tab3": 1789
+    },
+    {
+      "medida": "275/80 R 22.5",
+      "ref": "275802250",
+      "modelo": "Importado Liso 16PR",
+      "tab1": 1449,
+      "tab2": 1539,
+      "tab3": 1629
+    },
+    {
+      "medida": "285/50 R 20",
+      "ref": "2855020",
+      "modelo": "Davanti RT All Terrain",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "medida": "285/60 R 18",
+      "ref": "2856018",
+      "modelo": "Importado HT",
+      "tab1": 699,
+      "tab2": 749,
+      "tab3": 799
+    },
+    {
+      "medida": "285/60 R 20",
+      "ref": "2856020",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1299,
+      "tab2": 1379,
+      "tab3": 1459
+    },
+    {
+      "medida": "285/65 R 18",
+      "ref": "2856518",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1079,
+      "tab2": 1149,
+      "tab3": 1199
+    },
+    {
+      "medida": "285/75 R 16",
+      "ref": "2857516",
+      "modelo": "Delinte Bandit DX-10 AT",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1349
+    },
+    {
+      "medida": "295/80 R 22.5",
+      "ref": "295802250",
+      "modelo": "Importado Liso 16PR",
+      "tab1": 1539,
+      "tab2": 1629,
+      "tab3": 1729
+    },
+    {
+      "medida": "300-10",
+      "ref": "30010",
+      "modelo": "Rinaldi BS-32 Urbano  (Diant/Tras Tubetype)",
+      "tab1": 139,
+      "tab2": 149,
+      "tab3": 159
+    },
+    {
+      "medida": "305/70 R 18",
+      "ref": "3057018",
+      "modelo": "Delinte DX-12 RT All Terrain",
+      "tab1": 1599,
+      "tab2": 1699,
+      "tab3": 1789
+    },
+    {
+      "medida": "350-10",
+      "ref": "35010",
+      "modelo": "Rinaldi BS-32 Urbano  (Diant/Tras Tubetype)",
+      "tab1": 159,
+      "tab2": 169,
+      "tab3": 179
+    },
+    {
+      "medida": "560-15",
+      "ref": "56015",
+      "modelo": "Monumental Folex (Tubetype)",
+      "tab1": 269,
+      "tab2": 289,
+      "tab3": 319
+    },
+    {
+      "medida": "650-10",
+      "ref": "65010",
+      "modelo": "Importado 10PR Tubetype (Conjunto Pneumatico)",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "700-12",
+      "ref": "70012",
+      "modelo": "Importado 12PR Tubetype (Conjunto Pneumatico)",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "medida": "700-16",
+      "ref": "70016",
+      "modelo": "Importado Liso 12PR",
+      "tab1": 669,
+      "tab2": 709,
+      "tab3": 749
+    },
+    {
+      "medida": "750-16",
+      "ref": "75016",
+      "modelo": "Importado Liso 14PR",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "medida": "750-16",
+      "ref": "75016",
+      "modelo": "Importado 10PR (3 raios)",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "medida": "750-18",
+      "ref": "75018",
+      "modelo": "Pirelli RA-45 6PR (5 raios)",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "medida": "80/100-14",
+      "ref": "8010014",
+      "modelo": "Importado Sport  (Tras Tubetype)",
+      "tab1": 99,
+      "tab2": 109,
+      "tab3": 109
+    },
+    {
+      "medida": "80/80-14",
+      "ref": "808014",
+      "modelo": "Rinaldi SS-48 Sport  (Diant Tubeless)",
+      "tab1": 199,
+      "tab2": 209,
+      "tab3": 219
+    },
+    {
+      "medida": "90/100-21",
+      "ref": "9010021",
+      "modelo": "Rinaldi SW-43 Off-Road  (Dian Tubetype)",
+      "tab1": 259,
+      "tab2": 279,
+      "tab3": 289
+    },
+    {
+      "medida": "90/90-12",
+      "ref": "909012",
+      "modelo": "Rinaldi HB-37 Sport  (Diant Tubeless)",
+      "tab1": 199,
+      "tab2": 209,
+      "tab3": 219
+    },
+    {
+      "medida": "90/90-18",
+      "ref": "909018",
+      "modelo": "Importado Sport  (Tras Tubetype)",
+      "tab1": 139,
+      "tab2": 149,
+      "tab3": 159
+    },
+    {
+      "medida": "900-20",
+      "ref": "90020",
+      "modelo": "Importado Liso 14PR",
+      "tab1": 1099,
+      "tab2": 1159,
+      "tab3": 1219
+    }
+  ]
+}

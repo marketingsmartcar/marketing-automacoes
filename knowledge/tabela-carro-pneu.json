@@ -1,0 +1,1311 @@
+{
+  "AUDI": [
+    {
+      "modelo": "A-1",
+      "aro16": "215/45R16"
+    },
+    {
+      "modelo": "A-3",
+      "aro19": "235/35r19"
+    },
+    {
+      "modelo": "A-4",
+      "aro17": "225/50r17",
+      "aro18": "245/40r18",
+      "aro19": "255/35r19"
+    },
+    {
+      "modelo": "A-5",
+      "aro17": "225/50r17"
+    },
+    {
+      "modelo": "A-6",
+      "aro16": "205/60r16",
+      "aro18": "225/55r18",
+      "aro19": "255/40r19",
+      "aro20": "255/40r20"
+    },
+    {
+      "modelo": "Q-3",
+      "aro17": "235/55r17",
+      "aro18": "235/50r18 - 235/55r18"
+    },
+    {
+      "modelo": "Q-5",
+      "aro18": "235/60r18",
+      "aro19": "235/55r19"
+    }
+  ],
+  "BYD": [
+    {
+      "modelo": "D1",
+      "aro16": "195/60r16"
+    },
+    {
+      "modelo": "Dolphin",
+      "aro16": "175/55r16"
+    },
+    {
+      "modelo": "Han",
+      "aro19": "245/45r19"
+    },
+    {
+      "modelo": "Seal",
+      "aro19": "235/45r19"
+    },
+    {
+      "modelo": "Song Plus",
+      "aro19": "235/50r19"
+    },
+    {
+      "modelo": "Yuan Plus",
+      "aro18": "215 55 18"
+    }
+  ],
+  "CHEVROLET": [
+    {
+      "modelo": "Agile",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Astra",
+      "aro14": "185/65r14",
+      "aro15": "195/60r15",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "Blazer",
+      "aro15": "235/75r15"
+    },
+    {
+      "modelo": "Captiva",
+      "aro17": "235/60r17"
+    },
+    {
+      "modelo": "Celta",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Cobalt",
+      "aro15": "195/65r15"
+    },
+    {
+      "modelo": "Corsa Classic",
+      "aro13": "165/70r13 - 175/70r13"
+    },
+    {
+      "modelo": "Corsa",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Corsa Novo",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Cruze antigo",
+      "aro17": "225/50r17"
+    },
+    {
+      "modelo": "Cruze Novo",
+      "aro17": "215/50r17"
+    },
+    {
+      "modelo": "D-20",
+      "aro15": "255/75r15 - 31X10,5R15"
+    },
+    {
+      "modelo": "Kadett",
+      "aro13": "175/70r13",
+      "aro14": "185/65r14"
+    },
+    {
+      "modelo": "Meriva",
+      "aro14": "175/70r14",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Montana",
+      "aro14": "175/70r14 88T +",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Montana Nova",
+      "aro14": "175/70r14 88T +",
+      "aro15": "185/65r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Monza",
+      "aro13": "175/70r13 - 185/70r13",
+      "aro14": "185/65r14"
+    },
+    {
+      "modelo": "Omega",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "Onix",
+      "aro14": "185/70r14",
+      "aro15": "185/65r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Onix Active",
+      "aro15": "195/65r15"
+    },
+    {
+      "modelo": "Prisma",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Prisma Novo",
+      "aro14": "185/70r14",
+      "aro15": "185/65r15"
+    },
+    {
+      "modelo": "Silverado",
+      "aro15": "31x10,5r15",
+      "aro16": "265/70r16"
+    },
+    {
+      "modelo": "S-10 antiga",
+      "aro15": "235/75r15",
+      "aro16": "235/70r16"
+    },
+    {
+      "modelo": "S-10 Nova",
+      "aro16": "245/70r16 - 265/70r16",
+      "aro17": "265/65r17",
+      "aro18": "265/60r18"
+    },
+    {
+      "modelo": "Sonic",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "Spin",
+      "aro15": "195/65r15",
+      "aro16": "205/60r16"
+    },
+    {
+      "modelo": "Tracker Antiga",
+      "aro16": "235/60r16"
+    },
+    {
+      "modelo": "Tracker Nova",
+      "aro16": "215/60r16",
+      "aro17": "215/55r17",
+      "aro18": "215/55r18"
+    },
+    {
+      "modelo": "Trailblazer",
+      "aro18": "265/60r18"
+    },
+    {
+      "modelo": "Vectra",
+      "aro14": "185/70r14",
+      "aro15": "195/60r15",
+      "aro16": "205/55r16",
+      "aro17": "225/45r17"
+    },
+    {
+      "modelo": "Zafira",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16"
+    }
+  ],
+  "CITROEN": [
+    {
+      "modelo": "Aircross",
+      "aro16": "205/60r16"
+    },
+    {
+      "modelo": "C-3",
+      "aro14": "185/65R14",
+      "aro15": "185/60R15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "C-3 Novo / Picasoo",
+      "aro15": "195/60r15"
+    },
+    {
+      "modelo": "C-4 Hatch",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "C-4 Lounge",
+      "aro17": "225/45r17"
+    },
+    {
+      "modelo": "C-4 Pallas",
+      "aro16": "215/55r16"
+    },
+    {
+      "modelo": "C-4 Picasso",
+      "aro17": "215/50r17"
+    },
+    {
+      "modelo": "C-5",
+      "aro18": "245/45r18"
+    },
+    {
+      "modelo": "Xsara Picasso",
+      "aro15": "185/65r15"
+    }
+  ],
+  "FIAT": [
+    {
+      "modelo": "Argo",
+      "aro14": "175/65r14",
+      "aro15": "185/60r15",
+      "aro16": "195/55r16 - 205 60 16 AT"
+    },
+    {
+      "modelo": "Brava",
+      "aro14": "185/65r14"
+    },
+    {
+      "modelo": "Bravo",
+      "aro16": "205/55r16",
+      "aro17": "215/50r17"
+    },
+    {
+      "modelo": "Cronos",
+      "aro15": "185/60r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Doblo",
+      "aro14": "175/70r14 88T +"
+    },
+    {
+      "modelo": "Doblo Adventure",
+      "aro15": "205/70r15 AT ou HT"
+    },
+    {
+      "modelo": "Elba",
+      "aro13": "165/70r13 - 175/70r13"
+    },
+    {
+      "modelo": "Fastback",
+      "aro18": "215/45r18"
+    },
+    {
+      "modelo": "Fiorino",
+      "aro13": "165/70r13 - 175/70r13"
+    },
+    {
+      "modelo": "Fiorino Nova",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/70r14 88T +"
+    },
+    {
+      "modelo": "Freemont",
+      "aro17": "225/65r17",
+      "aro19": "225/55r19"
+    },
+    {
+      "modelo": "Grand Siena",
+      "aro14": "185/65r14",
+      "aro15": "185/60r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Idea",
+      "aro15": "195/60r15"
+    },
+    {
+      "modelo": "Idea Adventure",
+      "aro15": "205/70r15 AT ou HT"
+    },
+    {
+      "modelo": "Linea",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16",
+      "aro17": "205/50r17"
+    },
+    {
+      "modelo": "Marea",
+      "aro14": "185/60r14",
+      "aro15": "195/60r15"
+    },
+    {
+      "modelo": "Mobi",
+      "aro13": "165/70r13",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Palio",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Palio Essence",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Palio Sporting",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Palio Weekend",
+      "aro14": "175/70r14"
+    },
+    {
+      "modelo": "Palio Weekend Adv.",
+      "aro14": "175/70r14",
+      "aro15": "205/70r15 AT ou HT"
+    },
+    {
+      "modelo": "Prêmio",
+      "aro13": "165/70r13 - 175/70r13"
+    },
+    {
+      "modelo": "Pulse",
+      "aro16": "195/60r16",
+      "aro17": "205/50r17"
+    },
+    {
+      "modelo": "Punto",
+      "aro15": "195/60r15"
+    },
+    {
+      "modelo": "Punto Sporting",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Siena",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Siena Sporting",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Stilo",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16",
+      "aro17": "215/50r17"
+    },
+    {
+      "modelo": "Strada",
+      "aro14": "175/70r14 + 88T - 175/80r14"
+    },
+    {
+      "modelo": "Strada Adventure",
+      "aro15": "205/70r15 AT ou HT",
+      "aro16": "205/60r16 AT ou HT"
+    },
+    {
+      "modelo": "Strada (Nova)",
+      "aro15": "195/65r15 - 205/65r15",
+      "aro16": "205/55r16 - 205/60r16"
+    },
+    {
+      "modelo": "Tempra",
+      "aro14": "185/65r14",
+      "aro15": "195/60r15"
+    },
+    {
+      "modelo": "Tipo",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Toro",
+      "aro16": "215/65r16 - 225/70r16",
+      "aro17": "225/60r17 - 225/65r17",
+      "aro18": "225/60r18"
+    },
+    {
+      "modelo": "Uno antigo",
+      "aro13": "165/70r13 - 175/70r13"
+    },
+    {
+      "modelo": "Uno Novo",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/65r14",
+      "aro15": "185/60r15"
+    }
+  ],
+  "FORD": [
+    {
+      "modelo": "Belina / Corcel",
+      "aro13": "175/70r13 - 185/70r13"
+    },
+    {
+      "modelo": "Courier",
+      "aro14": "175/70r14 + 88T - 175/80r14"
+    },
+    {
+      "modelo": "Ecosport antiga",
+      "aro15": "205/65r15"
+    },
+    {
+      "modelo": "Ecosport Nova",
+      "aro16": "205/60r16 AT",
+      "aro17": "205/50r17 Runflat"
+    },
+    {
+      "modelo": "Escort antigo / Hoby",
+      "aro13": "165/70r13 - 175/70r13"
+    },
+    {
+      "modelo": "Escort Zetec",
+      "aro14": "185/60r14 - 185/65r14"
+    },
+    {
+      "modelo": "Edge",
+      "aro20": "245/50r20"
+    },
+    {
+      "modelo": "F-1000",
+      "aro15": "235/75r15",
+      "aro16": "215/80r16 - 235/70r16"
+    },
+    {
+      "modelo": "F-250",
+      "aro16": "265/75r16"
+    },
+    {
+      "modelo": "Fiesta antigo",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Fiesta Novo",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Fiesta New",
+      "aro15": "185/60r15 - 195/55r15",
+      "aro16": "195/50r16"
+    },
+    {
+      "modelo": "Focus",
+      "aro14": "185/70r14",
+      "aro15": "195/60r15",
+      "aro16": "205/55r16",
+      "aro17": "215/50r17"
+    },
+    {
+      "modelo": "Fusion antigo",
+      "aro17": "225/50r17"
+    },
+    {
+      "modelo": "Fusion Novo",
+      "aro17": "225/50r17",
+      "aro18": "235/45r18"
+    },
+    {
+      "modelo": "Ka",
+      "aro13": "165/70r13 - 175/70r13",
+      "aro14": "175/65r14",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "Mondeo",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "Pampa",
+      "aro13": "175/70r13 - 185/70r13"
+    },
+    {
+      "modelo": "Ranger antiga",
+      "aro14": "205/70r14",
+      "aro15": "235/75r15",
+      "aro16": "245/70r16 - 255/70r16"
+    },
+    {
+      "modelo": "Ranger Nova",
+      "aro16": "245/70r16 - 255/70r16",
+      "aro17": "265/65r17",
+      "aro18": "265/60r18"
+    },
+    {
+      "modelo": "Verona",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Versalles / Royale",
+      "aro14": "185/65r14"
+    }
+  ],
+  "HONDA": [
+    {
+      "modelo": "Accord",
+      "aro15": "195/65r15",
+      "aro16": "205/60r16 - 215/60r16",
+      "aro17": "225/50r17",
+      "aro18": "235/45r18"
+    },
+    {
+      "modelo": "City",
+      "aro15": "175/65r15",
+      "aro16": "185/55r16"
+    },
+    {
+      "modelo": "City New",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Civic antigo",
+      "aro14": "185/65r14",
+      "aro15": "185/65r15"
+    },
+    {
+      "modelo": "Civic New ...11",
+      "aro16": "205/55r16",
+      "aro17": "215/45r17"
+    },
+    {
+      "modelo": "Civic New 11...",
+      "aro16": "205/55r16",
+      "aro17": "205/50r17 - 215/50r17",
+      "aro18": "225/40r18"
+    },
+    {
+      "modelo": "Civic Novo 17...",
+      "aro17": "205/50r17 - 215/50r17",
+      "aro18": "225/40r18"
+    },
+    {
+      "modelo": "CRV",
+      "aro17": "225/65r17",
+      "aro18": "225/60r18"
+    },
+    {
+      "modelo": "Fit antigo",
+      "aro14": "175/65r14"
+    },
+    {
+      "modelo": "Fit New",
+      "aro15": "175/65r15",
+      "aro16": "185/55r16"
+    },
+    {
+      "modelo": "HRV",
+      "aro17": "215/55r17"
+    },
+    {
+      "modelo": "WRV",
+      "aro16": "195/60r16"
+    }
+  ],
+  "HYUNDAI": [
+    {
+      "modelo": "Azera antigo",
+      "aro17": "235/55r17"
+    },
+    {
+      "modelo": "Azera novo",
+      "aro18": "245/45r18"
+    },
+    {
+      "modelo": "Creta",
+      "aro16": "205/65r16",
+      "aro17": "215/60r17",
+      "aro18": "215/55r18"
+    },
+    {
+      "modelo": "Elantra",
+      "aro16": "206/60r16",
+      "aro17": "215/45r17"
+    },
+    {
+      "modelo": "Grand Santa Fé",
+      "aro19": "235/55r19"
+    },
+    {
+      "modelo": "H-100",
+      "aro14": "195r14"
+    },
+    {
+      "modelo": "HB-20",
+      "aro14": "175/70r14",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "HB-20X",
+      "aro16": "195/60r16"
+    },
+    {
+      "modelo": "HR",
+      "aro15": "195/70r15 carga"
+    },
+    {
+      "modelo": "I-30 todos",
+      "aro17": "225/45r17"
+    },
+    {
+      "modelo": "IX-35",
+      "aro17": "225/65r17",
+      "aro18": "225/55r18"
+    },
+    {
+      "modelo": "Santa Fé",
+      "aro18": "235/60r18"
+    },
+    {
+      "modelo": "Sonata",
+      "aro18": "225/45r18"
+    },
+    {
+      "modelo": "Tucson antiga",
+      "aro16": "235/60r16"
+    },
+    {
+      "modelo": "Tucson Nova",
+      "aro17": "225/60r17",
+      "aro18": "225/55r18"
+    },
+    {
+      "modelo": "Veloster",
+      "aro17": "215/45r17",
+      "aro18": "215/40r18"
+    },
+    {
+      "modelo": "Veracruz",
+      "aro18": "245/60r18"
+    }
+  ],
+  "JAC": [
+    {
+      "modelo": "J-2",
+      "aro14": "175/60r14"
+    },
+    {
+      "modelo": "J-3",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "J-5",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "J-6",
+      "aro16": "205/55r16",
+      "aro17": "215/45r17"
+    },
+    {
+      "modelo": "S-5",
+      "aro17": "225/60r17 - 225/65r17"
+    },
+    {
+      "modelo": "T-40",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "T-5",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "T-6",
+      "aro17": "225/60r17 - 225/65r17"
+    },
+    {
+      "modelo": "T-8",
+      "aro17": "225/60r17 - 225/65r17"
+    },
+    {
+      "modelo": "T-70",
+      "aro18": "235/60r18"
+    }
+  ],
+  "JEEP": [
+    {
+      "modelo": "Compass",
+      "aro17": "225/60r17",
+      "aro18": "225/55r18",
+      "aro19": "235/45r19"
+    },
+    {
+      "modelo": "Renegade",
+      "aro16": "215/65r16",
+      "aro17": "215/60r17"
+    }
+  ],
+  "KIA": [
+    {
+      "modelo": "Bongo",
+      "aro15": "195/70r15 carga"
+    },
+    {
+      "modelo": "Cadenza",
+      "aro17": "225/55r17"
+    },
+    {
+      "modelo": "Carens",
+      "aro16": "205/60r16"
+    },
+    {
+      "modelo": "Carnival",
+      "aro17": "235/60r17"
+    },
+    {
+      "modelo": "Cerato",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16 - 205/60r16",
+      "aro17": "215/45r17"
+    },
+    {
+      "modelo": "Mohave",
+      "aro18": "265/60r18"
+    },
+    {
+      "modelo": "Optima",
+      "aro18": "225/45r18"
+    },
+    {
+      "modelo": "Picanto",
+      "aro14": "165/60r14"
+    },
+    {
+      "modelo": "Sorento",
+      "aro18": "235/60r18",
+      "aro19": "235/55r19"
+    },
+    {
+      "modelo": "Soul",
+      "aro16": "205/55r16",
+      "aro18": "225/45r18"
+    },
+    {
+      "modelo": "Sportage antiga",
+      "aro16": "215/65r16 - 235/60r16"
+    },
+    {
+      "modelo": "Sportage Nova",
+      "aro18": "235/55r18"
+    }
+  ],
+  "LAND ROVER": [
+    {
+      "modelo": "Freelander",
+      "aro18": "235/60r18",
+      "aro19": "235/55r19"
+    },
+    {
+      "modelo": "Evoque",
+      "aro18": "235/60r18",
+      "aro19": "235/55r19",
+      "aro20": "245/45r20"
+    }
+  ],
+  "MITSUBISHI": [
+    {
+      "modelo": "ASX",
+      "aro16": "235/60R16",
+      "aro17": "215/60R17",
+      "aro18": "225/55R18"
+    },
+    {
+      "modelo": "L-200 antiga",
+      "aro15": "31x10,5r15",
+      "aro16": "245/70r16 - 265/70r16"
+    },
+    {
+      "modelo": "L-200",
+      "aro16": "255/70r16 - 265/70r16"
+    },
+    {
+      "modelo": "Lancer",
+      "aro16": "205/60r16",
+      "aro18": "215/45r18"
+    },
+    {
+      "modelo": "Outlander",
+      "aro18": "225/55r18"
+    },
+    {
+      "modelo": "Pajero",
+      "aro17": "265/65r17",
+      "aro18": "265/60r18"
+    },
+    {
+      "modelo": "Pajero TR4",
+      "aro17": "225/65r17"
+    }
+  ],
+  "NISSAN": [
+    {
+      "modelo": "Altima",
+      "aro17": "215/55r17"
+    },
+    {
+      "modelo": "Frontier",
+      "aro15": "265/70r15 - 31x10,5r15",
+      "aro16": "255/70r16 - 265/70r16"
+    },
+    {
+      "modelo": "Grand Livina",
+      "aro15": "185/65r15"
+    },
+    {
+      "modelo": "Kicks",
+      "aro16": "205/60r16",
+      "aro17": "205/55r17"
+    },
+    {
+      "modelo": "Livina",
+      "aro14": "185/70r14",
+      "aro15": "185/65r15"
+    },
+    {
+      "modelo": "March",
+      "aro14": "165/70r14",
+      "aro15": "175/60r15 - 185/60r15",
+      "aro16": "185/55r16"
+    },
+    {
+      "modelo": "Sentra",
+      "aro15": "205/60r15",
+      "aro16": "205/55r16",
+      "aro17": "205/50r17"
+    },
+    {
+      "modelo": "Tiida",
+      "aro15": "185/65r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Versa",
+      "aro15": "185/65r15",
+      "aro16": "195/55r16"
+    }
+  ],
+  "PEUGEOT": [
+    {
+      "modelo": "106",
+      "aro13": "165/70r13 - 175/70r13"
+    },
+    {
+      "modelo": "2008",
+      "aro16": "205/60R16"
+    },
+    {
+      "modelo": "206",
+      "aro14": "175/65r14",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "206 SW",
+      "aro14": "175/70r14"
+    },
+    {
+      "modelo": "207",
+      "aro14": "175/65r14 - 185/65r14",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "208",
+      "aro15": "185/65r15 - 195/60r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "307",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "308",
+      "aro16": "205/55r16",
+      "aro17": "225/45r17",
+      "aro18": "225/40r18"
+    },
+    {
+      "modelo": "406",
+      "aro15": "195/65r15",
+      "aro16": "215/55r16"
+    },
+    {
+      "modelo": "407",
+      "aro16": "205/60r16",
+      "aro17": "215/55r17"
+    },
+    {
+      "modelo": "408",
+      "aro16": "205/55r16",
+      "aro17": "225/45r17"
+    },
+    {
+      "modelo": "Hoggar",
+      "aro14": "175/65r14 - 175/70r14"
+    },
+    {
+      "modelo": "Partner",
+      "aro14": "175/65r14"
+    }
+  ],
+  "RENAULT": [
+    {
+      "modelo": "Captur",
+      "aro16": "215/65r16",
+      "aro17": "215/60r17"
+    },
+    {
+      "modelo": "Clio",
+      "aro13": "175/70r13",
+      "aro14": "165/70r14 / 175/65r14",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Duster",
+      "aro16": "215/65r16"
+    },
+    {
+      "modelo": "Fluence",
+      "aro16": "205/60r16",
+      "aro17": "205/55r17"
+    },
+    {
+      "modelo": "Grand Scenic",
+      "aro16": "205/60r16"
+    },
+    {
+      "modelo": "Kangoo",
+      "aro14": "175/65r14 - 175/70r14 + 88T"
+    },
+    {
+      "modelo": "Kwid",
+      "aro14": "165/70r14"
+    },
+    {
+      "modelo": "Laguna",
+      "aro15": "195/65r15",
+      "aro16": "205/60r16"
+    },
+    {
+      "modelo": "Logan",
+      "aro14": "185/70r14",
+      "aro15": "185/65r15"
+    },
+    {
+      "modelo": "Megane",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "Oroch",
+      "aro16": "215/65r16"
+    },
+    {
+      "modelo": "Sandero",
+      "aro14": "185/70r14",
+      "aro15": "185/65r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Sandero Stepway",
+      "aro16": "195/60r16 - 205/55r16"
+    },
+    {
+      "modelo": "Scenic",
+      "aro15": "185/65r15 - 195/60r15"
+    },
+    {
+      "modelo": "Symbol",
+      "aro14": "175/65r14",
+      "aro15": "185/55r15 - 185/60r15"
+    },
+    {
+      "modelo": "Twingo",
+      "aro13": "165/70r13"
+    }
+  ],
+  "SUZUKI": [
+    {
+      "modelo": "Grand Vitara",
+      "aro17": "225/65r17",
+      "aro18": "225/60r18"
+    },
+    {
+      "modelo": "Swift",
+      "aro16": "195/50r16",
+      "aro17": "205/45r17"
+    },
+    {
+      "modelo": "SX-4",
+      "aro16": "205/60r16"
+    },
+    {
+      "modelo": "Vitara",
+      "aro16": "215/60R16 - 215/65R16",
+      "aro17": "215/55R17"
+    }
+  ],
+  "TOYOTA": [
+    {
+      "modelo": "Camry",
+      "aro17": "215/55r17"
+    },
+    {
+      "modelo": "Corolla antigo ..08",
+      "aro14": "185/65r14 - 185/70r14",
+      "aro15": "195/60r15"
+    },
+    {
+      "modelo": "Corolla Novo 08-20",
+      "aro16": "205/55r16",
+      "aro17": "215/50r17 - 225/45r17"
+    },
+    {
+      "modelo": "Corolla Fielder",
+      "aro15": "195/60r15"
+    },
+    {
+      "modelo": "Etios",
+      "aro14": "175/65r14",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Hilux antiga ...05",
+      "aro15": "255/70r15 - 31x10,5r15",
+      "aro16": "215/80r16 - 235/70r16"
+    },
+    {
+      "modelo": "Hilux 06...",
+      "aro15": "255/70r15 - 31x10,5r15",
+      "aro16": "215/80r16 - 265/70r16",
+      "aro17": "265/65r17",
+      "aro18": "265/60r18"
+    },
+    {
+      "modelo": "SW-4",
+      "aro16": "265/70r16 - 265/75r16",
+      "aro17": "265/65r17",
+      "aro18": "265/60r18"
+    },
+    {
+      "modelo": "Prius",
+      "aro15": "195/65r15"
+    },
+    {
+      "modelo": "RAV-4",
+      "aro17": "225/65R17"
+    },
+    {
+      "modelo": "Yaris",
+      "aro15": "185/60r15"
+    }
+  ],
+  "VOLKSWAGEN": [
+    {
+      "modelo": "Amarok",
+      "aro16": "215/80r16 - 245/70r16",
+      "aro17": "245/65r17",
+      "aro18": "255/60r18",
+      "aro19": "235/55r19",
+      "aro20": "255/50r20"
+    },
+    {
+      "modelo": "New Beetle (Fusca)",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16-215/60r16",
+      "aro17": "215/55r17 - 225/45r17"
+    },
+    {
+      "modelo": "Bora",
+      "aro16": "205/55r16"
+    },
+    {
+      "modelo": "Brasilia",
+      "aro14": "590 x 14"
+    },
+    {
+      "modelo": "Crossup",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Crossfox",
+      "aro15": "205/60r15 AT ou HT"
+    },
+    {
+      "modelo": "Fox",
+      "aro14": "175/65r14",
+      "aro15": "195/55r15",
+      "aro16": "195/50r16"
+    },
+    {
+      "modelo": "Fusca antigo",
+      "aro15": "560 x 15"
+    },
+    {
+      "modelo": "Gol quadrado",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Gol G2 / G3 / G4",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "Gol G5 / G6 / G7",
+      "aro13": "175/70r13",
+      "aro14": "175/70r14",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "Gol Rallye",
+      "aro15": "195/55r15 - 205/50r15",
+      "aro16": "195/50r16"
+    },
+    {
+      "modelo": "Golf antigo",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Golf sapão",
+      "aro14": "175/80r14 - 185/70r14",
+      "aro15": "195/65r15 - 205/60r15",
+      "aro16": "205/55r16",
+      "aro17": "225/45r17"
+    },
+    {
+      "modelo": "Golf Novo 14...",
+      "aro16": "205/55r16",
+      "aro17": "225/45r17"
+    },
+    {
+      "modelo": "Jetta",
+      "aro16": "205/55r16",
+      "aro17": "225/45r17"
+    },
+    {
+      "modelo": "Kombi",
+      "aro14": "185r14"
+    },
+    {
+      "modelo": "Logus",
+      "aro13": "175/70r13"
+    },
+    {
+      "modelo": "Nivus",
+      "aro16": "205/60r16",
+      "aro17": "205/55r17"
+    },
+    {
+      "modelo": "Parati quadrada",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14",
+      "aro15": "195/50r15 - 195/55r15"
+    },
+    {
+      "modelo": "Parati G2 / G3 / G4",
+      "aro13": "175/70r13",
+      "aro14": "175/70r14 - 185/65r14",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "Passat antigo",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Pointer",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Polo",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "Polo Classic",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Polo Novo",
+      "aro15": "185/65r15",
+      "aro16": "195/55r16",
+      "aro17": "205/50r17"
+    },
+    {
+      "modelo": "Nivus",
+      "aro17": "205/55r17"
+    },
+    {
+      "modelo": "Santana antigo",
+      "aro13": "175/70r13 - 185/70r13",
+      "aro14": "185/65r14 - 195/60r14"
+    },
+    {
+      "modelo": "Santana Novo",
+      "aro14": "185/65r14",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "Saveiro quadrada",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Saveiro G2 / G3 / G4",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "Saveiro G5 / G6 / G7",
+      "aro13": "175/70r13",
+      "aro14": "175/70r14",
+      "aro15": "195/55r15 - 205/60r15"
+    },
+    {
+      "modelo": "Spacecross",
+      "aro15": "195/60r15 - 205/55r15"
+    },
+    {
+      "modelo": "Spacefox",
+      "aro15": "195/55r15"
+    },
+    {
+      "modelo": "T-Cross",
+      "aro16": "205/60r16",
+      "aro17": "205/55r17"
+    },
+    {
+      "modelo": "Tiguan",
+      "aro17": "235/55r17",
+      "aro18": "235/55r18",
+      "aro19": "235/50r19 - 255/45r19"
+    },
+    {
+      "modelo": "UP",
+      "aro14": "175/70r14",
+      "aro15": "185/60r15"
+    },
+    {
+      "modelo": "Virtus",
+      "aro15": "185/65r15",
+      "aro16": "195/55r16"
+    },
+    {
+      "modelo": "Virtus Novo",
+      "aro15": "195/65r15",
+      "aro16": "205/55r16",
+      "aro17": "205/50r17 - 215/45r17"
+    },
+    {
+      "modelo": "Voyage quadrado",
+      "aro13": "175/70r13",
+      "aro14": "185/60r14"
+    },
+    {
+      "modelo": "Voyage Novo",
+      "aro13": "175/70r13",
+      "aro14": "175/70r14",
+      "aro15": "195/55r15"
+    }
+  ]
+}

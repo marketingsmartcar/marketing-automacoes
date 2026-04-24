@@ -1,0 +1,172 @@
+'use strict';
+
+const fs   = require('fs');
+const path = require('path');
+const { getVideoDurationInSeconds } = require('get-video-duration');
+
+const STATE_FILE = path.join(__dirname, '..', '..', 'data', 'stories-state.json');
+
+const PASTA_BASE     = 'C:\\Users\\Nick\\Desktop\\Projetos\\Videos\\Conteudo das lojas';
+const PASTA_PEG_EXTRA = 'C:\\Users\\Nick\\Desktop\\Projetos\\Videos\\Peg Pneus';
+
+// Vídeos da pasta Peg Pneus extra que devem ser ignorados (por nome parcial)
+const PEG_EXTRA_EXCLUIR = [
+  '0131',
+  'Troca de pneu volvo - Kaike',
+  'Depoimento Rafa Peg pneus EDITADO',
+  'Depoimento Claudinei Peg pneus',
+];
+
+// Pastas por conta (Bauru excluído conforme solicitado)
+const PASTAS_POR_CONTA = {
+  br: [
+    'Americana',
+    'Araraquara Loja 1',
+    'Araraquara Loja 2',
+    'Ibitinga',
+    'Jaú',
+    'Maringá',
+    'São Carlos',
+  ],
+  peg_araraquara: ['Peg Pneus Araraquara'],
+  peg_sorocaba:   ['Peg Pneus Sorocaba'],
+};
+
+function carregarEstado() {
+  if (!fs.existsSync(STATE_FILE)) return {};
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch { return {}; }
+}
+
+function salvarEstado(estado) {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(estado, null, 2));
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Lista vídeos de um diretório recursivamente
+function listarVideosDir(dir, excluirNomes = []) {
+  const videos = [];
+  if (!fs.existsSync(dir)) return videos;
+  const entradas = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entrada of entradas) {
+    const fullPath = path.join(dir, entrada.name);
+    if (entrada.isDirectory()) {
+      // Verifica se o nome da pasta está na lista de exclusão
+      const nomeExcluido = excluirNomes.some(ex =>
+        entrada.name.toLowerCase().includes(ex.toLowerCase())
+      );
+      if (!nomeExcluido) videos.push(...listarVideosDir(fullPath, excluirNomes));
+    } else if (/\.(mp4|mov|avi|mkv)$/i.test(entrada.name) && !entrada.name.startsWith('desktop')) {
+      const nomeExcluido = excluirNomes.some(ex =>
+        entrada.name.toLowerCase().includes(ex.toLowerCase())
+      );
+      if (!nomeExcluido) videos.push(fullPath);
+    }
+  }
+  return videos;
+}
+
+function listarVideos(contaKey) {
+  const pastas = PASTAS_POR_CONTA[contaKey] || [];
+  const videos = [];
+
+  for (const pasta of pastas) {
+    const dir = path.join(PASTA_BASE, pasta);
+    videos.push(...listarVideosDir(dir));
+  }
+
+  // Pasta extra da Peg Araraquara
+  if (contaKey === 'peg_araraquara') {
+    videos.push(...listarVideosDir(PASTA_PEG_EXTRA, PEG_EXTRA_EXCLUIR));
+  }
+
+  return videos;
+}
+
+async function filtrarPorDuracao(videos, maxSegundos) {
+  const resultado = [];
+  for (const v of videos) {
+    try {
+      const dur = await getVideoDurationInSeconds(v);
+      if (dur <= maxSegundos) resultado.push(v);
+    } catch {
+      // não conseguiu ler duração — ignora
+    }
+  }
+  return resultado;
+}
+
+function dataHoje() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+// Registra um vídeo como postado hoje (evita repostagem no mesmo dia)
+function registrarPostagem(videoPath) {
+  const estado = carregarEstado();
+  if (!estado.historico) estado.historico = {};
+  estado.historico[videoPath] = dataHoje();
+  salvarEstado(estado);
+}
+
+// Devolve um vídeo para o início da fila (quando foi pego mas não postado)
+function restituirVideo(contaKey, maxSegundos, videoPath) {
+  const estado = carregarEstado();
+  const filaKey = `${contaKey}_${maxSegundos}s`;
+  if (!estado[filaKey]) estado[filaKey] = [];
+  estado[filaKey].unshift(videoPath);
+  salvarEstado(estado);
+}
+
+// Retorna os próximos N vídeos para a conta, respeitando maxSegundos
+// Se a fila esvaziar, embaralha tudo de novo
+async function getProximosVideos(contaKey, quantidade, maxSegundos) {
+  const estado = carregarEstado();
+  const todosVideos = listarVideos(contaKey);
+  const elegíveis = await filtrarPorDuracao(todosVideos, maxSegundos);
+
+  if (elegíveis.length === 0) {
+    console.warn(`⚠️  [${contaKey}] Nenhum vídeo elegível com duração ≤ ${maxSegundos}s`);
+    return [];
+  }
+
+  const hoje = dataHoje();
+  const jaPostadosHoje = new Set(
+    Object.entries(estado.historico || {})
+      .filter(([, d]) => d === hoje)
+      .map(([v]) => v)
+  );
+
+  const filaKey = `${contaKey}_${maxSegundos}s`;
+
+  // Remove da fila: não existe em disco OU já postado hoje
+  if (estado[filaKey]) {
+    estado[filaKey] = estado[filaKey].filter(
+      v => fs.existsSync(v) && !jaPostadosHoje.has(v)
+    );
+  }
+
+  if (!estado[filaKey] || estado[filaKey].length === 0) {
+    // Re-embaralha, excluindo os já postados hoje
+    const disponiveis = elegíveis.filter(v => !jaPostadosHoje.has(v));
+    const fonte = disponiveis.length > 0 ? disponiveis : elegíveis;
+    estado[filaKey] = shuffleArray(fonte);
+    console.log(`🔀 [${contaKey} ≤${maxSegundos}s] Fila recriada com ${estado[filaKey].length} vídeos.`);
+  }
+
+  const selecionados = [];
+  while (selecionados.length < quantidade && estado[filaKey].length > 0) {
+    selecionados.push(estado[filaKey].shift());
+  }
+
+  salvarEstado(estado);
+  return selecionados;
+}
+
+module.exports = { getProximosVideos, registrarPostagem, restituirVideo, listarVideos, filtrarPorDuracao, PASTAS_POR_CONTA };

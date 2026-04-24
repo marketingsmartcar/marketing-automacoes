@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Template Base — BR Pneus & Oficina</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #222;
+    padding: 40px;
+    font-family: "Arial Black", Impact, Arial, sans-serif;
+  }
+
+  /* ============================================================
+     CONTAINER BASE — Feed orgânico (padrão) 1080x1350 (4:5)
+     data-width="1080" data-height="1350"
+     ============================================================ */
+  .art-container {
+    width: 1080px;
+    height: 1350px;
+    background: linear-gradient(180deg, #1A1A1A 0%, #222222 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Variação: Patrocinado/Ads (1080x1080) ── */
+  .art-container.ads {
+    width: 1080px;
+    height: 1080px;
+  }
+
+  /* ── Variação: Stories/Status (1080x1920) ── */
+  .art-container.stories {
+    width: 1080px;
+    height: 1920px;
+  }
+
+  /* ── Variação: Banner Site (1920x600) ── */
+  .art-container.banner {
+    width: 1920px;
+    height: 600px;
+  }
+
+  /* ── Variação: WhatsApp (800x800) ── */
+  .art-container.whatsapp {
+    width: 800px;
+    height: 800px;
+  }
+
+  /* ── Variação: Google Ads Retângulo (300x250) ── */
+  .art-container.gads-300 {
+    width: 300px;
+    height: 250px;
+  }
+
+  /* ── Variação: Google Ads Leaderboard (728x90) ── */
+  .art-container.gads-728 {
+    width: 728px;
+    height: 90px;
+  }
+
+  /* ============================================================
+     ELEMENTOS ESTRUTURAIS REUTILIZÁVEIS
+     ============================================================ */
+
+  /* Faixa superior */
+  .barra-topo {
+    width: 100%;
+    height: 70px;
+    background: #F5A623;
+    position: absolute;
+    top: 0; left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 44px;
+    z-index: 10;
+  }
+
+  /* Faixa inferior */
+  .barra-base {
+    width: 100%;
+    height: 80px;
+    background: #F5A623;
+    position: absolute;
+    bottom: 0; left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 44px;
+    z-index: 10;
+  }
+
+  /* Logo simulado */
+  .logo {
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .logo .br   { color: #F5A623; font-size: 40px; display: block; }
+  .logo .pneus { color: #FFFFFF; font-size: 16px; letter-spacing: 4px; display: block; }
+  .logo .ofic  { color: #F5A623; font-size: 11px; letter-spacing: 3px; display: block; }
+
+  /* Logo na barra amarela (invertido) */
+  .barra-topo .logo .br   { color: #1A1A1A; }
+  .barra-topo .logo .pneus { color: #1A1A1A; }
+  .barra-topo .logo .ofic  { color: #1A1A1A; }
+
+  /* Tagline */
+  .tagline {
+    font-size: 16px;
+    font-weight: 900;
+    color: #1A1A1A;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  /* Área de conteúdo */
+  .content {
+    position: absolute;
+    top: 70px; left: 0; right: 0; bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 60px;
+  }
+
+  /* Headline */
+  .headline {
+    font-size: 80px;
+    font-weight: 900;
+    color: #FFFFFF;
+    text-transform: uppercase;
+    line-height: 0.95;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+  }
+  .headline .amarelo { color: #F5A623; }
+
+  /* Subtítulo */
+  .subtitulo {
+    font-size: 26px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 32px;
+    line-height: 1.4;
+  }
+
+  /* Separador */
+  .sep {
+    width: 70px;
+    height: 5px;
+    background: #F5A623;
+    border-radius: 3px;
+    margin: 20px 0;
+  }
+
+  /* Card de item */
+  .card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 14px;
+    padding: 20px 28px;
+  }
+
+  /* Botão CTA */
+  .cta {
+    display: inline-block;
+    background: #F5A623;
+    color: #1A1A1A;
+    font-size: 20px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 18px 44px;
+    border-radius: 50px;
+    margin-top: 24px;
+  }
+
+  /* Contato */
+  .contato {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+
+  /* ============================================================
+     INSTRUÇÕES DE EXPORTAÇÃO (não aparecem na arte)
+     ============================================================ */
+  .instrucoes {
+    width: 1080px;
+    margin-top: 20px;
+    background: #1a1a2e;
+    color: #aaa;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 20px 24px;
+    border-radius: 8px;
+    line-height: 1.8;
+  }
+  .instrucoes strong { color: #F5A623; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     ARTE — Feed orgânico 1080x1350 (4:5)
+     Renomear classe: .ads (1080x1080) | .stories (1080x1920) | .banner (1920x600)
+     ============================================================ -->
+<div class="art-container" data-width="1080" data-height="1350">
+
+  <!-- Faixa superior -->
+  <div class="barra-topo">
+    <span style="color:#1A1A1A; font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:2px;">[ LABEL DA CAMPANHA ]</span>
+    <!-- SUBSTITUIR por logo real em produção -->
+    <div class="logo">
+      <span class="br">BR</span>
+      <span class="pneus">PNEUS</span>
+      <span class="ofic">&amp; Oficina</span>
+    </div>
+  </div>
+
+  <!-- Conteúdo principal -->
+  <div class="content">
+    <div class="headline">HEADLINE<br>PRINCIPAL<br><span class="amarelo">DESTAQUE</span></div>
+    <div class="sep"></div>
+    <div class="subtitulo">Subtítulo ou complemento descritivo aqui.</div>
+    <div class="cta">AGENDAR AGORA</div>
+    <div class="contato">
+      📍 [ENDEREÇO], [CIDADE] &nbsp;|&nbsp; 📱 ([DDD]) [NÚMERO]<br>
+      0800 942 4402
+    </div>
+  </div>
+
+  <!-- Faixa base -->
+  <div class="barra-base">
+    <span class="tagline">Muito mais que pneus</span>
+    <span style="color:#1A1A1A; font-size:15px; font-weight:700;">brpneus.com.br</span>
+  </div>
+
+</div>
+
+<!-- Instruções de exportação -->
+<div class="instrucoes">
+  <strong>Como exportar esta arte:</strong><br>
+  Automático: <strong>node tools/export-html-to-png.js output/criativos/[arquivo].html</strong><br>
+  Manual: Abra no Chrome → F12 → Toggle Device → dimensões do container → botão direito no div → "Capturar screenshot do nó"<br><br>
+  <strong>Todas as artes:</strong> node tools/export-html-to-png.js --all<br><br>
+  <strong>Dimensões deste arquivo:</strong> 1080×1350px (feed orgânico 4:5)
+</div>
+
+</body>
+</html>

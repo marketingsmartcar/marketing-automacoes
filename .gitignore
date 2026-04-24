@@ -1,0 +1,28 @@
+# Segurança — NUNCA commitar
+.env
+.env.local
+.env*.local
+credentials/
+
+# Dependências
+node_modules/
+
+# Saída gerada e logs
+output/
+logs/
+*.log
+meu-dia.html
+
+# Debug Puppeteer
+output/debug-oi/
+
+# Imagens geradas
+output/criativos/imagens/
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude
+.claude/
