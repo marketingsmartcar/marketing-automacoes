@@ -2,31 +2,32 @@
 /**
  * retroativo-jan-abr.js
  *
- * Coleta dados DIÁRIOS (não acumulados) do OI para cada dia de
- * Janeiro, Fevereiro, Março e Abril/2026 e sincroniza no Supabase.
- *
- * Cada linha no banco representa SOMENTE aquele dia — não o mês inteiro.
+ * Coleta dados DIÁRIOS do OI (Jan→Abr/2026) e sincroniza no Supabase.
+ * Ordem: do dia mais recente ao mais antigo (Abril → Janeiro).
+ * Delay de 5 min entre dias para não sobrecarregar o OI.
  */
 require('dotenv').config();
 const { getOIDataBrowser } = require('./scraper-oi-browser');
 const { syncVendasOI }     = require('./supabase-vendas-sync');
 
+const DELAY_ENTRE_DIAS_MS = 5 * 60 * 1000; // 5 minutos
+
 const MESES = [
-  { mes: 1, ano: 2026 },
-  { mes: 2, ano: 2026 },
-  { mes: 3, ano: 2026 },
   { mes: 4, ano: 2026 },
+  { mes: 3, ano: 2026 },
+  { mes: 2, ano: 2026 },
+  { mes: 1, ano: 2026 },
 ];
 
 function buildDatas(mes, ano) {
-  const hoje      = new Date();
-  const mesIdx    = mes - 1;
+  const hoje   = new Date();
+  const mesIdx = mes - 1;
   const ultimoDia = (mesIdx === hoje.getMonth() && ano === hoje.getFullYear())
     ? hoje.getDate()
     : new Date(ano, mesIdx + 1, 0).getDate();
 
   const datas = [];
-  for (let d = 1; d <= ultimoDia; d++) {
+  for (let d = ultimoDia; d >= 1; d--) { // ordem inversa: do último ao primeiro
     const dt = new Date(ano, mesIdx, d);
     if (dt.getDay() === 0) continue; // pula domingo
     datas.push(`${ano}-${String(mes).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
@@ -34,31 +35,52 @@ function buildDatas(mes, ano) {
   return datas;
 }
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function main() {
   let totalOk  = 0;
   let totalErr = 0;
+  let totalDias = 0;
+
+  // Conta total de dias
+  for (const { mes, ano } of MESES) totalDias += buildDatas(mes, ano).length;
+  console.log(`\n📅 Retroativo Jan–Abr 2026 (ordem: recente → antigo)`);
+  console.log(`   Total: ${totalDias} dias | Delay: 5 min entre dias`);
+  console.log(`   Estimativa: ~${Math.round(totalDias * 14 / 60)} horas\n`);
+
+  let diaAtual = 0;
 
   for (const { mes, ano } of MESES) {
     const datas = buildDatas(mes, ano);
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`📅 ${mes}/${ano} — ${datas.length} dias  (${datas[0]} → ${datas[datas.length-1]})`);
+    console.log(`📅 ${mes}/${ano} — ${datas.length} dias (${datas[datas.length-1]} → ${datas[0]})`);
     console.log('='.repeat(60));
 
     for (let i = 0; i < datas.length; i++) {
+      diaAtual++;
       const dateISO = datas[i];
-      console.log(`\n[${i+1}/${datas.length}] ${dateISO}`);
+      const inicio  = new Date().toLocaleTimeString('pt-BR');
+      console.log(`\n[${diaAtual}/${totalDias}] ${dateISO}  (${inicio})`);
+
       try {
         const oiData = await getOIDataBrowser(dateISO, null);
         if (!oiData || Object.keys(oiData).length === 0) {
           console.warn(`  ⚠️  Sem dados para ${dateISO} — pulando`);
           totalErr++;
-          continue;
+        } else {
+          await syncVendasOI(dateISO, oiData);
+          totalOk++;
         }
-        await syncVendasOI(dateISO, oiData);
-        totalOk++;
       } catch (e) {
         console.error(`  ❌ Falhou ${dateISO}:`, e.message);
         totalErr++;
+      }
+
+      // Delay de 5 min entre dias (exceto no último)
+      if (diaAtual < totalDias) {
+        const proxima = new Date(Date.now() + DELAY_ENTRE_DIAS_MS);
+        console.log(`  ⏳ Aguardando 5 min... próxima coleta às ${proxima.toLocaleTimeString('pt-BR')}`);
+        await sleep(DELAY_ENTRE_DIAS_MS);
       }
     }
   }
@@ -66,7 +88,7 @@ async function main() {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`✅ Concluído: ${totalOk} dias sincronizados`);
   if (totalErr) console.log(`❌ Falhas: ${totalErr} dias`);
-  console.log('Janeiro, Fevereiro, Março e Abril sincronizados com dados DIÁRIOS.');
+  console.log('Abril, Março, Fevereiro e Janeiro sincronizados com dados DIÁRIOS.');
 }
 
 main().catch(e => { console.error('❌ Fatal:', e.message || e); process.exit(1); });
