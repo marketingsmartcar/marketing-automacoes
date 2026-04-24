@@ -486,7 +486,7 @@ async function getOIDataBrowser(dateArg, onStoreCollected) {
     ? (typeof dateArg === 'string' ? new Date(dateArg + 'T12:00:00') : dateArg)
     : dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
   const dataStr  = formatDate(date);
-  const startStr = firstOfMonth(date); // 01/MM/YYYY → acumula do início do mês
+  const startStr = formatDate(date); // mesmo dia → coleta apenas este dia (não acumulado)
 
   if (!process.env.OI_EMAIL || !process.env.OI_SENHA) {
     throw new Error('OI_EMAIL e OI_SENHA não definidos no .env');
