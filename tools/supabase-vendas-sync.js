@@ -3,8 +3,8 @@
 
 const LOJAS_LABELS = {
   BR1: 'BR01 CENTRO', BR2: 'BR02 VILA', BR3: 'BR03 AMERICANA',
-  BR4: 'BR04 SAO CARLOS', BR5: 'BR05 MARINGA', BR6: 'BR06 JAU',
-  BR7: 'BR08 IBITINGA', PEG1: 'PEG11 ARARAQUARA', PEG2: 'PEG12 SOROCABA',
+  BR4: 'BR04 SAO CARLOS', BR5: 'BR05 MARINGA',
+  PEG1: 'PEG11 ARARAQUARA', PEG2: 'PEG12 SOROCABA',
 };
 
 async function syncVendasOI(date, lojaResults) {
@@ -38,7 +38,7 @@ async function syncVendasOI(date, lojaResults) {
 
   if (!rows.length) { console.warn('  ⚠️  Nenhuma loja com dados — sync ignorado'); return; }
 
-  const res = await fetch(`${url}/rest/v1/vendas_diarias_oi`, {
+  const res = await fetch(`${url}/rest/v1/vendas_diarias_oi?on_conflict=data,loja_key`, {
     method:  'POST',
     headers: {
       'apikey':        key,

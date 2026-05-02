@@ -13,8 +13,6 @@ const LOJAS = [
   { nome: 'BR Pneus Araraquara 2', placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA2 },
   { nome: 'BR Pneus São Carlos',   placeId: process.env.GOOGLE_PLACE_ID_BR_SAO_CARLOS  },
   { nome: 'BR Pneus Americana',    placeId: process.env.GOOGLE_PLACE_ID_BR_AMERICANA   },
-  { nome: 'BR Pneus Jaú',          placeId: process.env.GOOGLE_PLACE_ID_BR_JAU         },
-  { nome: 'BR Pneus Ibitinga',     placeId: process.env.GOOGLE_PLACE_ID_BR_IBITINGA    },
   { nome: 'BR Pneus Maringá',      placeId: process.env.GOOGLE_PLACE_ID_BR_MARINGA     },
   { nome: 'Peg Pneus Sorocaba',    placeId: process.env.GOOGLE_PLACE_ID_PEG_SOROCABA   },
   { nome: 'Peg Pneus Araraquara',  placeId: process.env.GOOGLE_PLACE_ID_PEG_ARARAQUARA },
@@ -245,7 +243,7 @@ function statusConfig() {
 
   const semId = [
     'BR Pneus Araraquara 1','BR Pneus Araraquara 2','BR Pneus São Carlos',
-    'BR Pneus Americana','BR Pneus Jaú','BR Pneus Ibitinga','BR Pneus Maringá',
+    'BR Pneus Americana','BR Pneus Maringá',
     'Peg Pneus Sorocaba','Peg Pneus Araraquara',
   ].filter(n => !LOJAS.find(l => l.nome === n));
 

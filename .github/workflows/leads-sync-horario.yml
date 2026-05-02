@@ -1,0 +1,44 @@
+name: Leads — Sync Horário (Deskrio → Sheets + Supabase)
+
+on:
+  schedule:
+    # 07h–18h BRT = 10h–21h UTC, de hora em hora, Seg–Sáb
+    - cron: '0 10-21 * * 1-6'
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "DESKRIO_API_TOKEN_BR=${{ secrets.DESKRIO_API_TOKEN_BR }}"                   >> .env
+          echo "DESKRIO_API_TOKEN_PEG=${{ secrets.DESKRIO_API_TOKEN_PEG }}"                 >> .env
+          echo "DESKRIO_INSTANCE_BR=${{ secrets.DESKRIO_INSTANCE_BR }}"                     >> .env
+          echo "DESKRIO_INSTANCE_PEG=${{ secrets.DESKRIO_INSTANCE_PEG }}"                   >> .env
+          echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID_LEADS }}" >> .env
+          echo "GOOGLE_SERVICE_ACCOUNT_KEY=credentials/google-sheets-key.json"             >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                     >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Criar credenciais Google Sheets
+        run: |
+          mkdir -p credentials
+          echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
+
+      - name: Sincronizar leads do dia
+        run: node tools/leads-hoje.js --agora

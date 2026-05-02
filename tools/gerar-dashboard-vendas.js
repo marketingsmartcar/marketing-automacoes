@@ -13,12 +13,10 @@ const LOJAS_LABEL = {
   BR3:  'BR03 Americana',
   BR4:  'BR04 S. Carlos',
   BR5:  'BR05 Maringá',
-  BR6:  'BR06 Jaú',
-  BR7:  'BR08 Ibitinga',
   PEG1: 'Peg Araraquara',
   PEG2: 'Peg Sorocaba',
 };
-const STORE_KEYS = ['BR1','BR2','BR3','BR4','BR5','BR6','BR7','PEG1','PEG2'];
+const STORE_KEYS = ['BR1','BR2','BR3','BR4','BR5','PEG1','PEG2'];
 
 function brl(v)  { return `R$ ${parseFloat(v||0).toLocaleString('pt-BR', { minimumFractionDigits:0, maximumFractionDigits:0 })}`; }
 function brlK(v) {
@@ -105,8 +103,8 @@ function gerarHTML(oiData, periodoStr, geradoEm) {
                                               $R0(totalOS>0?totalLB/totalOS:null)], 'r-avg');
   const rowPneus = row('Pneus Vendidos', [...keys.map(k=>$N(fv(k,'pneuVendidos'))),      `<strong>${totalPneus||'-'}</strong>`], 'r-pneus');
 
-  const colHeaders = ['BR01','BR02','BR03','BR04','BR05','BR06','BR07','Peg ARQ','Peg SOR','TOTAL']
-    .map((l,i) => `<th${i===9?' class="th-tot"':''}>${l}</th>`).join('');
+  const colHeaders = ['BR01','BR02','BR03','BR04','BR05','Peg ARQ','Peg SOR','TOTAL']
+    .map((l,i) => `<th${i===7?' class="th-tot"':''}>${l}</th>`).join('');
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">

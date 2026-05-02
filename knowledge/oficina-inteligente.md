@@ -14,10 +14,10 @@
 | BR03 | BR Pneus | Americana | `OI_TOKEN_BR03_AMERICANA` | ⚠️ Não |
 | BR04 | BR Pneus | São Carlos | `OI_TOKEN_BR04_SAO_CARLOS` | ⚠️ Não |
 | BR05 | BR Pneus | Maringá | `OI_TOKEN_BR05_MARINGA` | ⚠️ Não |
-| BR06 | BR Pneus | Jaú | `OI_TOKEN_BR06_JAU` | ⚠️ Não |
-| BR08 | BR Pneus | Ibitinga | `OI_TOKEN_BR08_IBITINGA` | ⚠️ Não |
 | PEGI1 | Peg Pneus | Araraquara | `OI_TOKEN_PEG1_ARARAQUARA` | ⚠️ Não |
 | PEGI2 | Peg Pneus | Sorocaba | `OI_TOKEN_PEG2_SOROCABA` | ⚠️ Não |
+| ~~BR06~~ | ~~BR Pneus~~ | ~~Jaú~~ | ~~`OI_TOKEN_BR06_JAU`~~ | **ENCERRADA** |
+| ~~BR08~~ | ~~BR Pneus~~ | ~~Ibitinga~~ | ~~`OI_TOKEN_BR08_IBITINGA`~~ | **ENCERRADA** |
 
 > ⚠️ **Ação necessária:** Para usar a API das lojas com WebServices inativo, acesse Configuração → Integração → marque "Utiliza WebServices da Oficina Inteligente?" e clique em Salvar.
 
@@ -66,7 +66,6 @@ Algumas lojas só funcionam com o Token **Alternativo** (bug do lado deles):
 |------|-------------|
 | BR01 CENTRO | `OI_TOKEN_ALT_BR01_CENTRO` ⚠️ |
 | BR03 AMERICANA | `OI_TOKEN_ALT_BR03_AMERICANA` ⚠️ |
-| BR06 JAÚ | `OI_TOKEN_ALT_BR06_JAU` ⚠️ |
 | Demais | `OI_TOKEN_*` (principal) ✅ |
 
 O script `tools/oficina-inteligente.js` já lida com isso automaticamente.

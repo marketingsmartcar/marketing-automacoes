@@ -21,11 +21,11 @@ Gera análise comparativa de desempenho de marketing entre todas as unidades da 
 | Cidade | Estado | Observações |
 |--------|--------|-------------|
 | Araraquara | SP | Unidade matriz / origem da rede |
-| Ibitinga | SP | |
-| Jaú | SP | |
 | São Carlos | SP | |
 | Americana | SP | |
 | Maringá | PR | Única unidade fora de SP |
+
+> Jaú (BR06) e Ibitinga (BR08) foram encerradas e não participam do benchmark.
 
 ---
 
@@ -37,7 +37,7 @@ Gera análise comparativa de desempenho de marketing entre todas as unidades da 
 
 ```
 Período analisado: [INSERIR]
-Unidades participantes: 6 (Araraquara, Ibitinga, Jaú, São Carlos, Americana, Maringá)
+Unidades participantes: 4 (Araraquara, São Carlos, Americana, Maringá)
 
 DESTAQUES DO PERÍODO:
 🏆 Unidade destaque: [INSERIR] — [motivo em 1 frase]

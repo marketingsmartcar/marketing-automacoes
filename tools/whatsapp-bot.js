@@ -4,8 +4,9 @@ require('dotenv').config();
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode  = require('qrcode-terminal');
-const { execSync } = require('child_process');
+const { execSync, exec } = require('child_process');
 const path    = require('path');
+const fs      = require('fs');
 
 // ─── Configuração ──────────────────────────────────────────────────────────────
 
@@ -15,12 +16,46 @@ const NUMEROS_AUTORIZADOS = (process.env.WHATSAPP_ADMIN_NUMBERS || '')
 
 // WHATSAPP_GRUPO_ID          → destino das mensagens agendadas via !agendar
 // WHATSAPP_GRUPO_AUTOMACAO_ID → relatórios de Ads, stories, avaliações negativas
-const GRUPO_ID         = process.env.WHATSAPP_GRUPO_ID || '';
-const GRUPO_ALERTAS_ID = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID || GRUPO_ID;
+const GRUPO_ID               = process.env.WHATSAPP_GRUPO_ID || '';
+const GRUPO_ALERTAS_ID       = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID || GRUPO_ID;
+const GRUPO_PEG_ATENDIMENTO  = process.env.WHATSAPP_PEG_ATENDIMENTO_ID || '';
 
 const NODE_PATH   = process.execPath;
 const MONITOR_ADS = path.join(__dirname, 'monitor-ads.js');
 const SESSION_DIR = path.join(__dirname, '..', '.wwebjs_auth');
+
+const { processarAtendimento } = require('./peg-atendimento');
+
+const { processarCidade, listarCidadesComVideos } = require('./video-editor/editor-automatico');
+
+// ─── Senhas por setor ──────────────────────────────────────────────────────────
+const SENHAS_SETORES = {
+  'pos venda':          'rTqVB@2025',
+  'pós venda':          'rTqVB@2025',
+  'posvenda':           'rTqVB@2025',
+  'rh':                 'nBvCX@2025',
+  'financeiro':         'vBnJH@2025',
+  'marketing':          'Mkt@2025',
+  'supervisores':       'zXkLP@2025',
+  'supervisor':         'zXkLP@2025',
+  'caixas':             'fGyDS@2025',
+  'caixa':              'fGyDS@2025',
+  'peg pneus':          'pLcNM@2025',
+  'peg':                'pLcNM@2025',
+  'pegpneus':           'pLcNM@2025',
+  'supervisao tecnica': 'Felipe@13',
+  'supervisão técnica': 'Felipe@13',
+  'sup tecnica':        'Felipe@13',
+  'sup técnica':        'Felipe@13',
+  'tecnica':            'Felipe@13',
+  'técnica':            'Felipe@13',
+  'cd':                 'vBnJH@2025',
+  'agendamento':        'XjKqW@2026',
+  'agendamento 1':      'XjKqW@2026',
+  'agendamento 2':      'XjKqW@2026',
+  'estoque':            'vRzQy@2026',
+  'comercial':          'xSwZa@2026',
+};
 
 // ─── Estado de conversas (fluxo multi-etapa) ───────────────────────────────────
 const estadoConversas = new Map();
@@ -29,26 +64,74 @@ const estadoConversas = new Map();
 
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: SESSION_DIR }),
+  webVersionCache: {
+    type: 'remote',
+    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1023287950.html',
+  },
   puppeteer: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   },
 });
 
-// ─── QR Code ───────────────────────────────────────────────────────────────────
+// ─── QR Code — serve imagem PNG em localhost:3200 ──────────────────────────────
 
-client.on('qr', (qr) => {
-  console.clear();
-  console.log('═'.repeat(60));
-  console.log('  📱  WHATSAPP BOT — BR Pneus');
-  console.log('═'.repeat(60));
-  console.log('\n  Escaneie o QR Code abaixo com seu WhatsApp:\n');
-  qrcode.generate(qr, { small: true });
-  console.log('\n  WhatsApp → ⋮ Menu → Dispositivos vinculados → Vincular dispositivo');
-  console.log('═'.repeat(60));
+const QRCode = require('qrcode');
+let _qrBuf = null;
+let _qrServer = null;
+
+function _startQrServer() {
+  if (_qrServer) return;
+  const HTML = `<!DOCTYPE html><html><head><title>WhatsApp QR</title>
+<style>body{background:#111;display:flex;flex-direction:column;align-items:center;
+justify-content:center;height:100vh;margin:0;font-family:sans-serif;color:#fff;}
+img{border:12px solid #fff;border-radius:12px;width:320px;height:320px;}
+p{margin-top:16px;font-size:18px;}small{opacity:.5;font-size:13px;margin-top:6px;display:block;}</style>
+</head><body>
+<div id="m" style="font-size:20px;margin-bottom:16px">⏳ Aguardando QR...</div>
+<img id="q" style="display:none">
+<p>Escaneie com o WhatsApp</p>
+<small>⋮ Menu → Dispositivos vinculados → Vincular dispositivo</small>
+<small>Atualiza a cada 3s</small>
+<script>
+function poll(){fetch('/qr.png?t='+Date.now()).then(r=>{
+  if(r.ok&&r.headers.get('content-type').includes('image')){
+    r.blob().then(b=>{const u=URL.createObjectURL(b);
+      document.getElementById('q').src=u;
+      document.getElementById('q').style.display='block';
+      document.getElementById('m').textContent='📱 Escaneie agora!';
+    });
+  }}).catch(()=>{});
+  setTimeout(poll,3000);}
+poll();
+</script></body></html>`;
+  _qrServer = http.createServer(async (req, res) => {
+    if (req.url.startsWith('/qr.png') && _qrBuf) {
+      res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(_qrBuf);
+    } else if (req.url.startsWith('/qr.png')) {
+      res.writeHead(204); res.end();
+    } else {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(HTML);
+    }
+  });
+  _qrServer.listen(3200, '127.0.0.1', () => {
+    console.log('  🌐  QR disponível em: http://localhost:3200');
+    try { execSync('start http://localhost:3200'); } catch {}
+  });
+}
+
+client.on('qr', async (qr) => {
+  _qrBuf = await QRCode.toBuffer(qr, { scale: 10 });
+  _startQrServer();
+  console.log('  📱  QR atualizado — acesse http://localhost:3200');
 });
 
 client.on('authenticated', () => {
+  if (_qrServer) { _qrServer.close(); _qrServer = null; }
+});
+
+client.on('authenticated', () => {
+  if (_qrServer) { _qrServer.close(); _qrServer = null; }
   console.log('\n✅ Autenticado! Sessão salva — próximo start não precisará de QR.\n');
 });
 
@@ -87,6 +170,9 @@ client.on('ready', async () => {
 
   // Relatório semanal de gasto (toda segunda-feira às 8h05)
   agendarRelatorioSemanal();
+
+  // Parabéns automático de aniversariantes (diário às 8h)
+  agendarAniversarios();
 });
 
 // ─── Helpers de formatação ────────────────────────────────────────────────────
@@ -169,18 +255,34 @@ function formatarAlertaSimples(metaResultados, googleResultados = []) {
   }
 
   // ── Google ──
-  const gVerm = [], gLar = [], gVerd = [];
+  const gVerm = [], gLar = [], gVerd = [], gErro = [];
   for (const r of googleResultados) {
-    if (r.erro || r.saldoDisponivel === null || r.saldoDisponivel === undefined) continue;
-    const saldo     = parseFloat(r.saldoDisponivel);
-    const gasto3d   = parseFloat(r.spend3d || 0);
-    const gasto7d   = parseFloat(r.spend7d || 0);
-    const gastoDia  = gasto3d > 0 ? gasto3d / 3 : gasto7d / 7; // fallback 7d se 3d = 0
-    const dias      = gastoDia > 0 ? `~${Math.floor(saldo / gastoDia)}d` : '—';
-    const linha     = `• ${r.nome} — R$${saldo.toFixed(0)} _(${dias})_`;
-    if (saldo < 100)      gVerm.push(linha);
-    else if (saldo < 200) gLar.push(linha);
-    else                  gVerd.push(linha);
+    if (r.erro) { gErro.push(`• ${r.nome} — ⚠️ ${r.erro.slice(0, 60)}`); continue; }
+
+    const gasto3d  = parseFloat(r.spend3d || 0);
+    const gasto7d  = parseFloat(r.spend7d || 0);
+    const orcDia   = parseFloat(r.orcamentoTotal || 0);
+
+    if (r.saldoDisponivel !== null && r.saldoDisponivel !== undefined) {
+      // Conta pré-paga: exibe saldo + dias restantes
+      const saldo    = parseFloat(r.saldoDisponivel);
+      const gastoDia = gasto3d > 0 ? gasto3d / 3 : gasto7d / 7;
+      const dias     = gastoDia > 0 ? `~${Math.floor(saldo / gastoDia)}d` : '—';
+      const linha    = `• ${r.nome} — R$${saldo.toFixed(0)} _(${dias})_`;
+      if (saldo < 100)      gVerm.push(linha);
+      else if (saldo < 200) gLar.push(linha);
+      else                  gVerd.push(linha);
+    } else {
+      // Conta pós-paga: exibe gasto 3d e orçamento diário
+      const gastoDiaReal = gasto3d > 0 ? (gasto3d / 3).toFixed(0) : (gasto7d / 7).toFixed(0);
+      const orcLabel     = orcDia > 0 ? `Orç: R$${orcDia.toFixed(0)}/d` : 'sem campanha';
+      const linha        = `• ${r.nome} — R$${gastoDiaReal}/d _(${orcLabel})_`;
+      if (orcDia === 0 || (parseFloat(gasto3d) === 0 && parseFloat(gasto7d) === 0)) {
+        gLar.push(linha); // sem gasto = atenção
+      } else {
+        gVerd.push(linha);
+      }
+    }
   }
 
   let msg = `📊 *Dashboard Ads — ${horaAtual()}*\n`;
@@ -198,7 +300,8 @@ function formatarAlertaSimples(metaResultados, googleResultados = []) {
     if (gVerm.length) msg += `\n🔴 *Crítico:*\n${gVerm.join('\n')}`;
     if (gLar.length)  msg += `\n🟠 *Atenção:*\n${gLar.join('\n')}`;
     if (gVerd.length) msg += `\n🟢 *OK:*\n${gVerd.join('\n')}`;
-    if (!gVerm.length && !gLar.length && !gVerd.length) msg += `\n_Sem saldo cadastrado_`;
+    if (gErro.length) msg += `\n⚠️ *Erros:*\n${gErro.join('\n')}`;
+    if (!gVerm.length && !gLar.length && !gVerd.length && !gErro.length) msg += `\n_Sem dados_`;
   }
 
   return msg.trim();
@@ -294,12 +397,16 @@ function agendarAlertasAds() {
       const caption = formatarAlertaSimples(metaRes, googleRes);
       const pngPath = await gerarDashboardPng();
       const media   = MessageMedia.fromFilePath(pngPath);
-      const chat    = await client.getChatById(GRUPO_ALERTAS_ID);
 
-      await chat.sendMessage(media, { caption });
+      console.log(`📤 [${label}] Enviando para grupo ${GRUPO_ALERTAS_ID}...`);
+      await Promise.race([
+        client.sendMessage(GRUPO_ALERTAS_ID, media, { caption }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('sendMessage timeout (90s)')), 90000)),
+      ]);
       console.log(`✅ Relatório das ${label} enviado (Meta + Google).`);
     } catch (err) {
       console.error(`❌ Erro no relatório das ${label}:`, err.message);
+      console.error(err.stack);
     }
   }
 
@@ -432,8 +539,7 @@ function iniciarAlertaSaldoCritico() {
         linhas.join('\n') +
         `\n\n⚡ Recarregue agora para não pausar os anúncios.`;
 
-      const chat = await client.getChatById(GRUPO_ALERTAS_ID);
-      await chat.sendMessage(msg);
+      await client.sendMessage(GRUPO_ALERTAS_ID, msg);
       console.log(`🚨 Alerta de saldo crítico enviado: ${criticos.map(r => r.nome).join(', ')}`);
     } catch (err) {
       console.error('❌ Erro no alerta de saldo crítico:', err.message);
@@ -479,9 +585,8 @@ function agendarVerificacaoTokens() {
         return;
       }
 
-      const chat = await client.getChatById(GRUPO_ALERTAS_ID);
-      if (alertaMeta)   await chat.sendMessage(alertaMeta);
-      if (alertaGoogle) await chat.sendMessage(alertaGoogle);
+      if (alertaMeta)   await client.sendMessage(GRUPO_ALERTAS_ID, alertaMeta);
+      if (alertaGoogle) await client.sendMessage(GRUPO_ALERTAS_ID, alertaGoogle);
       console.log('🔑 Alerta(s) de token enviado(s) ao grupo.');
 
       // Auto-dispara renovação se token Google está crítico (≤ 1 dia)
@@ -560,6 +665,35 @@ function agendarRelatorioSemanal() {
   loop();
 }
 
+// ─── Aniversários automáticos — diário às 8h ─────────────────────────────────
+
+function agendarAniversarios() {
+  function msAte8h() {
+    const agora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const alvo  = new Date(agora);
+    alvo.setHours(8, 0, 0, 0);
+    if (alvo <= agora) alvo.setDate(alvo.getDate() + 1);
+    return alvo - agora;
+  }
+
+  function loop() {
+    const ms   = msAte8h();
+    const horas = Math.round(ms / 3600000);
+    console.log(`🎂 Próxima verificação de aniversários: às 8h (em ~${horas}h).`);
+    setTimeout(async () => {
+      try {
+        const { verificarEDisparar } = require('./checar-aniversarios');
+        await verificarEDisparar(client, GRUPO_ALERTAS_ID);
+      } catch (err) {
+        console.error('❌ Erro no checar-aniversarios:', err.message);
+      }
+      loop();
+    }, ms);
+  }
+
+  loop();
+}
+
 // ─── Monitor automático de avaliações negativas ───────────────────────────────
 
 function iniciarMonitoramentoReviews() {
@@ -605,7 +739,13 @@ client.on('disconnected', (reason) => {
 
 // ─── Processar mensagens ───────────────────────────────────────────────────────
 
+async function responder(msg, texto) {
+  const chat = await msg.getChat();
+  return chat.sendMessage(texto);
+}
+
 async function processarMensagem(msg) {
+  try {
   // Ignorar respostas automáticas do próprio bot
   if (msg.fromMe && /^[✅⏳📅🤖🚨📊⚠️]/.test(msg.body)) return;
 
@@ -618,6 +758,17 @@ async function processarMensagem(msg) {
     if (isGrupo && !corpo.startsWith('!')) return;
     const PALAVRAS_CHAVE = ['ads','saldo','meta','google','grupos','ajuda','help','relatorio','relatório'];
     if (msg.fromMe && !corpo.startsWith('!') && !PALAVRAS_CHAVE.includes(corpo)) return;
+  }
+
+  // ── Primeiro atendimento Peg Pneus (clientes externos) ──────────────────────
+  // Mensagens de números desconhecidos (não-admins) são roteadas para o fluxo
+  // de atendimento Peg Pneus quando WHATSAPP_PEG_ATENDIMENTO_ID está configurado.
+  if (!msg.fromMe && !isGrupo && GRUPO_PEG_ATENDIMENTO && !corpo.startsWith('!')) {
+    const ehAdmin = NUMEROS_AUTORIZADOS.length === 0 || NUMEROS_AUTORIZADOS.includes(remetente);
+    if (!ehAdmin) {
+      const tratado = await processarAtendimento(msg, client, GRUPO_PEG_ATENDIMENTO);
+      if (tratado) return;
+    }
   }
 
   if (!msg.fromMe) {
@@ -652,7 +803,7 @@ async function processarMensagem(msg) {
       return `💰 ${nome}: *R$${ideal}*`;
     });
 
-    await msg.reply(
+    await responder(msg,
       `💳 *Valor de recarga por conta*\n` +
       `_(R$300 por conta)_\n\n` +
       `*Meta Ads:*\n` +
@@ -670,7 +821,7 @@ async function processarMensagem(msg) {
 
   // !renovartoken — inicia renovação do refresh token Google Ads
   if (corpo === '!renovartoken') {
-    await msg.reply('🔑 Iniciando renovação do token Google Ads...\n\nO navegador será aberto no servidor. Complete a autorização para salvar o novo token.');
+    await responder(msg,'🔑 Iniciando renovação do token Google Ads...\n\nO navegador será aberto no servidor. Complete a autorização para salvar o novo token.');
     try {
       const { exec } = require('child_process');
       exec(
@@ -682,29 +833,29 @@ async function processarMensagem(msg) {
           }
         }
       );
-      await msg.reply('✅ Script iniciado. Autorize no navegador do servidor e o token será salvo automaticamente.\n\nApós autorizar, rode:\n`pm2 restart br-pneus-bot --update-env`');
+      await responder(msg,'✅ Script iniciado. Autorize no navegador do servidor e o token será salvo automaticamente.\n\nApós autorizar, rode:\n`pm2 restart br-pneus-bot --update-env`');
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
 
   // !semanal — relatório semanal de spend Meta + Google sob demanda
   if (corpo === '!semanal') {
-    await msg.reply('⏳ Gerando relatório semanal...');
+    await responder(msg,'⏳ Gerando relatório semanal...');
     try {
       const { gerarRelatorioSemanal, formatarRelatorioSemanal } = require('./relatorio-semanal');
       const dados = await gerarRelatorioSemanal();
-      await msg.reply(formatarRelatorioSemanal(dados));
+      await responder(msg,formatarRelatorioSemanal(dados));
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
 
   // !tokens — verifica expiração dos tokens Meta e Google agora
   if (corpo === '!tokens') {
-    await msg.reply('⏳ Verificando tokens Meta e Google...');
+    await responder(msg,'⏳ Verificando tokens Meta e Google...');
     try {
       const { verificarTokens, formatarAlertaTokens }           = require('./monitor-tokens');
       const { verificarTokenGoogle, formatarAlertaTokenGoogle } = require('./monitor-token-google');
@@ -717,28 +868,28 @@ async function processarMensagem(msg) {
       // Meta
       const alertaMeta = formatarAlertaTokens(resultadosMeta);
       if (alertaMeta) {
-        await msg.reply(alertaMeta);
+        await responder(msg,alertaMeta);
       } else {
         const linhas = resultadosMeta.map(r => {
           if (r.erro)         return `❌ ${r.nome}: ${r.erro}`;
           if (r.nuncaExpira)  return `✅ ${r.nome}: nunca expira`;
           return `✅ ${r.nome}: ${r.diasRestantes} dia(s)`;
         });
-        await msg.reply(`🔑 *Tokens Meta — Status*\n\n${linhas.join('\n')}`);
+        await responder(msg,`🔑 *Tokens Meta — Status*\n\n${linhas.join('\n')}`);
       }
 
       // Google
       const alertaGoogle = formatarAlertaTokenGoogle(resultadoGoogle);
       if (alertaGoogle) {
-        await msg.reply(alertaGoogle);
+        await responder(msg,alertaGoogle);
       } else {
         const diasInfo = resultadoGoogle.diasRestantes !== null
           ? `${resultadoGoogle.diasRestantes} dia(s) restante(s)`
           : 'OK';
-        await msg.reply(`🔑 *Token Google Ads — Status*\n\n✅ Google Ads — Refresh Token: ${diasInfo}`);
+        await responder(msg,`🔑 *Token Google Ads — Status*\n\n✅ Google Ads — Refresh Token: ${diasInfo}`);
       }
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -763,14 +914,17 @@ async function processarMensagem(msg) {
       const media   = MessageMedia.fromFilePath(pngPath);
 
       if (GRUPO_ALERTAS_ID) {
-        const chat = await client.getChatById(GRUPO_ALERTAS_ID);
-        await chat.sendMessage(media, { caption: formatarAlertaSimples(metaRes, googleRes) });
-        await msg.reply('✅ Meta + Google enviados ao grupo.');
+        console.log(`📤 [!alertagrupo] Enviando para grupo ${GRUPO_ALERTAS_ID}...`);
+        await Promise.race([
+          client.sendMessage(GRUPO_ALERTAS_ID, media, { caption: formatarAlertaSimples(metaRes, googleRes) }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('sendMessage timeout (90s)')), 90000)),
+        ]);
+        await responder(msg, '✅ Meta + Google enviados ao grupo.');
       } else {
-        await msg.reply('⚠️ WHATSAPP_GRUPO_AUTOMACAO_ID não configurado.');
+        await responder(msg, '⚠️ WHATSAPP_GRUPO_AUTOMACAO_ID não configurado.');
       }
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -783,9 +937,9 @@ async function processarMensagem(msg) {
       const [mR, gR] = await Promise.allSettled([monitorarMeta(), monitorarGoogle()]);
       const metaRes   = mR.status === 'fulfilled' ? mR.value.resultados   : [];
       const googleRes = gR.status === 'fulfilled' ? gR.value.resultados   : [];
-      await msg.reply(formatarAlertaSimples(metaRes, googleRes));
+      await responder(msg,formatarAlertaSimples(metaRes, googleRes));
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -804,11 +958,11 @@ async function processarMensagem(msg) {
         g.status === 'fulfilled' ? g.value.resultados : [],
       ]);
 
-      await msg.reply(formatarRelatorioCompleto(metaRes));
+      await responder(msg,formatarRelatorioCompleto(metaRes));
       await new Promise(r => setTimeout(r, 1500));
-      await msg.reply(formatarAlertaGoogle(googleRes));
+      await responder(msg,formatarAlertaGoogle(googleRes));
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -818,9 +972,9 @@ async function processarMensagem(msg) {
     try {
       const { monitorarTodas } = require('./monitor-google-ads');
       const { resultados } = await monitorarTodas();
-      await msg.reply(formatarAlertaGoogle(resultados));
+      await responder(msg,formatarAlertaGoogle(resultados));
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -837,13 +991,13 @@ async function processarMensagem(msg) {
   if (estadoUsuario?.etapa === 'aguardando_imagem') {
     if (corpo === 'pular') {
       estadoConversas.set(remetente, { etapa: 'aguardando_texto', dados: { ...estadoUsuario.dados, imagemPath: null } });
-      await msg.reply('Ok! Agora envie o *texto da mensagem*.');
+      await responder(msg,'Ok! Agora envie o *texto da mensagem*.');
     } else if (msg.hasMedia) {
       const imagemPath = await salvarMidia(msg);
       estadoConversas.set(remetente, { etapa: 'aguardando_texto', dados: { ...estadoUsuario.dados, imagemPath } });
-      await msg.reply('✅ Imagem recebida!\n\nAgora envie o *texto da mensagem*.\n\n_(ou envie `pular` para enviar só a imagem)_');
+      await responder(msg,'✅ Imagem recebida!\n\nAgora envie o *texto da mensagem*.\n\n_(ou envie `pular` para enviar só a imagem)_');
     } else {
-      await msg.reply('⚠️ Envie a imagem/arte agora.\n\n_(ou `pular` para só texto, ou `cancelar` para desistir)_');
+      await responder(msg,'⚠️ Envie a imagem/arte agora.\n\n_(ou `pular` para só texto, ou `cancelar` para desistir)_');
     }
     return;
   }
@@ -852,7 +1006,7 @@ async function processarMensagem(msg) {
   if (estadoUsuario?.etapa === 'aguardando_texto') {
     if (corpo === 'cancelar') {
       estadoConversas.delete(remetente);
-      await msg.reply('❌ Agendamento cancelado.');
+      await responder(msg,'❌ Agendamento cancelado.');
       return;
     }
     try {
@@ -862,7 +1016,7 @@ async function processarMensagem(msg) {
       const item = adicionarAgendamento({ data, hora, mensagem: texto, imagemPath, mentionedIds });
       estadoConversas.delete(remetente);
 
-      await msg.reply(
+      await responder(msg,
         `✅ *Mensagem agendada! #${item.id}*\n\n` +
         `📅 Data: *${data}*\n` +
         `⏰ Hora: *${hora}*\n` +
@@ -874,7 +1028,7 @@ async function processarMensagem(msg) {
     } catch (err) {
       estadoConversas.delete(remetente);
       console.error('Erro no agendamento etapa 3:', err.message);
-      await msg.reply(`❌ Erro ao salvar agendamento: ${err.message}`);
+      await responder(msg,`❌ Erro ao salvar agendamento: ${err.message}`);
     }
     return;
   }
@@ -886,59 +1040,59 @@ async function processarMensagem(msg) {
 
   // Estado: aguardando escolha de empresa — colaborador
   if (estadoUsuario?.etapa === 'colab_empresa') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
     const marcaRaw = corpo.toLowerCase().replace(/[^a-z0-9]/g, '');
     const marca = MARCAS_VALIDAS[marcaRaw];
-    if (!marca) { await msg.reply('⚠️ Opção inválida. Responda com *1*, *2* ou *3* (ou `cancelar`).'); return; }
+    if (!marca) { await responder(msg,'⚠️ Opção inválida. Responda com *1*, *2* ou *3* (ou `cancelar`).'); return; }
     estadoConversas.set(remetente, { etapa: 'colab_foto', dados: { marca } });
-    await msg.reply(`✅ *${LABELS[marca]}*\n\n📸 Envie a *foto* da pessoa.\n\n_(ou \`cancelar\` para desistir)_`);
+    await responder(msg,`✅ *${LABELS[marca]}*\n\n📸 Envie a *foto* da pessoa.\n\n_(ou \`cancelar\` para desistir)_`);
     return;
   }
 
   // Estado: aguardando escolha de empresa — aniversário
   if (estadoUsuario?.etapa === 'aniv_empresa') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
     const marcaRaw = corpo.toLowerCase().replace(/[^a-z0-9]/g, '');
     const marca = MARCAS_VALIDAS[marcaRaw];
-    if (!marca) { await msg.reply('⚠️ Opção inválida. Responda com *1*, *2* ou *3* (ou `cancelar`).'); return; }
+    if (!marca) { await responder(msg,'⚠️ Opção inválida. Responda com *1*, *2* ou *3* (ou `cancelar`).'); return; }
     estadoConversas.set(remetente, { etapa: 'aniv_foto', dados: { marca } });
-    await msg.reply(`✅ *${LABELS[marca]}*\n\n📸 Envie a *foto* da pessoa.\n\n_(ou \`cancelar\` para desistir)_`);
+    await responder(msg,`✅ *${LABELS[marca]}*\n\n📸 Envie a *foto* da pessoa.\n\n_(ou \`cancelar\` para desistir)_`);
     return;
   }
 
   // Estado: aguardando foto do colaborador
   if (estadoUsuario?.etapa === 'colab_foto') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
-    if (!msg.hasMedia) { await msg.reply('📸 Envie a *foto* da pessoa (ou `cancelar`).'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
+    if (!msg.hasMedia) { await responder(msg,'📸 Envie a *foto* da pessoa (ou `cancelar`).'); return; }
     const fotoPath = await salvarMidia(msg);
     estadoConversas.set(remetente, { etapa: 'colab_nome', dados: { ...estadoUsuario.dados, fotoPath } });
-    await msg.reply('✅ Foto recebida!\n\nAgora envie o *nome completo*:');
+    await responder(msg,'✅ Foto recebida!\n\nAgora envie o *nome completo*:');
     return;
   }
 
   // Estado: aguardando nome do colaborador
   if (estadoUsuario?.etapa === 'colab_nome') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
     estadoConversas.set(remetente, { etapa: 'colab_cargo', dados: { ...estadoUsuario.dados, nome: msg.body.trim() } });
-    await msg.reply('👍 Agora envie o *cargo*:\n\n_Ex: Mecânico, Consultora de Vendas, Caixa..._');
+    await responder(msg,'👍 Agora envie o *cargo*:\n\n_Ex: Mecânico, Consultora de Vendas, Caixa..._');
     return;
   }
 
   // Estado: aguardando cargo do colaborador
   if (estadoUsuario?.etapa === 'colab_cargo') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
     estadoConversas.set(remetente, { etapa: 'colab_cidade', dados: { ...estadoUsuario.dados, cargo: msg.body.trim() } });
-    await msg.reply('📍 Agora envie a *cidade/loja*:\n\n_Ex: Araraquara, São Carlos, Maringá..._');
+    await responder(msg,'📍 Agora envie a *cidade/loja*:\n\n_Ex: Araraquara, São Carlos, Maringá..._');
     return;
   }
 
   // Estado: aguardando cidade do colaborador → gera arte
   if (estadoUsuario?.etapa === 'colab_cidade') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
     const { marca, fotoPath, nome, cargo, chatId } = estadoUsuario.dados;
     const cidade = msg.body.trim();
     estadoConversas.delete(remetente);
-    await msg.reply('⏳ Gerando arte... aguarde.');
+    await responder(msg,'⏳ Gerando arte... aguarde.');
     try {
       const { gerarColaborador } = require('./gerar-arte');
       const pngPath = await gerarColaborador({ marca, nome, cargo, cidade, fotoPath });
@@ -946,28 +1100,28 @@ async function processarMensagem(msg) {
       const media = MessageMedia.fromFilePath(pngPath);
       await client.sendMessage(GRUPO_ALERTAS_ID, media, { caption: `✅ *Bem-vindo(a) ${nome}!*\n${cargo} — ${cidade}` });
     } catch (err) {
-      await msg.reply(`❌ Erro ao gerar arte: ${err.message}`);
+      await responder(msg,`❌ Erro ao gerar arte: ${err.message}`);
     }
     return;
   }
 
   // Estado: aguardando foto do aniversariante
   if (estadoUsuario?.etapa === 'aniv_foto') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
-    if (!msg.hasMedia) { await msg.reply('📸 Envie a *foto* da pessoa (ou `cancelar`).'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
+    if (!msg.hasMedia) { await responder(msg,'📸 Envie a *foto* da pessoa (ou `cancelar`).'); return; }
     const fotoPath = await salvarMidia(msg);
     estadoConversas.set(remetente, { etapa: 'aniv_nome', dados: { ...estadoUsuario.dados, fotoPath } });
-    await msg.reply('✅ Foto recebida!\n\nAgora envie o *nome* do(a) aniversariante:');
+    await responder(msg,'✅ Foto recebida!\n\nAgora envie o *nome* do(a) aniversariante:');
     return;
   }
 
   // Estado: aguardando nome do aniversariante → gera arte
   if (estadoUsuario?.etapa === 'aniv_nome') {
-    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await msg.reply('❌ Cancelado.'); return; }
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
     const { marca, fotoPath, chatId } = estadoUsuario.dados;
     const nome = msg.body.trim();
     estadoConversas.delete(remetente);
-    await msg.reply('⏳ Gerando arte... aguarde.');
+    await responder(msg,'⏳ Gerando arte... aguarde.');
     try {
       const { gerarAniversario } = require('./gerar-arte');
       const pngPath = await gerarAniversario({ marca, nome, fotoPath });
@@ -975,8 +1129,314 @@ async function processarMensagem(msg) {
       const media = MessageMedia.fromFilePath(pngPath);
       await client.sendMessage(GRUPO_ALERTAS_ID, media, { caption: `🎂 *Parabéns ${nome}!*` });
     } catch (err) {
-      await msg.reply(`❌ Erro ao gerar arte: ${err.message}`);
+      await responder(msg,`❌ Erro ao gerar arte: ${err.message}`);
     }
+    return;
+  }
+
+  // ─── FLUXO: !aniversariantes (cadastro em massa) ────────────────────────────
+
+  // Estado: aguardando mês
+  if (estadoUsuario?.etapa === 'aniv_massa_mes') {
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
+    const mes = corpo.trim().padStart(2, '0');
+    if (!/^(0[1-9]|1[0-2])$/.test(mes)) {
+      await responder(msg,'⚠️ Mês inválido. Envie um número de 1 a 12 (ex: *5* para Maio).');
+      return;
+    }
+    const NOMES_MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    estadoConversas.set(remetente, { etapa: 'aniv_massa_lista', dados: { mes } });
+    await responder(msg,
+      `📅 *${NOMES_MESES[parseInt(mes,10)]}* selecionado!\n\n` +
+      `Agora manda a lista (uma por linha):\n\n` +
+      `_Nome - Loja - Dia_\n\n` +
+      `Exemplo:\n` +
+      `Evandro - Vila - 01\n` +
+      `Julia - Smartcar - 05\n` +
+      `Tiago - São Carlos - 18\n\n` +
+      `_(ou \`cancelar\`)_`
+    );
+    return;
+  }
+
+  // Estado: aguardando lista
+  if (estadoUsuario?.etapa === 'aniv_massa_lista') {
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
+    const { mes } = estadoUsuario.dados;
+    const NOMES_MESES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    const LOJA_INFO = {
+      'smartcar':    { marca: 'smartcar', loja: 'SmartCar' },
+      'smart car':   { marca: 'smartcar', loja: 'SmartCar' },
+      'smart':       { marca: 'smartcar', loja: 'SmartCar' },
+      'vila':        { marca: 'brpneus',  loja: 'BR Pneus Vila' },
+      'centro':      { marca: 'brpneus',  loja: 'BR Pneus Centro' },
+      'americana':   { marca: 'brpneus',  loja: 'BR Pneus Americana' },
+      'sao carlos':  { marca: 'brpneus',  loja: 'BR Pneus São Carlos' },
+      'maringa':     { marca: 'brpneus',  loja: 'BR Pneus Maringá' },
+      'jau':         { marca: 'brpneus',  loja: 'BR Pneus Jaú' },
+      'ibitinga':    { marca: 'brpneus',  loja: 'BR Pneus Ibitinga' },
+      'sorocaba':    { marca: 'pegpneus', loja: 'Peg Pneus Sorocaba' },
+      'peg':         { marca: 'pegpneus', loja: 'Peg Pneus Araraquara' },
+      'peg pneus':   { marca: 'pegpneus', loja: 'Peg Pneus Araraquara' },
+    };
+
+    function normalizarLoja(raw) {
+      const key = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+      return LOJA_INFO[key] || { marca: 'brpneus', loja: raw.trim() };
+    }
+
+    const linhas = msg.body.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    const pessoas = [];
+    const erros   = [];
+
+    for (const linha of linhas) {
+      const partes = linha.split(/\s*[-–|;]\s*/);
+      if (partes.length < 3) { erros.push(`"${linha}"`); continue; }
+      const nome = partes[0].trim();
+      const dia  = partes[partes.length - 1].trim().padStart(2,'0');
+      const lojaRaw = partes.slice(1, partes.length - 1).join(' ').trim();
+      if (!nome || !/^\d{2}$/.test(dia) || +dia < 1 || +dia > 31) { erros.push(`"${linha}"`); continue; }
+      const { marca, loja } = normalizarLoja(lojaRaw);
+      pessoas.push({ nome, data: `${dia}/${mes}`, loja, marca, foto: null });
+    }
+
+    if (pessoas.length === 0) {
+      await responder(msg,'❌ Nenhuma linha válida. Formato: _Nome - Loja - Dia_');
+      return;
+    }
+
+    // Merge no JSON
+    const ARQUIVO_JSON = path.join(__dirname, '..', 'data', 'aniversariantes.json');
+    const existentes = fs.existsSync(ARQUIVO_JSON) ? JSON.parse(fs.readFileSync(ARQUIVO_JSON,'utf8')) : [];
+    for (const nova of pessoas) {
+      const idx = existentes.findIndex(e => e.nome === nova.nome && e.data === nova.data);
+      if (idx >= 0) {
+        existentes[idx] = { ...existentes[idx], ...nova, foto: existentes[idx].foto };
+      } else {
+        existentes.push(nova);
+      }
+    }
+    fs.writeFileSync(ARQUIVO_JSON, JSON.stringify(existentes, null, 2), 'utf8');
+
+    const listaConfirm = pessoas.map(p => `• ${p.data} — *${p.nome}* (${p.loja})`).join('\n');
+    const primeira = pessoas[0];
+    let resp = `✅ *${pessoas.length} pessoa(s) de ${NOMES_MESES[parseInt(mes,10)]} salvas!*\n\n${listaConfirm}`;
+    if (erros.length) resp += `\n\n⚠️ Linhas ignoradas:\n${erros.join('\n')}`;
+    resp += `\n\n📸 Manda a foto de:\n*${primeira.nome}* (${primeira.data} — ${primeira.loja})\n\n_(ou \`pular\` / \`cancelar\`)_`;
+
+    estadoConversas.set(remetente, { etapa: 'aniv_massa_foto', dados: { pessoas, index: 0, chatId: msg.from } });
+    await responder(msg, resp);
+    return;
+  }
+
+  // Estado: aguardando foto de cada pessoa (loop)
+  if (estadoUsuario?.etapa === 'aniv_massa_foto') {
+    const { pessoas, index, chatId } = estadoUsuario.dados;
+    const pessoa = pessoas[index];
+
+    if (corpo === 'cancelar') {
+      estadoConversas.delete(remetente);
+      await responder(msg,'❌ Encerrado. Pessoas já salvas no JSON permanecem. Use `!aniversariantes` para retomar.');
+      return;
+    }
+
+    async function avancarMassa(msgAtual) {
+      const prox = index + 1;
+      if (prox >= pessoas.length) {
+        estadoConversas.delete(remetente);
+        await responder(msgAtual, `🎉 *Tudo pronto!* ${pessoas.length} arte(s) gerada(s) e enviada(s)!`);
+      } else {
+        const p = pessoas[prox];
+        estadoConversas.set(remetente, { etapa: 'aniv_massa_foto', dados: { pessoas, index: prox, chatId } });
+        await responder(msgAtual, `📸 Manda a foto de:\n*${p.nome}* (${p.data} — ${p.loja})\n\n_(ou \`pular\` / \`cancelar\`)_`);
+      }
+    }
+
+    if (corpo === 'pular') {
+      await responder(msg, `⏭️ *${pessoa.nome}* pulada (sem foto).`);
+      await avancarMassa(msg);
+      return;
+    }
+
+    if (!msg.hasMedia) {
+      await responder(msg, `📸 Envie a *foto* de *${pessoa.nome}* (ou \`pular\` / \`cancelar\`).`);
+      return;
+    }
+
+    await responder(msg, `⏳ Gerando arte de *${pessoa.nome}*...`);
+    try {
+      const fotoTemp = await salvarMidia(msg);
+
+      // Salva foto em assets/colaboradores/ para reusar no disparo automático
+      const COLABS_DIR = path.join(__dirname, '..', 'assets', 'colaboradores');
+      fs.mkdirSync(COLABS_DIR, { recursive: true });
+      const ext = path.extname(fotoTemp) || '.jpg';
+      const fotoDestino = path.join(COLABS_DIR, `${pessoa.nome.replace(/\s+/g,'_')}_${pessoa.data.replace('/','- ')}.jpg`.replace('- ','- ').replace('- ','_'));
+      const fotoPerm = path.join(COLABS_DIR, `${pessoa.nome.replace(/\s+/g,'_')}_${pessoa.data.replace('/','- ')}${ext}`);
+      fs.copyFileSync(fotoTemp, fotoPerm);
+
+      // Atualiza o JSON com o caminho da foto
+      const ARQUIVO_JSON = path.join(__dirname, '..', 'data', 'aniversariantes.json');
+      const lista = JSON.parse(fs.readFileSync(ARQUIVO_JSON,'utf8'));
+      const jIdx  = lista.findIndex(e => e.nome === pessoa.nome && e.data === pessoa.data);
+      if (jIdx >= 0) lista[jIdx].foto = fotoPerm;
+      fs.writeFileSync(ARQUIVO_JSON, JSON.stringify(lista, null, 2), 'utf8');
+
+      // Gera arte
+      const { gerarAniversario } = require('./gerar-arte');
+      const pngGerado = await gerarAniversario({ marca: pessoa.marca, nome: pessoa.nome, fotoPath: fotoPerm });
+
+      // Renomeia para Nome_DD-MM.png
+      const nomeArq = `${pessoa.nome.replace(/\s+/g,'_')}_${pessoa.data.replace('/','-')}.png`;
+      const pngFinal = path.join(path.dirname(pngGerado), nomeArq);
+      if (fs.existsSync(pngFinal)) fs.unlinkSync(pngFinal);
+      fs.renameSync(pngGerado, pngFinal);
+
+      // Envia como documento (arquivo baixável com nome visível)
+      const { MessageMedia } = require('whatsapp-web.js');
+      const mediaData = fs.readFileSync(pngFinal).toString('base64');
+      const media = new MessageMedia('image/png', mediaData, nomeArq);
+      const chat  = await client.getChatById(chatId);
+      await chat.sendMessage(media, { sendMediaAsDocument: true, caption: `🎂 *${pessoa.nome}* — ${pessoa.data}` });
+      console.log(`✅ Arte massa: ${nomeArq}`);
+    } catch (err) {
+      console.error(`❌ Arte massa ${pessoa.nome}:`, err.message);
+      await responder(msg, `❌ Erro ao gerar *${pessoa.nome}*: ${err.message}\n\nMande a foto novamente ou \`pular\`.`);
+      return;
+    }
+
+    await avancarMassa(msg);
+    return;
+  }
+
+  // ─── FLUXO: !editar ──────────────────────────────────────────────────────────
+
+  // Estado: aguardando escolha de cidade
+  if (estadoUsuario?.etapa === 'editar_cidade') {
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
+
+    const cidades = estadoUsuario.dados.cidades;
+    const idx = parseInt(corpo, 10);
+    let cidadeEscolhida = null;
+
+    if (!isNaN(idx) && idx >= 1 && idx <= cidades.length) {
+      cidadeEscolhida = cidades[idx - 1];
+    } else {
+      cidadeEscolhida = cidades.find(c => c.toLowerCase().includes(corpo.toLowerCase()));
+    }
+
+    if (!cidadeEscolhida) {
+      await responder(msg,`⚠️ Opção inválida. Responda com o *número* da cidade (ou \`cancelar\`).`);
+      return;
+    }
+
+    estadoConversas.set(remetente, { etapa: 'editar_modo', dados: { cidade: cidadeEscolhida } });
+    await responder(msg,
+      `🎬 *${cidadeEscolhida}* selecionada!\n\n` +
+      `Escolha o modo de edição:\n\n` +
+      `1️⃣ *Com áudio* — vídeo narrado com legendas\n` +
+      `2️⃣ *Sem voz* — todos os clips com música de fundo e transições\n\n` +
+      `_(ou \`cancelar\` para desistir)_`
+    );
+    return;
+  }
+
+  // Estado: aguardando escolha de modo (com áudio / sem voz)
+  if (estadoUsuario?.etapa === 'editar_modo') {
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
+
+    const { cidade } = estadoUsuario.dados;
+    let modo = null;
+
+    if (corpo === '1' || corpo.includes('com') || corpo.includes('audio') || corpo.includes('áudio')) {
+      modo = 'com_audio';
+    } else if (corpo === '2' || corpo.includes('sem') || corpo.includes('voz') || corpo.includes('musica') || corpo.includes('música')) {
+      modo = 'sem_voz';
+    }
+
+    if (!modo) {
+      await responder(msg,`⚠️ Opção inválida. Responda com *1* (Com áudio) ou *2* (Sem voz).`);
+      return;
+    }
+
+    // sem_voz não precisa de subtipo — inicia direto
+    if (modo === 'sem_voz') {
+      estadoConversas.delete(remetente);
+      await responder(msg,`🎬 Iniciando edição de *${cidade}* — Sem voz 🎵\nVou avisar quando terminar!`);
+      processarCidade(cidade, null, 'sem_voz', 'juntar')
+        .then(async ({ cidade: c, numClips, pasta }) => {
+          const chat = await client.getChatById(GRUPO_ALERTAS_ID || msg.from);
+          await chat.sendMessage(
+            `✅ *Edição concluída!*\n\n📍 Cidade: *${c}*\n🎞️ Clips gerados: *${numClips}*\n📁 Pasta: ${pasta}`
+          );
+        })
+        .catch(async (err) => {
+          const chat = await client.getChatById(GRUPO_ALERTAS_ID || msg.from);
+          await chat.sendMessage(`❌ Erro ao editar *${cidade}*: ${err.message}`);
+        });
+      return;
+    }
+
+    // com_audio → perguntar subtipo
+    estadoConversas.set(remetente, { etapa: 'editar_subtipo', dados: { cidade } });
+    await responder(msg,
+      `🎙️ *Com áudio* selecionado!\n\n` +
+      `Como deseja editar os clips?\n\n` +
+      `1️⃣ *Clips individuais* — cada arquivo editado separado (máx. 30s, melhores partes)\n` +
+      `2️⃣ *Juntar todos* — concatena tudo e divide em clips de 30s\n\n` +
+      `_(ou \`cancelar\` para desistir)_`
+    );
+    return;
+  }
+
+  // Estado: aguardando subtipo de edição com áudio (individuais / juntar)
+  if (estadoUsuario?.etapa === 'editar_subtipo') {
+    if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
+
+    const { cidade } = estadoUsuario.dados;
+    let subtipo = null;
+
+    if (corpo === '1' || corpo.includes('individual') || corpo.includes('separa') || corpo.includes('cada')) {
+      subtipo = 'individuais';
+    } else if (corpo === '2' || corpo.includes('junt') || corpo.includes('todos') || corpo.includes('concat')) {
+      subtipo = 'juntar';
+    }
+
+    if (!subtipo) {
+      await responder(msg,`⚠️ Opção inválida. Responda com *1* (Clips individuais) ou *2* (Juntar todos).`);
+      return;
+    }
+
+    estadoConversas.delete(remetente);
+    const subLabel = subtipo === 'individuais' ? 'Clips individuais' : 'Juntar todos';
+    await responder(msg,`🎬 Iniciando edição de *${cidade}* — Com áudio 🎙️ / ${subLabel}\nVou avisar quando terminar!`);
+
+    processarCidade(cidade, null, 'com_audio', subtipo)
+      .then(async ({ cidade: c, numClips, pasta }) => {
+        const chat = await client.getChatById(GRUPO_ALERTAS_ID || msg.from);
+        await chat.sendMessage(
+          `✅ *Edição concluída!*\n\n📍 Cidade: *${c}*\n🎞️ Clips gerados: *${numClips}*\n📁 Pasta: ${pasta}`
+        );
+      })
+      .catch(async (err) => {
+        const chat = await client.getChatById(GRUPO_ALERTAS_ID || msg.from);
+        await chat.sendMessage(`❌ Erro ao editar *${cidade}*: ${err.message}`);
+      });
+
+    return;
+  }
+
+  // COMANDO: !editar
+  if (corpo.startsWith('!editar')) {
+    const cidades = listarCidadesComVideos();
+    if (cidades.length === 0) {
+      await responder(msg,'📂 Nenhum vídeo encontrado nas pastas de edição.\n\nColoque os vídeos em:\n`#1 PARA EDITAR/{cidade}/`');
+      return;
+    }
+    const lista = cidades.map((c, i) => `${i + 1}️⃣ ${c}`).join('\n');
+    estadoConversas.set(remetente, { etapa: 'editar_cidade', dados: { cidades } });
+    await responder(msg,`🎬 *Editor de Vídeos*\n\nCidades com vídeos prontos:\n\n${lista}\n\n_Responda com o número da cidade (ou \`cancelar\`)_`);
     return;
   }
 
@@ -984,7 +1444,19 @@ async function processarMensagem(msg) {
   if (corpo.startsWith('!colaborador')) {
     const MENU_EMPRESA = '🎉 *Arte de Novo Colaborador*\n\nEscolha a empresa:\n1️⃣ BR Pneus & Oficina\n2️⃣ Peg Pneus Atacarejo\n3️⃣ SmartCar\n\n_(ou `cancelar` para desistir)_';
     estadoConversas.set(remetente, { etapa: 'colab_empresa', dados: { chatId: msg.from } });
-    await msg.reply(MENU_EMPRESA);
+    await responder(msg,MENU_EMPRESA);
+    return;
+  }
+
+  // COMANDO: !aniversariantes (cadastro em massa)
+  if (corpo.startsWith('!aniversariantes')) {
+    estadoConversas.set(remetente, { etapa: 'aniv_massa_mes', dados: { chatId: msg.from } });
+    await responder(msg,
+      '🎂 *Cadastro em Massa de Aniversariantes*\n\n' +
+      'Para qual mês?\n\n' +
+      '_Envie o número (ex: *5* para Maio, *12* para Dezembro)_\n\n' +
+      '_(ou `cancelar` para desistir)_'
+    );
     return;
   }
 
@@ -992,7 +1464,7 @@ async function processarMensagem(msg) {
   if (corpo.startsWith('!aniversario') || corpo.startsWith('!aniversário')) {
     const MENU_EMPRESA = '🎂 *Arte de Aniversariante*\n\nEscolha a empresa:\n1️⃣ BR Pneus & Oficina\n2️⃣ Peg Pneus Atacarejo\n3️⃣ SmartCar\n\n_(ou `cancelar` para desistir)_';
     estadoConversas.set(remetente, { etapa: 'aniv_empresa', dados: { chatId: msg.from } });
-    await msg.reply(MENU_EMPRESA);
+    await responder(msg,MENU_EMPRESA);
     return;
   }
 
@@ -1000,7 +1472,7 @@ async function processarMensagem(msg) {
   if (corpo.startsWith('!agendar')) {
     const partes = msg.body.trim().split(/\s+/);
     if (partes.length < 3) {
-      await msg.reply(
+      await responder(msg,
         '📅 *Como agendar uma mensagem:*\n\n' +
         '`!agendar DD/MM HH:MM`\n\n' +
         'Exemplos:\n`!agendar 25/04 09:00`\n`!agendar 01/05 14:30`\n\n' +
@@ -1013,19 +1485,19 @@ async function processarMensagem(msg) {
     const hora  = partes[2];
 
     if (!/^\d{2}:\d{2}$/.test(hora)) {
-      await msg.reply('⚠️ Hora inválida. Use HH:MM, ex: `09:00`');
+      await responder(msg,'⚠️ Hora inválida. Use HH:MM, ex: `09:00`');
       return;
     }
     if (dataRaw.split('/').length === 2) dataRaw += `/${new Date().getFullYear()}`;
     const [d, m, a] = dataRaw.split('/');
     if (!d || !m || !a || isNaN(new Date(`${a}-${m}-${d}`))) {
-      await msg.reply('⚠️ Data inválida. Use DD/MM ou DD/MM/AAAA, ex: `25/04`');
+      await responder(msg,'⚠️ Data inválida. Use DD/MM ou DD/MM/AAAA, ex: `25/04`');
       return;
     }
     const data = `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${a}`;
 
     estadoConversas.set(remetente, { etapa: 'aguardando_imagem', dados: { data, hora } });
-    await msg.reply(
+    await responder(msg,
       `📅 Agendando para *${data} às ${hora}*\n\n` +
       `Envie a *imagem/arte* que será postada.\n\n` +
       `_(ou envie \`pular\` para só texto)_`
@@ -1035,7 +1507,7 @@ async function processarMensagem(msg) {
 
   // COMANDO: !agendamentos
   if (corpo === '!agendamentos' || corpo === '!agenda') {
-    await msg.reply(formatarLista());
+    await responder(msg,formatarLista());
     return;
   }
 
@@ -1044,9 +1516,9 @@ async function processarMensagem(msg) {
     const id = corpo.split(' ')[1];
     const item = cancelarAgendamento(id);
     if (!item) {
-      await msg.reply(`⚠️ Agendamento #${id} não encontrado.`);
+      await responder(msg,`⚠️ Agendamento #${id} não encontrado.`);
     } else {
-      await msg.reply(`✅ Agendamento #${id} cancelado.\n📅 Era para ${item.data} às ${item.hora}.`);
+      await responder(msg,`✅ Agendamento #${id} cancelado.\n📅 Era para ${item.data} às ${item.hora}.`);
     }
     return;
   }
@@ -1055,11 +1527,11 @@ async function processarMensagem(msg) {
   if (corpo === '!grupos' || corpo === 'grupos') {
     const chats = await client.getChats();
     const grupos = chats.filter(c => c.isGroup);
-    if (grupos.length === 0) { await msg.reply('Nenhum grupo encontrado.'); return; }
+    if (grupos.length === 0) { await responder(msg,'Nenhum grupo encontrado.'); return; }
     let lista = '📋 *Grupos disponíveis:*\n\n';
     for (const g of grupos) lista += `• *${g.name}*\n  ID: \`${g.id._serialized}\`\n\n`;
     lista += 'Configure no .env:\n`WHATSAPP_GRUPO_ID` → mensagens agendadas\n`WHATSAPP_GRUPO_AUTOMACAO_ID` → relatórios de Ads';
-    await msg.reply(lista);
+    await responder(msg,lista);
     return;
   }
 
@@ -1071,11 +1543,12 @@ async function processarMensagem(msg) {
   if (corpo.startsWith('!fixo ')) {
     const partes = msg.body.trim().split(/\s+/);
     if (partes.length < 3) {
-      await msg.reply(
+      await responder(msg,
         '🔁 *Como criar um post recorrente:*\n\n' +
-        '`!fixo DIA HH:MM`\n\n' +
+        '`!fixo DIA HH:MM [numero]`\n\n' +
         'Dias: `seg` `ter` `qua` `qui` `sex` `sab` `dom`\n\n' +
-        'Exemplos:\n`!fixo seg 09:00` → toda segunda às 9h\n`!fixo qui 11:00` → toda quinta às 11h'
+        'Exemplos:\n`!fixo seg 09:00` → toda segunda (grupo padrão)\n' +
+        '`!fixo qui 11:00 5516999999999` → toda quinta para um número específico'
       );
       return;
     }
@@ -1084,17 +1557,25 @@ async function processarMensagem(msg) {
     const diaSemana = rec.DIAS[diaStr];
 
     if (diaSemana === undefined) {
-      await msg.reply('⚠️ Dia inválido. Use: `seg` `ter` `qua` `qui` `sex` `sab` `dom`');
+      await responder(msg,'⚠️ Dia inválido. Use: `seg` `ter` `qua` `qui` `sex` `sab` `dom`');
       return;
     }
     if (!/^\d{2}:\d{2}$/.test(hora)) {
-      await msg.reply('⚠️ Hora inválida. Use HH:MM, ex: `09:00`');
+      await responder(msg,'⚠️ Hora inválida. Use HH:MM, ex: `09:00`');
       return;
     }
 
-    estadoConversas.set(remetente, { etapa: 'fixo_aguardando_imagem', dados: { diaSemana, hora, diaStr } });
-    await msg.reply(
-      `🔁 Criando post recorrente: *${rec.DIAS_NOME[diaSemana]} às ${hora}*\n\n` +
+    // Número opcional no 4º parâmetro: 5516999999999 → 5516999999999@c.us
+    let grupoId = null;
+    if (partes[3]) {
+      const num = partes[3].replace(/\D/g, '');
+      grupoId = num.endsWith('@c.us') || num.endsWith('@g.us') ? num : `${num}@c.us`;
+    }
+
+    const destLabel = grupoId ? `📱 ${partes[3].replace(/\D/g,'')}` : '👥 grupo padrão';
+    estadoConversas.set(remetente, { etapa: 'fixo_aguardando_imagem', dados: { diaSemana, hora, diaStr, grupoId } });
+    await responder(msg,
+      `🔁 Criando post recorrente: *${rec.DIAS_NOME[diaSemana]} às ${hora}* → ${destLabel}\n\n` +
       `Envie a *imagem/arte* que será postada toda semana.\n\n` +
       `_(ou envie \`pular\` para só texto)_`
     );
@@ -1106,21 +1587,21 @@ async function processarMensagem(msg) {
     const estado = estadoConversas.get(remetente);
     if (corpo === 'cancelar') {
       estadoConversas.delete(remetente);
-      await msg.reply('❌ Cancelado.');
+      await responder(msg,'❌ Cancelado.');
       return;
     }
     if (corpo === 'pular') {
       estadoConversas.set(remetente, { etapa: 'fixo_aguardando_texto', dados: { ...estado.dados, imagemPath: null } });
-      await msg.reply('Ok! Agora envie o *texto da mensagem*.');
+      await responder(msg,'Ok! Agora envie o *texto da mensagem*.');
       return;
     }
     if (msg.hasMedia) {
       const imagemPath = await rec.salvarMidia(msg);
       estadoConversas.set(remetente, { etapa: 'fixo_aguardando_texto', dados: { ...estado.dados, imagemPath } });
-      await msg.reply('✅ Imagem salva!\n\nAgora envie o *texto da mensagem*.\n\n_(ou `pular` para só imagem)_');
+      await responder(msg,'✅ Imagem salva!\n\nAgora envie o *texto da mensagem*.\n\n_(ou `pular` para só imagem)_');
       return;
     }
-    await msg.reply('⚠️ Envie a imagem ou `pular`.');
+    await responder(msg,'⚠️ Envie a imagem ou `pular`.');
     return;
   }
 
@@ -1129,53 +1610,105 @@ async function processarMensagem(msg) {
     const estado = estadoConversas.get(remetente);
     if (corpo === 'cancelar') {
       estadoConversas.delete(remetente);
-      await msg.reply('❌ Cancelado.');
+      await responder(msg,'❌ Cancelado.');
       return;
     }
     try {
       const texto = corpo === 'pular' ? '' : msg.body.trim();
-      const { diaSemana, hora, imagemPath } = estado.dados;
-      const item = rec.adicionar({ diaSemana, hora, mensagem: texto, imagemPath });
+      const { diaSemana, hora, imagemPath, grupoId } = estado.dados;
+      const item = rec.adicionar({ diaSemana, hora, mensagem: texto, imagemPath, grupoId });
       estadoConversas.delete(remetente);
-      await msg.reply(
+      const destLabel = grupoId ? `📱 ${grupoId.replace('@c.us','').replace('@g.us','')}` : '👥 Grupo padrão';
+      await responder(msg,
         `✅ *Post recorrente criado! #${item.id}*\n\n` +
         `📅 Todo *${rec.DIAS_NOME[diaSemana]}* às *${hora}*\n` +
+        `📤 Destino: ${destLabel}\n` +
         `🖼️ Imagem: ${imagemPath ? 'Sim' : 'Não'}\n` +
         `📝 Texto: ${texto ? texto.slice(0,80) : '_(sem texto)_'}\n\n` +
         `Para pausar: \`!pausarfixo ${item.id}\`\nPara deletar: \`!deletarfixo ${item.id}\``
       );
     } catch (err) {
       estadoConversas.delete(remetente);
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
 
   if (corpo === '!fixos' || corpo === '!recorrentes') {
-    await msg.reply(rec.formatarLista());
+    await responder(msg,rec.formatarLista());
     return;
   }
 
   if (corpo.startsWith('!pausarfixo ')) {
     const id   = corpo.split(' ')[1];
     const item = rec.toggleAtivo(id);
-    if (!item) { await msg.reply(`⚠️ Post #${id} não encontrado.`); return; }
-    await msg.reply(`${item.ativo ? '▶️ Retomado' : '⏸️ Pausado'}: Post #${item.id} (${rec.DIAS_NOME[item.diaSemana]} ${item.hora})`);
+    if (!item) { await responder(msg,`⚠️ Post #${id} não encontrado.`); return; }
+    await responder(msg,`${item.ativo ? '▶️ Retomado' : '⏸️ Pausado'}: Post #${item.id} (${rec.DIAS_NOME[item.diaSemana]} ${item.hora})`);
     return;
   }
 
   if (corpo.startsWith('!deletarfixo ')) {
     const id   = corpo.split(' ')[1];
     const item = rec.remover(id);
-    if (!item) { await msg.reply(`⚠️ Post #${id} não encontrado.`); return; }
-    await msg.reply(`🗑️ Post recorrente #${item.id} deletado.`);
+    if (!item) { await responder(msg,`⚠️ Post #${id} não encontrado.`); return; }
+    await responder(msg,`🗑️ Post recorrente #${item.id} deletado.`);
+    return;
+  }
+
+  // COMANDO: !alinhamento [N] — imprime N cópias do vale alinhamento
+  if (corpo.startsWith('!alinhamento')) {
+    const partes = corpo.trim().split(/\s+/);
+    const copias = Math.max(1, Math.min(20, parseInt(partes[1]) || 1));
+
+    const pastaVale = path.join(__dirname, '..', 'assets', 'vale-alinhamento');
+    const arquivos  = fs.existsSync(pastaVale)
+      ? fs.readdirSync(pastaVale).filter(f => /\.(jpg|jpeg|png)$/i.test(f))
+      : [];
+
+    if (arquivos.length === 0) {
+      await responder(msg,'❌ Nenhum arquivo encontrado em `assets/vale-alinhamento/`.\nColoque o JPG do vale nesta pasta.');
+      return;
+    }
+
+    const arquivo = path.join(pastaVale, arquivos[0]);
+    await responder(msg,`🖨️ Enviando *${copias}* cópia(s) do vale alinhamento para impressão...`);
+
+    // PowerShell: imprime usando System.Drawing sem abrir janela
+    const caminhoPs  = arquivo.replace(/\\/g, '\\\\').replace(/'/g, "''");
+    const scriptPs1  = path.join(pastaVale, '_print_tmp.ps1');
+    const conteudoPs = `Add-Type -AssemblyName System.Drawing
+$img = [System.Drawing.Image]::FromFile('${caminhoPs}')
+$pd  = New-Object System.Drawing.Printing.PrintDocument
+$pd.PrinterSettings.Copies = ${copias}
+$pd.Add_PrintPage({
+    param($s, $e)
+    $rect  = $e.MarginBounds
+    $ratio = [Math]::Min($rect.Width / $img.Width, $rect.Height / $img.Height)
+    $w = [int]($img.Width * $ratio); $h = [int]($img.Height * $ratio)
+    $x = $rect.X + [int](($rect.Width  - $w) / 2)
+    $y = $rect.Y + [int](($rect.Height - $h) / 2)
+    $e.Graphics.DrawImage($img, [int]$x, [int]$y, [int]$w, [int]$h)
+})
+$pd.Print()
+$img.Dispose()
+`;
+    fs.writeFileSync(scriptPs1, conteudoPs, 'utf8');
+
+    exec(`powershell -NonInteractive -ExecutionPolicy Bypass -File "${scriptPs1}"`, async (err, _out, stderr) => {
+      try { fs.unlinkSync(scriptPs1); } catch {}
+      if (err) {
+        await responder(msg,`❌ Erro ao imprimir: ${stderr || err.message}`);
+      } else {
+        await responder(msg,`✅ *${copias}* vale(s) enviado(s) para impressão!`);
+      }
+    });
     return;
   }
 
   // !leads / !leads7d / !leads30d — dashboard Deskrio por período
   if (corpo === '!leads' || corpo === '!leads7d' || corpo === '!leads30d') {
     const periodo = corpo === '!leads7d' ? '7d' : corpo === '!leads30d' ? '30d' : 'hoje';
-    await msg.reply('⏳ Carregando dashboard...');
+    await responder(msg,'⏳ Carregando dashboard...');
     try {
       const { gerarDeskrioDashboardPng, formatarResumo } = require('./monitor-deskrio');
       const { MessageMedia } = require('whatsapp-web.js');
@@ -1185,7 +1718,7 @@ async function processarMensagem(msg) {
       const chat  = await msg.getChat();
       await chat.sendMessage(media, { caption: texto });
     } catch (err) {
-      await msg.reply(`❌ Erro Deskrio: ${err.message}`);
+      await responder(msg,`❌ Erro Deskrio: ${err.message}`);
     }
     return;
   }
@@ -1194,10 +1727,10 @@ async function processarMensagem(msg) {
   if (corpo.startsWith('!leadsdata ')) {
     const partes = corpo.replace('!leadsdata ', '').trim().split(/\s+/);
     if (partes.length < 2) {
-      await msg.reply('📅 *Uso:* `!leadsdata DD/MM DD/MM`\n_Exemplo:_ `!leadsdata 01/04 17/04`');
+      await responder(msg,'📅 *Uso:* `!leadsdata DD/MM DD/MM`\n_Exemplo:_ `!leadsdata 01/04 17/04`');
       return;
     }
-    await msg.reply('⏳ Carregando dashboard...');
+    await responder(msg,'⏳ Carregando dashboard...');
     try {
       const { gerarDeskrioDashboardPngRange, formatarResumo } = require('./monitor-deskrio');
       const { MessageMedia } = require('whatsapp-web.js');
@@ -1207,7 +1740,7 @@ async function processarMensagem(msg) {
       const chat  = await msg.getChat();
       await chat.sendMessage(media, { caption: texto });
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -1217,9 +1750,9 @@ async function processarMensagem(msg) {
     try {
       const { monitorarDeskrio, formatarVerificacao } = require('./monitor-deskrio');
       const resultados = await monitorarDeskrio('hoje');
-      await msg.reply(formatarVerificacao(resultados));
+      await responder(msg,formatarVerificacao(resultados));
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -1228,7 +1761,7 @@ async function processarMensagem(msg) {
 
   if (corpo === '!ranking' || corpo === '!ranking7d' || corpo === '!rankinghoje') {
     const periodo = corpo === '!ranking7d' ? '7d' : corpo === '!rankinghoje' ? 'hoje' : 'semana';
-    await msg.reply('⏳ Calculando ranking...');
+    await responder(msg,'⏳ Calculando ranking...');
     try {
       const { gerarRankingDashboardPng, formatarRanking } = require('./monitor-deskrio');
       const { MessageMedia } = require('whatsapp-web.js');
@@ -1238,7 +1771,7 @@ async function processarMensagem(msg) {
       const media = MessageMedia.fromFilePath(pngPath);
       await chat.sendMessage(media, { caption: texto });
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -1248,29 +1781,29 @@ async function processarMensagem(msg) {
   if (corpo === '!reviews' || corpo === '!reviewscheck') {
     try {
       const { statusConfig } = require('./monitor-reviews');
-      await msg.reply(statusConfig());
+      await responder(msg,statusConfig());
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
 
   if (corpo === '!reviewstestar') {
-    await msg.reply('⏳ Verificando avaliações...');
+    await responder(msg,'⏳ Verificando avaliações...');
     try {
       const { verificarReviewsNegativas, formatarAlertaReview } = require('./monitor-reviews');
       const alertas = await verificarReviewsNegativas();
       if (!alertas.length) {
-        await msg.reply('✅ Nenhuma avaliação negativa nova encontrada.');
+        await responder(msg,'✅ Nenhuma avaliação negativa nova encontrada.');
       } else {
-        await msg.reply(`⚠️ *${alertas.length} avaliação(ões) negativa(s) nova(s):*`);
+        await responder(msg,`⚠️ *${alertas.length} avaliação(ões) negativa(s) nova(s):*`);
         for (const a of alertas) {
-          await msg.reply(formatarAlertaReview(a));
+          await responder(msg,formatarAlertaReview(a));
           await new Promise(r => setTimeout(r, 1000));
         }
       }
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -1279,7 +1812,7 @@ async function processarMensagem(msg) {
 
   // !tema-preview [semana] — gera o tema de uma semana e manda no grupo automação para aprovação
   if (corpo.startsWith('!tema-preview')) {
-    await msg.reply('⏳ Gerando imagem do tema...');
+    await responder(msg,'⏳ Gerando imagem do tema...');
     try {
       const { gerarImagemTema, getSemanaAtual, getTemaDoAno } = require('./gerar-tema-video');
       const { MessageMedia } = require('whatsapp-web.js');
@@ -1306,9 +1839,9 @@ async function processarMensagem(msg) {
           `*${tema.titulo}*\n\n` +
           `Responda \`!confirmar-tema\` aqui para enviar ao grupo de conteúdos das lojas.`,
       });
-      await msg.reply(`✅ Preview enviado ao grupo automações.`);
+      await responder(msg,`✅ Preview enviado ao grupo automações.`);
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -1321,19 +1854,19 @@ async function processarMensagem(msg) {
       const pendentePath = path.join(__dirname, '..', 'output', 'tema-pendente.json');
 
       if (!fs2.existsSync(pendentePath)) {
-        await msg.reply('⚠️ Nenhum tema pendente. Use `!tema-preview` primeiro.');
+        await responder(msg,'⚠️ Nenhum tema pendente. Use `!tema-preview` primeiro.');
         return;
       }
 
       const { pngPath, semana, titulo } = JSON.parse(fs2.readFileSync(pendentePath, 'utf8'));
       if (!fs2.existsSync(pngPath)) {
-        await msg.reply(`❌ Arquivo de imagem não encontrado: ${pngPath}`);
+        await responder(msg,`❌ Arquivo de imagem não encontrado: ${pngPath}`);
         return;
       }
 
       const GRUPO_VIDEOS_ID = process.env.WHATSAPP_GRUPO_VIDEOS_ID;
       if (!GRUPO_VIDEOS_ID) {
-        await msg.reply('❌ WHATSAPP_GRUPO_VIDEOS_ID não configurado.');
+        await responder(msg,'❌ WHATSAPP_GRUPO_VIDEOS_ID não configurado.');
         return;
       }
 
@@ -1354,9 +1887,9 @@ async function processarMensagem(msg) {
       await chat.sendMessage(media, { caption: mensagem });
 
       fs2.unlinkSync(pendentePath);
-      await msg.reply(`✅ Tema *semana ${semana} — ${titulo}* enviado ao grupo de conteúdos!`);
+      await responder(msg,`✅ Tema *semana ${semana} — ${titulo}* enviado ao grupo de conteúdos!`);
     } catch (err) {
-      await msg.reply(`❌ Erro: ${err.message}`);
+      await responder(msg,`❌ Erro: ${err.message}`);
     }
     return;
   }
@@ -1373,14 +1906,64 @@ async function processarMensagem(msg) {
       const chat = await msg.getChat();
       await chat.sendMessage(media, { caption: `📊 *Dashboard Ads (Meta + Google) — ${agora}*` });
     } catch (err) {
-      await msg.reply(`❌ Erro ao gerar dashboard: ${err.message}`);
+      await responder(msg,`❌ Erro ao gerar dashboard: ${err.message}`);
+    }
+    return;
+  }
+
+  // COMANDO: !senhas (todas) ou !senha <setor>
+  if (corpo === '!senhas' || corpo.startsWith('!senha')) {
+    if (isGrupo) {
+      await responder(msg,'🔒 Este comando só funciona em conversa privada.');
+      return;
+    }
+
+    // !senhas → lista completa
+    if (corpo === '!senhas') {
+      console.log('[SENHAS] Enviando lista completa para', msg.from);
+      await responder(msg,
+        '🔑 *Senhas dos Setores*\n\n' +
+        '👤 *Pós Venda:* `rTqVB@2025`\n' +
+        '👤 *RH:* `nBvCX@2025`\n' +
+        '👤 *Financeiro:* `vBnJH@2025`\n' +
+        '👤 *Marketing:* `Mkt@2025`\n' +
+        '👤 *Supervisores:* `zXkLP@2025`\n' +
+        '👤 *Caixas:* `fGyDS@2025`\n' +
+        '👤 *Peg Pneus:* `pLcNM@2025`\n' +
+        '👤 *Supervisão Técnica:* `Felipe@13`\n' +
+        '👤 *CD:* `vBnJH@2025`\n' +
+        '📅 *Agendamento (1 e 2):* `XjKqW@2026`\n' +
+        '📦 *Estoque (todas as lojas):* `vRzQy@2026`\n' +
+        '🏪 *Comercial (todas as lojas):* `xSwZa@2026`'
+      );
+      return;
+    }
+
+    // !senha <setor> → senha específica
+    const setor = corpo.replace('!senha', '').trim();
+    const LISTA_SETORES =
+      '`pos venda` · `rh` · `financeiro` · `marketing`\n' +
+      '`supervisores` · `caixas` · `peg pneus`\n' +
+      '`supervisao tecnica` · `cd`\n' +
+      '`agendamento` · `estoque` · `comercial`\n\n' +
+      '_Use `!senhas` para ver todas de uma vez._';
+    if (!setor) {
+      await responder(msg, '🔑 *Uso:* `!senha <setor>`\n\n*Setores:*\n' + LISTA_SETORES);
+      return;
+    }
+    const senha = SENHAS_SETORES[setor];
+    if (senha) {
+      console.log('[SENHAS] Enviando senha do setor', setor, 'para', msg.from);
+      await responder(msg, `🔑 *${setor}*\n\`${senha}\``);
+    } else {
+      await responder(msg, `❌ Setor *"${setor}"* não encontrado.\n\n*Setores válidos:*\n` + LISTA_SETORES);
     }
     return;
   }
 
   // COMANDO: !ajuda
   if (corpo === '!ajuda' || corpo === 'ajuda' || corpo === 'help') {
-    await msg.reply(
+    await responder(msg,
       '🤖 *Bot BR Pneus — Comandos:*\n\n' +
       '📊 *Ads:*\n' +
       '`!valoresads` → Resumo 🔴🟠🟢\n' +
@@ -1417,6 +2000,10 @@ async function processarMensagem(msg) {
       '`!tema-preview` → Preview semana seguinte\n' +
       '`!tema-preview 18` → Preview semana específica\n' +
       '`!confirmar-tema` → Enviar tema aprovado ao grupo de conteúdos\n\n' +
+      '🎬 *Editor de vídeos:*\n' +
+      '`!editar` → Lista cidades → escolha modo:\n' +
+      '  • *1 Com áudio* — narrado + legendas\n' +
+      '  • *2 Sem voz* — todos clips + música + transições\n\n' +
       '🎉 *Artes automáticas:*\n' +
       '`!colaborador brpneus` → Arte de novo colaborador (BR Pneus)\n' +
       '`!colaborador pegpneus` → Arte de novo colaborador (Peg Pneus)\n' +
@@ -1424,16 +2011,23 @@ async function processarMensagem(msg) {
       '`!aniversario brpneus` → Arte de aniversariante (BR Pneus)\n' +
       '`!aniversario pegpneus` → Arte de aniversariante (Peg Pneus)\n' +
       '_Após o comando: envie a foto → nome → cargo → cidade._\n\n' +
+      '🔑 *Senhas:*\n' +
+      '`!senha <setor>` → Consultar senha do setor (privado)\n\n' +
       '`!grupos` → Listar grupos\n' +
       '`!ajuda` → Esta mensagem\n\n' +
       '_Relatórios automáticos de Ads: 8h–17h (hora em hora) + 17h30 (seg–sáb)._'
     );
     return;
   }
+  } catch (err) {
+    console.error('[BOT] Erro em processarMensagem:', err.message);
+    console.error(err.stack);
+    try { await responder(msg, `❌ Erro interno: ${err.message}`); } catch {}
+  }
 }
 
-client.on('message',        processarMensagem);
-client.on('message_create', processarMensagem);
+client.on('message',        (msg) => processarMensagem(msg).catch(err => console.error('[BOT] Erro em message:', err.message)));
+client.on('message_create', (msg) => { if (msg.fromMe) processarMensagem(msg).catch(err => console.error('[BOT] Erro em message_create:', err.message)); });
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1495,15 +2089,13 @@ const apiServer = http.createServer((req, res) => {
         const { chatId, media, caption } = JSON.parse(body);
         const { MessageMedia } = require('whatsapp-web.js');
         const m = new MessageMedia(media.mimetype, media.data, media.filename);
-        const chat = await client.getChatById(chatId);
-        await chat.sendMessage(m, { caption: caption || '' });
+        await client.sendMessage(chatId, m, { caption: caption || '' });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
         return;
       }
       const { chatId, message } = JSON.parse(body);
-      const chat = await client.getChatById(chatId);
-      await chat.sendMessage(message);
+      await client.sendMessage(chatId, message);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     } catch (e) {
@@ -1512,9 +2104,23 @@ const apiServer = http.createServer((req, res) => {
     }
   });
 });
+apiServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log('⚠️  Porta 3099 em uso — API interna desativada nesta instância (reinício rápido).');
+  } else {
+    console.error('❌ Erro API interna:', err.message);
+  }
+});
 apiServer.listen(3099, '127.0.0.1', () =>
   console.log('🔌 API interna do bot escutando em 127.0.0.1:3099')
 );
+
+// ─── Error handlers ────────────────────────────────────────────────────────────
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[BOT] UnhandledRejection:', reason instanceof Error ? reason.message : reason);
+  if (reason instanceof Error) console.error(reason.stack);
+});
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
 

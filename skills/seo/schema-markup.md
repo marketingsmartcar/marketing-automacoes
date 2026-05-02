@@ -238,7 +238,7 @@ Para cada tipo de página, gerar o JSON-LD completo e pronto para implementaçã
   "name": "BR Pneus & Oficina",
   "url": "[URL da homepage]",
   "logo": "[URL do logo]",
-  "description": "Rede de lojas de pneus e oficina mecânica com unidades em Araraquara, São Carlos, Bauru, Jaú, Ibitinga, Americana (SP) e Maringá (PR). Maior mix de pneus, melhores preços, parcelamento em até 18x e garantia BR Total.",
+  "description": "Rede de lojas de pneus e oficina mecânica com unidades em Araraquara, São Carlos, Americana (SP) e Maringá (PR). Maior mix de pneus, melhores preços, parcelamento em até 18x e garantia BR Total.",
   "contactPoint": {
     "@type": "ContactPoint",
     "telephone": "0800-942-4402",

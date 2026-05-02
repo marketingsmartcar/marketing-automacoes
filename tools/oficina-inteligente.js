@@ -24,14 +24,12 @@ const LOJAS = {
   BR03_AMERICANA:   'BR Pneus Americana',
   BR04_SAO_CARLOS:  'BR Pneus São Carlos',
   BR05_MARINGA:     'BR Pneus Maringá',
-  BR06_JAU:         'BR Pneus Jaú',
-  BR08_IBITINGA:    'BR Pneus Ibitinga',
   PEG1_ARARAQUARA:  'Peg Pneus Araraquara',
   PEG2_SOROCABA:    'Peg Pneus Sorocaba',
 };
 
-// BR01, BR03 e BR06 só funcionam com o Token Alternativo
-const TOKEN_ALT = new Set(['BR01_CENTRO', 'BR03_AMERICANA', 'BR06_JAU']);
+// BR01 e BR03 só funcionam com o Token Alternativo
+const TOKEN_ALT = new Set(['BR01_CENTRO', 'BR03_AMERICANA']);
 
 function getToken(lojaKey) {
   const key = TOKEN_ALT.has(lojaKey) ? `OI_TOKEN_ALT_${lojaKey}` : `OI_TOKEN_${lojaKey}`;

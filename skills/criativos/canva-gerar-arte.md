@@ -207,8 +207,6 @@ Automatiza a criação de artes no Canva editando templates reais criados pelo u
 | Americana | (16) 3397-5424 | SP |
 | São Carlos | (16) 3376-0011 | SP |
 | Maringá | (44) 3170-0441 | PR |
-| Jaú | (14) 3149-0549 | SP |
-| Ibitinga | (16) 3188-0547 | SP |
 
 **0800 central:** 0800 942 4402
 

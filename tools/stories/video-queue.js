@@ -17,19 +17,22 @@ const PEG_EXTRA_EXCLUIR = [
   'Depoimento Claudinei Peg pneus',
 ];
 
+// Cooldown personalizado por vídeo (dias mínimos entre postagens)
+// Padrão global: 2 dias. Vídeos listados aqui têm cooldown maior.
+const VIDEO_COOLDOWN_DIAS = {
+  'pneu michelin': 7,
+};
+
 // Pastas por conta (Bauru excluído conforme solicitado)
 const PASTAS_POR_CONTA = {
   br: [
     'Americana',
     'Araraquara Loja 1',
     'Araraquara Loja 2',
-    'Ibitinga',
-    'Jaú',
     'Maringá',
     'São Carlos',
   ],
-  peg_araraquara: ['Peg Pneus Araraquara'],
-  peg_sorocaba:   ['Peg Pneus Sorocaba'],
+  peg_araraquara: ['Peg Pneus Araraquara', 'Peg Pneus Sorocaba'],
 };
 
 function carregarEstado() {
@@ -107,6 +110,17 @@ function dataHoje() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
+// Retorna datas dos últimos N dias (inclusive hoje) no formato YYYY-MM-DD
+function ultimosDias(n) {
+  const datas = new Set();
+  for (let i = 0; i < n; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    datas.add(d.toISOString().slice(0, 10));
+  }
+  return datas;
+}
+
 // Registra um vídeo como postado hoje (evita repostagem no mesmo dia)
 function registrarPostagem(videoPath) {
   const estado = carregarEstado();
@@ -118,10 +132,16 @@ function registrarPostagem(videoPath) {
 // Devolve um vídeo para o início da fila (quando foi pego mas não postado)
 function restituirVideo(contaKey, maxSegundos, videoPath) {
   const estado = carregarEstado();
+  const hoje = dataHoje();
+  const jaPostadoHoje = (estado.historico || {})[videoPath] === hoje;
+  if (jaPostadoHoje) return; // não devolve se já foi postado hoje
   const filaKey = `${contaKey}_${maxSegundos}s`;
   if (!estado[filaKey]) estado[filaKey] = [];
-  estado[filaKey].unshift(videoPath);
-  salvarEstado(estado);
+  // Evita duplicata na fila
+  if (!estado[filaKey].includes(videoPath)) {
+    estado[filaKey].unshift(videoPath);
+    salvarEstado(estado);
+  }
 }
 
 // Retorna os próximos N vídeos para a conta, respeitando maxSegundos
@@ -136,36 +156,58 @@ async function getProximosVideos(contaKey, quantidade, maxSegundos) {
     return [];
   }
 
-  const hoje = dataHoje();
-  const jaPostadosHoje = new Set(
-    Object.entries(estado.historico || {})
-      .filter(([, d]) => d === hoje)
-      .map(([v]) => v)
+  const historico = estado.historico || {};
+
+  // Verifica se um vídeo está no período de cooldown (padrão 2 dias, personalizável)
+  function emCooldown(videoPath) {
+    const dataPost = historico[videoPath];
+    if (!dataPost) return false;
+    const nomeBase = path.basename(videoPath).toLowerCase();
+    const cooldown = Object.entries(VIDEO_COOLDOWN_DIAS).find(([nome]) =>
+      nomeBase.includes(nome.toLowerCase())
+    );
+    const dias = cooldown ? cooldown[1] : 2;
+    return ultimosDias(dias).has(dataPost);
+  }
+
+  const jaPostadosRecente = new Set(
+    Object.keys(historico).filter(emCooldown)
   );
 
   const filaKey = `${contaKey}_${maxSegundos}s`;
 
-  // Remove da fila: não existe em disco OU já postado hoje
+  // Remove da fila: não existe em disco OU já postado recentemente
   if (estado[filaKey]) {
     estado[filaKey] = estado[filaKey].filter(
-      v => fs.existsSync(v) && !jaPostadosHoje.has(v)
+      v => fs.existsSync(v) && !jaPostadosRecente.has(v)
     );
   }
 
   if (!estado[filaKey] || estado[filaKey].length === 0) {
-    // Re-embaralha, excluindo os já postados hoje
-    const disponiveis = elegíveis.filter(v => !jaPostadosHoje.has(v));
-    const fonte = disponiveis.length > 0 ? disponiveis : elegíveis;
-    estado[filaKey] = shuffleArray(fonte);
+    // Re-embaralha excluindo recentes; se não sobrar nada, usa todos os elegíveis
+    const disponiveis = elegíveis.filter(v => !jaPostadosRecente.has(v));
+    if (disponiveis.length === 0) {
+      console.warn(`⚠️  [${contaKey}] Todos os vídeos já postados recentemente — aguardando novos.`);
+      salvarEstado(estado);
+      return [];
+    }
+    estado[filaKey] = shuffleArray(disponiveis);
     console.log(`🔀 [${contaKey} ≤${maxSegundos}s] Fila recriada com ${estado[filaKey].length} vídeos.`);
   }
 
+  const hoje = dataHoje();
+  if (!estado.historico) estado.historico = {};
+
   const selecionados = [];
   while (selecionados.length < quantidade && estado[filaKey].length > 0) {
-    selecionados.push(estado[filaKey].shift());
+    const video = estado[filaKey].shift();
+    // Registra no histórico junto com a retirada da fila — operação atômica.
+    // Garante que reboots entre aqui e o post não causem repostagem.
+    estado.historico[video] = hoje;
+    selecionados.push(video);
   }
 
-  salvarEstado(estado);
+  salvarEstado(estado); // salva fila + histórico de uma vez
   return selecionados;
 }
 

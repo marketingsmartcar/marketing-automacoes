@@ -14,30 +14,31 @@ Monitorar em tempo real todas as contas de anúncios da rede BR Pneus & Peg Pneu
 
 ## Contas Monitoradas
 
-### Meta Ads (8 contas)
+### Meta Ads (6 contas ativas)
 | Conta | Account ID | Recarga |
 |-------|-----------|---------|
-| BR PNEUS IBITINGA | `585036840552616` | Pix no Saldo |
 | BR PNEUS MARINGÁ | `314207321290540` | Pix no Saldo |
 | BR PNEUS AMERICANA | `319423037203736` | Pix no Saldo |
-| BR PNEUS JAÚ | `949063329571714` | Pix no Saldo |
 | BR PNEUS SÃO CARLOS | `678751073395713` | Pix no Saldo |
 | BR PNEUS ARARAQUARA | `291920152109217` | **Pix nos Fundos** ⚠️ |
 | PEG PNEUS SOROCABA | `653846450374888` | Pix no Saldo |
 | PEG PNEUS ARARAQUARA | `3736536456594469` | Pix no Saldo |
 
 > ⚠️ **BR PNEUS ARARAQUARA** usa **Pix nos Fundos** — fluxo diferente das demais!
+>
+> Contas encerradas (lojas fechadas): BR PNEUS IBITINGA e BR PNEUS JAÚ.
 
-### Google Ads (7 contas)
+### Google Ads (6 contas ativas)
 | Conta | Customer ID |
 |-------|------------|
 | BR PNEUS AMERICANA | `694-339-5750` |
 | BR PNEUS ARARAQUARA | `486-896-4135` |
-| BR PNEUS JAÚ | `123-944-1933` |
 | BR PNEUS MARINGÁ | `107-641-5452` |
 | BR PNEUS SÃO CARLOS | `784-908-8560` |
 | PEG PNEUS ARARAQUARA | `915-964-4725` |
 | PEG PNEUS SOROCABA | `773-516-8117` |
+
+> Conta encerrada (loja fechada): BR PNEUS JAÚ.
 
 ---
 

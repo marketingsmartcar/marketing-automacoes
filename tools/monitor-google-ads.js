@@ -9,7 +9,6 @@ const { GoogleAdsApi } = require('google-ads-api');
 const CONTAS_GOOGLE = [
   { nome: 'BR PNEUS AMERICANA',   id: process.env.GOOGLE_ACCOUNT_BR_AMERICANA },
   { nome: 'BR PNEUS ARARAQUARA',  id: process.env.GOOGLE_ACCOUNT_BR_ARARAQUARA },
-  { nome: 'BR PNEUS JAÚ',         id: process.env.GOOGLE_ACCOUNT_BR_JAU },
   { nome: 'BR PNEUS MARINGÁ',     id: process.env.GOOGLE_ACCOUNT_BR_MARINGA },
   { nome: 'BR PNEUS SÃO CARLOS',  id: process.env.GOOGLE_ACCOUNT_BR_SAO_CARLOS },
   { nome: 'PEG PNEUS ARARAQUARA', id: process.env.GOOGLE_ACCOUNT_PEG_ARARAQUARA },

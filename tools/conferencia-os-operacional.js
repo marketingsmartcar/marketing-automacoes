@@ -21,13 +21,11 @@ const LOJAS = {
   BR03_AMERICANA:  { nome: 'BR Pneus Americana',         placa: 'BRP3302', rede: 'BR Pneus' },
   BR04_SAO_CARLOS: { nome: 'BR Pneus São Carlos',        placa: 'BRP4402', rede: 'BR Pneus' },
   BR05_MARINGA:    { nome: 'BR Pneus Maringá',           placa: 'BRP5502', rede: 'BR Pneus' },
-  BR06_JAU:        { nome: 'BR Pneus Jaú',               placa: 'BRP6602', rede: 'BR Pneus' },
-  BR08_IBITINGA:   { nome: 'BR Pneus Ibitinga',          placa: 'BRP7702', rede: 'BR Pneus' },
   PEG1_ARARAQUARA: { nome: 'Peg Pneus Araraquara',       placa: 'PEG1102', rede: 'Peg Pneus' },
   PEG2_SOROCABA:   { nome: 'Peg Pneus Sorocaba',         placa: 'PEG2202', rede: 'Peg Pneus' },
 };
 
-const TOKEN_ALT = new Set(['BR01_CENTRO', 'BR03_AMERICANA', 'BR06_JAU']);
+const TOKEN_ALT = new Set(['BR01_CENTRO', 'BR03_AMERICANA']);
 
 function getToken(lojaKey) {
   const key = TOKEN_ALT.has(lojaKey) ? `OI_TOKEN_ALT_${lojaKey}` : `OI_TOKEN_${lojaKey}`;

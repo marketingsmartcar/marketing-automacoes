@@ -59,8 +59,6 @@ const LOJAS = [
   { key: 'BR3',  value: '2202', label: 'BR03 AMERICANA'   },
   { key: 'BR4',  value: '1524', label: 'BR04 SAO CARLOS'  },
   { key: 'BR5',  value: '2203', label: 'BR05 MARINGA'     },
-  { key: 'BR6',  value: '2155', label: 'BR06 JAU'         },
-  { key: 'BR7',  value: '3333', label: 'BR08 IBITINGA'    },
   { key: 'PEG1', value: '3098', label: 'PEG11 ARARAQUARA' },
   { key: 'PEG2', value: '3635', label: 'PEG12 SOROCABA'   },
 ];

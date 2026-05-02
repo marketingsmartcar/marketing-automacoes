@@ -13,7 +13,7 @@ Gera mensagens SMS curtas e impactantes para campanhas promocionais por unidade 
 | Parâmetro | Obrigatório | Exemplos |
 |-----------|-------------|---------|
 | `tipo-promocao` | Sim | `Black-Friday`, `ferias-julho`, `dia-dos-pais`, `dia-das-maes`, `aniversario-loja`, `promocao-pneus`, `promocao-revisao`, `volta-as-aulas`, `virada-de-ano`, `feriado-prolongado` |
-| `cidade` | Sim | `Araraquara`, `Ibitinga`, `Jau`, `Sao-Carlos`, `Americana`, `Maringa` |
+| `cidade` | Sim | `Araraquara`, `Sao-Carlos`, `Americana`, `Maringa` |
 
 ---
 

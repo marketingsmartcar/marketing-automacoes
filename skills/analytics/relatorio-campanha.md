@@ -144,8 +144,6 @@ CTA com melhor clique: [INSERIR]
 |---------|-------------|-------|-----------|-------------|------|---------|
 | Araraquara | [INSERIR] | [n] | [n] | [R$] | [x] | |
 | São Carlos | [INSERIR] | [n] | [n] | [R$] | [x] | |
-| Ibitinga | [INSERIR] | [n] | [n] | [R$] | [x] | |
-| Jaú | [INSERIR] | [n] | [n] | [R$] | [x] | |
 | Americana | [INSERIR] | [n] | [n] | [R$] | [x] | |
 | Maringá | [INSERIR] | [n] | [n] | [R$] | [x] | |
 | **TOTAL REDE** | **[R$]** | **[n]** | **[n]** | **[R$]** | **[x]** | |

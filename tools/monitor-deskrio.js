@@ -20,8 +20,6 @@ const EMPRESAS = [
       'rafaelly-maringa',
       'thais-maringa',
       'thais- araraquara',
-      'luiz felipe - jáu',
-      'luiz felipe  - ibitinga',
       'jessica - adm',
       'sem atendente',
     ],

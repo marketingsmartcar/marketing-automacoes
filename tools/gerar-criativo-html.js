@@ -8,12 +8,12 @@
  *   node tools/gerar-criativo-html.js <template> <cidade> [opcoes-json]
  *
  * Templates: promo-servico | promo-pneus | stories | ads
- * Cidades:   araraquara | americana | sao-carlos | maringa | jau | ibitinga | bauru
+ * Cidades:   araraquara | americana | sao-carlos | maringa | bauru
  *
  * Exemplos:
  *   node tools/gerar-criativo-html.js promo-servico araraquara '{"servico":"Pastilha de Freio","preco":"79","centavos":"90","imagem":"car brake disc and brake pads"}'
  *   node tools/gerar-criativo-html.js promo-pneus maringa '{"imagem":"premium car tire"}'
- *   node tools/gerar-criativo-html.js stories jau '{"headline":"PNEUS EM PROMOÇÃO","oferta":"A partir de R$179","imagem":"sport car tire"}'
+ *   node tools/gerar-criativo-html.js stories araraquara '{"headline":"PNEUS EM PROMOÇÃO","oferta":"A partir de R$179","imagem":"sport car tire"}'
  *   node tools/gerar-criativo-html.js ads araraquara '{"headline":"PNEU NOVO É NA BR PNEUS","oferta":"A partir de R$179 em até 18x","imagem":"tire on modern car wheel"}'
  */
 
@@ -47,8 +47,6 @@ const UNIDADES = {
   'americana':  { cidade: 'Americana',  estado: 'SP', tel: '(16) 3397-5424' },
   'sao-carlos': { cidade: 'São Carlos', estado: 'SP', tel: '(16) 3376-0011' },
   'maringa':    { cidade: 'Maringá',    estado: 'PR', tel: '(44) 3170-0441' },
-  'jau':        { cidade: 'Jaú',        estado: 'SP', tel: '(14) 3149-0549' },
-  'ibitinga':   { cidade: 'Ibitinga',   estado: 'SP', tel: '(16) 3188-0547' },
   'bauru':      { cidade: 'Bauru',      estado: 'SP', tel: ''               },
 };
 
@@ -600,7 +598,7 @@ Templates disponíveis:
   ads             Patrocinado 1080×1080 — anúncio pago
 
 Cidades:
-  araraquara | americana | sao-carlos | maringa | jau | ibitinga | bauru
+  araraquara | americana | sao-carlos | maringa | bauru
 
 Opções JSON (todos opcionais):
   imagem       Descrição em inglês para gerar via Gemini AI
@@ -621,7 +619,7 @@ Exemplos:
   node tools/gerar-criativo-html.js promo-pneus maringa \\
     '{"imagem":"premium black car tire"}'
 
-  node tools/gerar-criativo-html.js stories jau \\
+  node tools/gerar-criativo-html.js stories americana \\
     '{"headline":"PNEUS EM PROMOÇÃO","oferta":"A partir de R$179","imagem":"sport car tire"}'
 
   node tools/gerar-criativo-html.js ads araraquara \\

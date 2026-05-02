@@ -18,13 +18,11 @@ const LOJA_MAP = {
   'Araraquara 🛞':          'Araraquara',
   'São Carlos 🛞':          'S. Carlos',
   'Americana 🛞':           'Americana',
-  'Jau 🛞':                 'Jaú',
-  'Ibitinga 🛞':            'Ibitinga',
   'Maringa 🛞':             'Maringá',
   'Peg Pneus - Araraquara': 'Peg ARQ',
   'Peg Pneus - Sorocaba':   'Peg SOR',
 };
-const LOJAS_ORDEM = ['Araraquara', 'S. Carlos', 'Americana', 'Jaú', 'Ibitinga', 'Maringá', 'Peg ARQ', 'Peg SOR'];
+const LOJAS_ORDEM = ['Araraquara', 'S. Carlos', 'Americana', 'Maringá', 'Peg ARQ', 'Peg SOR'];
 
 function extrairLoja(whatsappName) { return LOJA_MAP[whatsappName] || null; }
 
@@ -412,8 +410,6 @@ async function atualizarAbaResumo(sheets, sheetId, nomeMes, dados, geradoEm, res
       { hdr: hexRgb('#1e3a5f'), dat: hexRgb('#dbeafe') },  // Araraquara — azul
       { hdr: hexRgb('#14532d'), dat: hexRgb('#dcfce7') },  // S. Carlos  — verde
       { hdr: hexRgb('#134e4a'), dat: hexRgb('#ccfbf1') },  // Americana  — teal
-      { hdr: hexRgb('#713f12'), dat: hexRgb('#fef9c3') },  // Jaú        — amarelo
-      { hdr: hexRgb('#4c1d95'), dat: hexRgb('#ede9fe') },  // Ibitinga   — roxo
       { hdr: hexRgb('#7c2d12'), dat: hexRgb('#ffedd5') },  // Maringá    — laranja
       { hdr: hexRgb('#075985'), dat: hexRgb('#e0f2fe') },  // Peg ARQ    — céu
       { hdr: hexRgb('#881337'), dat: hexRgb('#ffe4e6') },  // Peg SOR    — rosa

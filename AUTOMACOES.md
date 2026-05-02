@@ -26,20 +26,44 @@ node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
 
 ---
 
-## 2. Planilha de Vendas Diárias
+## 1b. Leads do Dia — Atualização Horária
 
-**O que faz:** Acessa o Oficina Inteligente (OI) via Puppeteer para cada uma das 9 lojas, coleta faturamento/lucro/OS/pneus de 01/MM até ontem, preenche bloco diário na planilha e envia dashboard no WhatsApp.
+**O que faz:** Busca os leads do **dia atual** no Deskrio (BR Pneus + Peg Pneus) e atualiza a aba "📅 Hoje" na planilha de leads com KPIs, tickets por loja e por atendente.
 
 | Campo | Valor |
 |-------|-------|
-| Script | `tools/preencher-vendas-diarias.js` |
+| Script | `tools/leads-hoje.js` |
+| Planilha | `1so_-C0e_awN9vlXVueViIjgijNEYks7DIwkBbUPd0vw` (aba "📅 Hoje") |
+| Agendamento | **Todo início de hora das 07h às 18h** (Seg–Sáb) — PM2: `leads-hoje` |
+| Executa ao iniciar | Sim — roda imediatamente se horário estiver entre 07h e 18h |
+
+**Como rodar manualmente:**
+```bash
+node tools/leads-hoje.js --agora   # executa uma vez agora
+npm run leads:hoje                 # alias
+```
+
+**PM2:**
+```bash
+pm2 start tools/leads-hoje.js --name leads-hoje   # iniciar
+pm2 restart leads-hoje                            # reiniciar
+pm2 logs leads-hoje                               # ver logs
+```
+
+---
+
+## 2. Coleta de Vendas Diárias → NexusZ
+
+**O que faz:** Acessa o Oficina Inteligente (OI) via Puppeteer para cada uma das 9 lojas, coleta faturamento/lucro/OS/pneus do dia anterior, envia dashboard no WhatsApp e sincroniza no Supabase (NexusZ). **Não escreve na planilha.**
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-vendas-diarias.js` |
 | Bat | `vendas-diarias.bat` |
-| Planilha | `1NFsBbu1MIG1Tl_XJc8VnhP8OVDupivbVxiYKpv8_mGw` |
-| Aba | `Vendas diárias` (sheetId: `1220160954`) |
 | Log | `output/relatorios/vendas-diarias.log` |
 | Agendamento | Diário às **7h** — Task: `BR Pneus - Vendas Diarias` |
 
-**9 Lojas (ordem das colunas na planilha):**
+**7 Lojas ativas (ordem das colunas na planilha):**
 
 | Chave | Label OI | Cidade |
 |-------|----------|--------|
@@ -48,21 +72,20 @@ node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
 | BR3 | BR03 AMERICANA | Americana |
 | BR4 | BR04 SAO CARLOS | São Carlos |
 | BR5 | BR05 MARINGA | Maringá |
-| BR6 | BR06 JAU | Jaú |
-| BR7 | BR08 IBITINGA | Ibitinga |
 | PEG1 | PEG11 ARARAQUARA | Peg Pneus Araraquara |
 | PEG2 | PEG12 SOROCABA | Peg Pneus Sorocaba |
 
+> BR6 (Jaú) e BR7 (Ibitinga) removidas — lojas encerradas.
+
 **Como rodar manualmente:**
 ```bash
-node tools/preencher-vendas-diarias.js              # ontem (padrão)
-node tools/preencher-vendas-diarias.js 2026-04-23   # data específica
+node tools/coletar-vendas-diarias.js              # ontem (padrão)
+node tools/coletar-vendas-diarias.js 2026-04-23   # data específica
 ```
 
 **Regras importantes:**
-- Delay de **5 segundos** entre lojas (só margem de carregamento — login único, sem restrição)
+- Coleta apenas o dia especificado (modelo diário — não acumulado)
 - Tempo total: ~10-15 min para as 9 lojas
-- Ao passar data específica, coleta acumulado de 01/MM até aquela data
 - ⚠️ Existe tarefa duplicada (`BRPneus-VendasDiarias` e `BR Pneus - Vendas Diarias`) — verificar e limpar
 
 **Coleta de Pneus Vendidos (`pneuVendidos`):**
@@ -83,15 +106,18 @@ node tools/preencher-vendas-diarias.js 2026-04-23   # data específica
 | Log | `logs/ads-monitor.log` |
 | Agendamento | Tasks: `BRPneus-MonitorAds-08h00` até `BRPneus-MonitorAds-17h30` |
 
-**Horários (seg–sáb):** 8h, 9h, 10h, 11h, 12h, 13h, 14h, 15h, 16h, 17h, 17h30
+**Horários seg–sex:** 8h, 9h, 10h, 11h, 12h, 13h, 14h, 15h, 16h, 17h, 17h30
+**Horários sábado:** 8h, 9h, 10h, 11h, 11h30
 
 **Contas monitoradas:**
-- Meta Ads: 8 contas (BR Pneus: Ibitinga, Maringá, Americana, Jaú, São Carlos, Araraquara + Peg Pneus: Sorocaba, Araraquara)
-- Google Ads: 7 contas (BR Pneus: Americana, Araraquara, Jaú, Maringá, São Carlos + Peg Pneus: Araraquara, Sorocaba)
+- Meta Ads: 6 contas (BR Pneus: Maringá, Americana, São Carlos, Araraquara + Peg Pneus: Sorocaba, Araraquara)
+- Google Ads: 6 contas (BR Pneus: Americana, Araraquara, Maringá, São Carlos + Peg Pneus: Araraquara, Sorocaba)
+
+> Jaú e Ibitinga removidas — lojas encerradas.
 
 **⚠️ REGRA CRÍTICA DE RECARGA META:**
 > **BR Pneus Araraquara → Pix nos FUNDOS** (não no Saldo)
-> Todas as outras 7 contas Meta → Pix no **SALDO**
+> Todas as outras 5 contas Meta → Pix no **SALDO**
 
 **Comandos:**
 ```bash
@@ -129,6 +155,19 @@ node tools/agendar-monitor.js 8-17-1730   # reagendar tarefas
 | Cobrança de vídeos | Toda segunda às 8h | Grupo Vídeos |
 | Verificação de tokens Meta | Diária às 7h | Grupo Automações |
 | Relatório semanal de Ads | Toda segunda às 8h05 | Grupo Automações |
+| Lembrete recarga chips Peg Pneus | Todo dia **1 de cada mês às 9h** | Grupo Automações + Financeiro SmartCar |
+
+**Lembrete recarga Peg Pneus — detalhes:**
+- Função: `agendarLembretePegPneus()` em `whatsapp-bot.js`
+- Destinos: `GRUPO_ALERTAS_ID` + Financeiro SmartCar `(16) 99746-5826`
+- Mensagem: lembrete listando os 3 chips da Peg Pneus para recarregar: (16) 3187-0163, (16) 99623-7396, (16) 98172-3275
+
+**Comando `!senha`:**
+- Uso: `!senha <setor>` em conversa privada com o bot
+- Setores: `pos venda`, `rh`, `financeiro`, `marketing`, `supervisores`, `caixas`, `peg pneus`, `supervisao tecnica`, `cd`, `agendamento`, `estoque`, `comercial`
+- Agendamento 1 e 2 têm a mesma senha; todos os estoques têm a mesma senha; todos os comerciais têm a mesma senha
+- Só funciona em conversa privada (bloqueado em grupos por segurança)
+- Senhas definidas em `SENHAS_SETORES` no topo de `whatsapp-bot.js`
 
 **Comandos úteis:**
 ```bash
@@ -187,9 +226,9 @@ node tools/stories/completar-stories-hoje.js # completa posts faltantes (BR Pneu
 
 ---
 
-## 6. Novo Colaborador / Aniversariante
+## 6. Novo Colaborador / Aniversariante (Manual + Automático)
 
-**Status:** ✅ Ativo — comandos `!colaborador` e `!aniversario` no bot WhatsApp
+**Status:** ✅ Ativo — comandos `!colaborador` e `!aniversario` no bot WhatsApp + disparo automático diário às 8h
 
 **Implementação:** Compositor de imagem via `sharp` — templates exportados do Canva como PNG, sobreposição de foto + texto em Node.js.
 
@@ -214,11 +253,41 @@ node tools/stories/completar-stories-hoje.js # completa posts faltantes (BR Pneu
 4. Aniversariante: foto → nome → arte enviada
 5. Arte enviada **sempre** para o grupo Automações (`WHATSAPP_GRUPO_AUTOMACAO_ID`)
 
+**Automático diário às 8h:**
+- Script: `tools/checar-aniversarios.js`
+- Lista: `data/aniversariantes.json` — formato `{ nome, data: "DD/MM", loja, marca, cargo?, foto? }`
+- Se a pessoa tiver `foto` com caminho válido → gera arte (template + foto) e envia imagem
+- Se não tiver foto → envia só mensagem de texto
+- Destino: `WHATSAPP_GRUPO_ANIVERSARIOS_ID` (se setado) ou `WHATSAPP_GRUPO_AUTOMACAO_ID`
+- Agendado via função `agendarAniversarios()` no bot (dispara todo dia às 8h)
+
+**Adicionar aniversariante:**
+```bash
+# Editar data/aniversariantes.json — adicionar entrada no array:
+{ "nome": "Nome", "data": "DD/MM", "loja": "BR Pneus Vila", "marca": "brpneus", "foto": null }
+# foto: null = só texto | foto: "assets/colaboradores/nome.jpg" = arte gerada
+```
+
+**Testar manualmente:**
+```bash
+node tools/checar-aniversarios.js --listar     # ver todos cadastrados
+node tools/checar-aniversarios.js --hoje       # ver quem faz aniversário hoje
+```
+
 **Comandos no bot:**
 ```
-!colaborador   → menu de empresa → foto → nome → cargo → cidade
-!aniversario   → menu de empresa → foto → nome
+!aniversariantes      → cadastro em massa (fluxo completo abaixo)
+!colaborador          → arte de novo colaborador (1 por vez)
+!aniversario          → arte de aniversariante avulso (1 por vez)
 ```
+
+**Fluxo `!aniversariantes`:**
+1. Bot pergunta o mês (ex: `5` para Maio)
+2. Usuário manda a lista: `Nome - Loja - Dia` (uma por linha)
+3. Bot salva no JSON e começa a pedir fotos uma a uma
+4. Para cada foto: gera arte e manda de volta como *documento* com nome `Nome_DD-MM.png`
+5. Digitar `pular` pula a pessoa (sem foto); `cancelar` encerra o fluxo
+6. Fotos salvas em `assets/colaboradores/` para reusar no disparo automático diário
 
 **Comportamento da foto (colaborador):**
 - Crop circular com detecção automática de rosto (`position: 'attention'` do Sharp)
@@ -307,8 +376,70 @@ node tools/retroativo-vendas-supabase.js          # mês atual
 node tools/retroativo-vendas-supabase.js 4 2026   # mês/ano específico
 ```
 
-**Importante:** O retroativo OI popula cada dia individualmente. A partir do dia seguinte, o script `preencher-vendas-diarias.js` (7h) grava automaticamente na planilha e no Supabase.
+**Importante:** O retroativo OI popula cada dia individualmente. A partir do dia seguinte, o script `coletar-vendas-diarias.js` (7h) grava automaticamente no Supabase (NexusZ) — sem planilha.
 
 ---
 
-*Última atualização: 24/04/2026 — retroativo OI direto implementado; sync vendas OI → NexusZ ativo; dia atual incluído na planilha de leads; `!colaborador` e `!aniversario` implementados*
+---
+
+## 10. Editor Automático de Vídeos
+
+**O que faz:** Monitora a pasta `#1 PARA EDITAR/{cidade}/` em busca de novos vídeos. Ao detectar um arquivo, executa automaticamente: corte em clips de 30s, overlay do logo (BR Pneus ou Peg Pneus conforme a cidade), ajuste de brilho/contraste, mix de música de fundo, legendas automáticas via Whisper (opcional). O original é arquivado em `SEM EDIÇÃO/` e o resultado vai para `#1 EDITADOS/{cidade}/`.
+
+**Dois modos de edição (acionados via bot `!editar`):**
+- **Com áudio** — mantém voz original + melhora qualidade (filtro de grave + normalização dinâmica), gera legendas curtas (máx 4 palavras/linha), cor da legenda: verde (Peg) ou amarelo (BR)
+- **Sem voz** — muta áudio original, junta todos os clips com transições fade, coloca apenas música de fundo
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/video-editor/editor-automatico.js` |
+| Comando | `npm run editor` |
+| Pasta de entrada | `C:\...\Conteudo das lojas\#1 PARA EDITAR\{cidade}\` |
+| Pasta de saída | `C:\...\Conteudo das lojas\#1 PARA EDITAR\#1 EDITADOS\{cidade}\` |
+| Original arquivado | `C:\...\#1 PARA EDITAR\{cidade}\SEM EDIÇÃO\` |
+| Agendamento | Manual (iniciar com `npm run editor` e deixar rodando) |
+
+**Cidades monitoradas (subpastas de `#1 PARA EDITAR`):**
+- `BR1 Centro`, `BR2 V. Xavier`, `BR3 Americana`, `BR4 S. Carlos`, `BR5 Maringá` → logo BR Pneus
+- `PEG1 Araraquara`, `PEG2 Sorocaba` → logo Peg Pneus
+
+**Como rodar:**
+```bash
+npm run editor                                    # modo automático (watcher contínuo)
+node tools/video-editor/editor-automatico.js      # idem
+node tools/video-editor/editor-automatico.js "C:\caminho\video.mp4"  # processar um vídeo manualmente
+```
+
+**Música de fundo:** colocar arquivo MP3 em `assets/audio/musica-fundo.mp3`. Se o arquivo não existir, etapa é pulada automaticamente.
+
+**Legendas automáticas (opcional):** adicionar `OPENAI_API_KEY=sk-...` no `.env`. Se não configurado, legendas são puladas. Transcreve em português via Whisper-1.
+
+**Modos de edição disponíveis via `!editar`:**
+
+| Modo | Subtipo | Comportamento |
+|------|---------|---------------|
+| **Com áudio** | Clips individuais | Cada arquivo editado separado; vídeos >30s têm melhor trecho selecionado via `silencedetect`; legendas por Whisper |
+| **Com áudio** | Juntar todos | Todos os clips concatenados e divididos em partes de 30s sequenciais |
+| **Sem voz** | — | Cada clip processado individualmente com fade-in/fade-out de 0.5s e música de fundo |
+
+**Seleção automática de melhor trecho (vídeos >30s):**
+- Usa `silencedetect` do FFmpeg para detectar início da fala
+- Recorta 30s a partir do primeiro trecho de fala detectado
+- Se não detectar fala, usa o início do vídeo
+
+**Regras importantes:**
+- Logo centralizado no topo (10% da largura do vídeo, 15px da borda superior)
+- **Logo Peg Pneus**: `Prancheta 1 cópia 2.png` (verde + preto, colorida) — mesmo posicionamento da BR Pneus
+- Brilho: +0.05 · Contraste: 1.25 · Saturação: 1.35 (mais vibrante, menos desbotado)
+- Volume da voz: 1.8× com filtros `highpass → lowpass → afftdn → dynaudnorm`
+- Volume da música: 7% (com áudio) / 10% (sem voz)
+- Cor da legenda: verde para Peg Pneus, amarelo para BR Pneus (formato ASS com PlayResX/Y corretos)
+- Legenda compacta: máx 4 palavras por linha, FontSize = 2.8% da altura do vídeo
+- Modo sem voz: fade-in/fade-out de 0.5s em **cada clip individual**
+- **Pastas com timestamp**: cada sessão de edição cria subpasta `YYYY-MM-DD_HH-MM` dentro de `#1 EDITADOS/{cidade}/` e `SEM EDIÇÃO/`
+- Se houver erro, tenta sem música; se ainda falhar, renderiza só vídeo+logo
+- Não processa arquivos em `SEM EDIÇÃO/` ou `#1 EDITADOS/`
+
+---
+
+*Última atualização: 27/04/2026 — logo Peg colorida; contraste/saturação aumentados; pastas com timestamp de edição*

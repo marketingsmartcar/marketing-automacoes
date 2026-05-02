@@ -16,7 +16,7 @@ Gera uma arte visual completa em HTML com imagem de qualquer fonte — foto pró
 | `ads` | 1080×1080px (Ads 1:1) | Anúncio patrocinado quadrado |
 
 ## Cidades Disponíveis
-`araraquara` | `americana` | `sao-carlos` | `maringa` | `jau` | `ibitinga` | `bauru`
+`araraquara` | `americana` | `sao-carlos` | `maringa` | `bauru`
 
 ---
 
@@ -123,7 +123,7 @@ node tools/gerar-criativo-html.js promo-pneus maringa \
 
 ### Stories — Emoji grande:
 ```bash
-node tools/gerar-criativo-html.js stories jau \
+node tools/gerar-criativo-html.js stories americana \
   '{"headline":"PNEUS EM PROMOÇÃO","oferta":"A partir de R$179","imagem":"emoji:🛞,200"}'
 ```
 
@@ -135,7 +135,7 @@ node tools/gerar-criativo-html.js ads araraquara \
 
 ### Campanha multi-cidade com SVG:
 ```bash
-for city in araraquara americana sao-carlos maringa jau ibitinga; do
+for city in araraquara americana sao-carlos maringa; do
   node tools/gerar-criativo-html.js promo-pneus $city '{"imagem":"svg:pneu"}'
 done
 ```

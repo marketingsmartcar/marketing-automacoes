@@ -296,7 +296,7 @@ async function setEmptyRowHeights(sheets, blockStart) {
 
 const STORE_LABELS = [
   'BR1 Centro', 'BR2 V. Xavier', 'BR3 Americana', 'BR4 S. Carlos', 'BR5 Maringá',
-  'BR6 Jaú', 'BR7 Ibitinga', 'Peg1 Araraquara', 'Peg2 Sorocaba', 'Rede',
+  'Peg1 Araraquara', 'Peg2 Sorocaba', 'Rede',
 ];
 
 async function writeBlockHeaders(sheets, blockStart) {

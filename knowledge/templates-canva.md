@@ -66,12 +66,12 @@
 
 ## Dados por Unidade (para preenchimento automático)
 
-| Campo | Araraquara | Americana | São Carlos | Maringá | Jaú | Ibitinga |
-|-------|-----------|-----------|-----------|---------|-----|---------|
-| cidade | Araraquara | Americana | São Carlos | Maringá | Jaú | Ibitinga |
-| estado | SP | SP | SP | PR | SP | SP |
-| telefone | (16) 3190-2380 | (16) 3397-5424 | (16) 3376-0011 | (44) 3170-0441 | (14) 3149-0549 | (16) 3188-0547 |
-| 0800 | 0800 942 4402 | 0800 942 4402 | 0800 942 4402 | 0800 942 4402 | 0800 942 4402 | 0800 942 4402 |
+| Campo | Araraquara | Americana | São Carlos | Maringá |
+|-------|-----------|-----------|-----------|---------|
+| cidade | Araraquara | Americana | São Carlos | Maringá |
+| estado | SP | SP | SP | PR |
+| telefone | (16) 3190-2380 | (16) 3397-5424 | (16) 3376-0011 | (44) 3170-0441 |
+| 0800 | 0800 942 4402 | 0800 942 4402 | 0800 942 4402 | 0800 942 4402 |
 
 > **Obs:** Araraquara tem 2 lojas (Loja 1 e Loja 2), ambas com o mesmo telefone (16) 3190-2380.
 
