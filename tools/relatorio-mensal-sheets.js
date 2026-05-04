@@ -312,8 +312,8 @@ async function atualizarAbaResumo(sheets, sheetId, nomeMes, dados, geradoEm, res
   const values = [];
   const fmts   = [];
 
-  // Largura total da tabela de lojas (Data + Dia + 8×3 + 3 totais = 29)
-  const NL_KPI = 8;
+  // Largura total da tabela = Data + Dia + N_lojas×3 + 3 totais
+  const NL_KPI = LOJAS_ORDEM.length;
   const TC = 2 + NL_KPI * 3 + 3;
 
   // addRow: push linha e retorna índice 0-based garantido (sem contador manual)
@@ -403,7 +403,7 @@ async function atualizarAbaResumo(sheets, sheetId, nomeMes, dados, geradoEm, res
   addRow([...Array(TC).fill('')], 14);
 
   // ── Tickets, Ativos e Novos Contatos por Loja — Por Dia
-  { const NL = LOJAS_ORDEM.length;       // 8 lojas
+  { const NL = LOJAS_ORDEM.length;
     // TC já definido acima (mesmo valor: 2 + NL*3 + 3)
     // [cor do cabeçalho (escura), cor dos dados (pastel)] — uniforme nas 3 sub-colunas
     const LOJA_COLORS = [

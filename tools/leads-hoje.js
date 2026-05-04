@@ -308,10 +308,11 @@ async function atualizarLinhaHoje() {
   const allRows = allData.values || [];
 
   const ddmm = /^\d{2}\/\d{2}$/;
-  const totalCols = Array(27).fill(0); // colunas 2-28 (27 colunas numéricas)
+  const NUM_COLS = LOJAS_ORDEM.length * 3 + 3; // 6×3+3 = 21 colunas numéricas
+  const totalCols = Array(NUM_COLS).fill(0);
   allRows.forEach(row => {
     if (!ddmm.test(row[0] || '')) return;
-    for (let c = 2; c < 29; c++) {
+    for (let c = 2; c < 2 + NUM_COLS; c++) {
       const v = parseInt(row[c] || '0', 10);
       if (!isNaN(v)) totalCols[c - 2] += v;
     }
