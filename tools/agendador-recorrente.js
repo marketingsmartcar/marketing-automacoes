@@ -87,10 +87,11 @@ function getPendentesAgora() {
 async function enviarRecorrente(client, item) {
   try {
     const { MessageMedia } = require('whatsapp-web.js');
-    const grupoId = (item.grupoId && item.grupoId.endsWith('@g.us'))
+    // Suporta grupos (@g.us), números individuais (@c.us) e fallback para WHATSAPP_GRUPO_ID
+    const destino = (item.grupoId && (item.grupoId.endsWith('@g.us') || item.grupoId.endsWith('@c.us')))
       ? item.grupoId
-      : (process.env.WHATSAPP_GRUPO_ID || item.grupoId);
-    const chat = await client.getChatById(grupoId);
+      : process.env.WHATSAPP_GRUPO_ID;
+    const chat = await client.getChatById(destino);
 
     if (item.imagemPath && fs.existsSync(item.imagemPath)) {
       const media = MessageMedia.fromFilePath(item.imagemPath);
@@ -141,7 +142,11 @@ function formatarLista() {
   let msg = `🔁 *Posts recorrentes (${lista.length}):*\n\n`;
   for (const r of lista) {
     const status = r.ativo ? '✅' : '⏸️';
-    msg += `${status} *#${r.id}* — ${DIAS_NOME[r.diaSemana]} às ${r.hora}\n`;
+    const grupoPadrao = process.env.WHATSAPP_GRUPO_ID;
+    const destLabel = r.grupoId && r.grupoId !== grupoPadrao
+      ? (r.grupoId.endsWith('@c.us') ? `📱 ${r.grupoId.replace('@c.us','')}` : `👥 Grupo personalizado`)
+      : '👥 Grupo padrão';
+    msg += `${status} *#${r.id}* — ${DIAS_NOME[r.diaSemana]} às ${r.hora}  |  ${destLabel}\n`;
     msg += `📝 ${r.mensagem ? r.mensagem.slice(0,60) + (r.mensagem.length > 60 ? '...' : '') : '_(só imagem)_'}\n`;
     msg += `🖼️ Imagem: ${r.imagemPath ? 'Sim' : 'Não'}\n`;
     msg += `Pausar/retomar: \`!pausarfixo ${r.id}\`  |  Deletar: \`!deletarfixo ${r.id}\`\n\n`;

@@ -14,12 +14,14 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-const LOJAS_ORDEM = ['Araraquara','S. Carlos','Americana','Maringá','Peg ARQ','Peg SOR'];
+const LOJAS_ORDEM = ['Araraquara','S. Carlos','Americana','Jaú','Ibitinga','Maringá','Peg ARQ','Peg SOR'];
 
 const LOJA_KEYS = {
   'Araraquara': 'ARQ',
   'S. Carlos':  'SAO_CARLOS',
   'Americana':  'AMERICANA',
+  'Jaú':        'JAU',
+  'Ibitinga':   'IBITINGA',
   'Maringá':    'MARINGA',
   'Peg ARQ':    'PEG_ARQ',
   'Peg SOR':    'PEG_SOR',
@@ -72,10 +74,13 @@ async function lerAba(sheets, nomeAba, ano) {
   const ddmm = /^\d{2}\/\d{2}$/;
   const rows = [];
 
+  const hojeISO = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+
   for (const row of allRows) {
     const data_str = row[0] || '';
     if (!ddmm.test(data_str)) continue;
     const dataISO = ddmmToISO(data_str, ano);
+    if (dataISO >= hojeISO) continue; // não sincroniza hoje (dados incompletos)
 
     LOJAS_ORDEM.forEach((loja, li) => {
       const c = 2 + li * 3;

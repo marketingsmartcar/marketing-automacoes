@@ -59,21 +59,10 @@ const CONTAS = [
       pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ,
     },
   },
-  {
-    key:          'peg_sorocaba',
-    nome:         'Peg Pneus Sorocaba',
-    videosPorDia: 1,
-    instagram:    null,
-    facebook: {
-      pageId:    process.env.META_PAGE_ID_PEG_SOR,
-      pageToken: process.env.META_PAGE_TOKEN_PEG_SOR,
-    },
-  },
 ];
 
 const VIDEOS_POR_DIA = 3;
 const MAX_SEG_POOL   = 60; // pool único: vídeos até 60s
-const LIMIAR_FB_ONLY = 30; // ≤30s → apenas Facebook; >30s → IG + FB
 
 // ─── Função principal de publicação ──────────────────────────────────────────
 async function publicarStoriesDoDia() {
@@ -113,14 +102,15 @@ async function publicarStoriesDoDia() {
     let igAuthFalhou = false;
     let fbAuthFalhou = false;
     let tentativasSemSucesso = 0;
-    const MAX_TENTATIVAS = (conta.videosPorDia ?? VIDEOS_POR_DIA) * 4;
+    let videosIncompativeis = 0;
+    const MAX_TENTATIVAS = (conta.videosPorDia ?? VIDEOS_POR_DIA) * 8;
 
     while (
       (temIG && igPostados < meta && !igAuthFalhou) ||
       (temFB && fbPostados < meta && !fbAuthFalhou)
     ) {
-      if (++tentativasSemSucesso > MAX_TENTATIVAS) {
-        console.log(`  ⚠️  Muitas tentativas sem sucesso — abortando conta.`);
+      if (tentativasSemSucesso > MAX_TENTATIVAS) {
+        console.log(`  ⚠️  Muitas tentativas sem sucesso (${tentativasSemSucesso}) — abortando conta.`);
         break;
       }
 
@@ -137,22 +127,24 @@ async function publicarStoriesDoDia() {
         // não conseguiu ler duração — assume máximo para não bloquear
       }
 
-      const soFacebook = duracao <= LIMIAR_FB_ONLY;
-      const nomeArq    = require('path').basename(video);
-      console.log(`  🎞  ${nomeArq} (${Math.round(duracao)}s) → ${soFacebook ? 'FB apenas' : 'IG + FB'}`);
+      const nomeArq = require('path').basename(video);
 
-      // Se nenhuma plataforma usaria este vídeo, devolve à fila e encerra
-      const igUsaria = temIG && !soFacebook && igPostados < meta && !igAuthFalhou;
+      // Se nenhuma plataforma usaria este vídeo, tenta o próximo
+      const igUsaria = temIG && igPostados < meta && !igAuthFalhou;
       const fbUsaria = temFB && fbPostados < meta && !fbAuthFalhou;
       if (!igUsaria && !fbUsaria) {
-        restituirVideo(conta.key, MAX_SEG_POOL, video);
         console.log(`  ↩️  Vídeo devolvido à fila (nenhuma plataforma precisa dele agora).`);
-        break;
+        restituirVideo(conta.key, MAX_SEG_POOL, video);
+        tentativasSemSucesso++;
+        continue;
       }
+
+      const destino = igUsaria && fbUsaria ? 'IG + FB' : igUsaria ? 'IG apenas' : 'FB apenas';
+      console.log(`  🎞  ${nomeArq} (${Math.round(duracao)}s) → ${destino}`);
 
       let algoPostado = false;
 
-      // ── Instagram (apenas vídeos >30s)
+      // ── Instagram
       if (igUsaria) {
         try {
           await postarInstagramStory(conta.instagram.igUserId, conta.instagram.pageToken, video);
@@ -161,7 +153,7 @@ async function publicarStoriesDoDia() {
         } catch (err) {
           const isAuth = err.message?.includes('190') || err.message?.includes('expired') || err.message?.includes('OAuthException');
           if (isAuth) { igAuthFalhou = true; console.error(`  ❌ [IG] Token expirado — pulando IG para esta conta.`); }
-          else console.error(`  ❌ [IG] ${err.message} — pulando vídeo no IG...`);
+          else { videosIncompativeis++; console.error(`  ❌ [IG] ${err.message} — vídeo incompatível, tentando próximo...`); }
         }
       }
 
@@ -174,13 +166,15 @@ async function publicarStoriesDoDia() {
         } catch (err) {
           const isAuth = err.message?.includes('190') || err.message?.includes('expired') || err.message?.includes('OAuthException');
           if (isAuth) { fbAuthFalhou = true; console.error(`  ❌ [FB] Token expirado — pulando FB para esta conta.`); }
-          else console.error(`  ❌ [FB] ${err.message} — pulando vídeo no FB...`);
+          else { videosIncompativeis++; console.error(`  ❌ [FB] ${err.message} — vídeo incompatível, tentando próximo...`); }
         }
       }
 
       if (algoPostado) {
         registrarPostagem(video);
         tentativasSemSucesso = 0;
+      } else {
+        tentativasSemSucesso++;
       }
     }
 
@@ -191,6 +185,7 @@ async function publicarStoriesDoDia() {
 
     if (igPostados > 0) linhas.push(`  📸 Instagram: ${igPostados} storie(s)`);
     if (fbPostados > 0) linhas.push(`  📘 Facebook: ${fbPostados} storie(s)`);
+    if (videosIncompativeis > 0) linhas.push(`  ⏭️ ${videosIncompativeis} vídeo(s) incompatível(is) pulado(s)`);
     if (linhas.length > 1) resumo.push(linhas.join('\n'));
   }
 

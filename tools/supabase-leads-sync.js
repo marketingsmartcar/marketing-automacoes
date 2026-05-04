@@ -87,4 +87,15 @@ async function syncAtendentes(dataISO, atendentesPorLoja) {
   console.log(`  ✅ leads_atendentes — ${rows.length} registros gravados para ${dataISO}`);
 }
 
-module.exports = { syncLeads, syncAtendentes };
+// Sincroniza tickets individuais → leads_tickets
+async function syncTickets(dataISO, ticketsList) {
+  let cfg;
+  try { cfg = getSupabaseConfig(); } catch (e) { console.warn('  ⚠️ ', e.message, '— sync tickets ignorado'); return; }
+  if (!ticketsList.length) { console.warn('  ⚠️  Nenhum ticket — sync leads_tickets ignorado'); return; }
+  for (let i = 0; i < ticketsList.length; i += 100) {
+    await upsert(cfg.url, cfg.key, 'leads_tickets', 'ticket_id', ticketsList.slice(i, i + 100));
+  }
+  console.log(`  ✅ leads_tickets — ${ticketsList.length} tickets gravados para ${dataISO}`);
+}
+
+module.exports = { syncLeads, syncAtendentes, syncTickets };

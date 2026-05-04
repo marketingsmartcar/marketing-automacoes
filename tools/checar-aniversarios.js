@@ -45,44 +45,6 @@ function montarMensagem(pessoa) {
   return msg;
 }
 
-function montarMensagemGrupo(aniversariantes) {
-  if (aniversariantes.length === 0) return null;
-
-  if (aniversariantes.length === 1) {
-    return montarMensagem(aniversariantes[0]);
-  }
-
-  // Vários aniversariantes no mesmo dia
-  const nomes = aniversariantes.map(p => `*${p.nome}*`).join(' e ');
-  let msg = `🎂🎉 *Feliz Aniversário!* 🎉🎂\n\n`;
-  msg += `Hoje comemoramos o aniversário de ${nomes}!\n\n`;
-  msg += `Que este novo ano seja repleto de conquistas, saúde e muito sucesso!\n\n`;
-  msg += `Da equipe *BR Pneus & Oficina* com muito carinho. 🧡`;
-  return msg;
-}
-
-// ─── Enviar via WhatsApp Bot ───────────────────────────────────────────────────
-
-async function enviarAoGrupo(mensagem, client, grupoId) {
-  grupoId = grupoId || process.env.WHATSAPP_GRUPO_ANIVERSARIOS_ID || process.env.WHATSAPP_GRUPO_ID;
-  if (!grupoId) {
-    console.log('⚠️  Nenhum grupo de aniversários configurado — mensagem não enviada.');
-    console.log('\nMensagem que seria enviada:\n');
-    console.log(mensagem);
-    return false;
-  }
-
-  try {
-    const chat = await client.getChatById(grupoId);
-    await chat.sendMessage(mensagem);
-    console.log(`✅ Mensagem de aniversário enviada ao grupo: ${chat.name}`);
-    return true;
-  } catch (err) {
-    console.error('❌ Erro ao enviar ao grupo:', err.message);
-    return false;
-  }
-}
-
 // ─── Verificar e disparar ──────────────────────────────────────────────────────
 
 async function verificarEDisparar(client = null, grupoId = null) {
@@ -95,16 +57,60 @@ async function verificarEDisparar(client = null, grupoId = null) {
 
   console.log(`🎂 ${hoje.length} aniversariante(s) hoje: ${hoje.map(p => p.nome).join(', ')}`);
 
-  if (client) {
-    await enviarAoGrupo(montarMensagemGrupo(hoje), client, grupoId);
-  } else {
-    console.log('⚠️  Bot não está rodando — mensagem de aniversário não enviada.');
+  if (!client) {
+    console.log('⚠️  Bot não está rodando — mensagem não enviada.');
+    console.log('\nMensagem(s) que seriam enviadas:\n');
+    hoje.forEach(p => console.log(montarMensagem(p) + '\n---'));
+    return hoje;
+  }
+
+  const destino = grupoId
+    || process.env.WHATSAPP_GRUPO_ANIVERSARIOS_ID
+    || process.env.WHATSAPP_GRUPO_AUTOMACAO_ID
+    || process.env.WHATSAPP_GRUPO_ID;
+
+  if (!destino) {
+    console.log('⚠️  Nenhum grupo de aniversários configurado — mensagem não enviada.');
+    return hoje;
+  }
+
+  const { gerarAniversario } = require('./gerar-arte');
+  const { MessageMedia }     = require('whatsapp-web.js');
+
+  for (const pessoa of hoje) {
+    const caption = montarMensagem(pessoa);
+    try {
+      // Gera arte se a foto existe
+      if (pessoa.foto && fs.existsSync(pessoa.foto)) {
+        const pngPath = await gerarAniversario({
+          marca:    pessoa.marca || 'brpneus',
+          nome:     pessoa.nome,
+          fotoPath: pessoa.foto,
+        });
+        const media = MessageMedia.fromFilePath(pngPath);
+        await client.sendMessage(destino, media, { caption });
+        console.log(`✅ Arte enviada: ${pessoa.nome}`);
+      } else {
+        // Sem foto — envia só texto
+        await client.sendMessage(destino, caption);
+        console.log(`✅ Mensagem enviada: ${pessoa.nome} (sem foto)`);
+      }
+    } catch (err) {
+      console.error(`❌ Erro ao processar ${pessoa.nome}:`, err.message);
+      // Tenta fallback de texto se a arte falhou
+      try {
+        await client.sendMessage(destino, caption);
+        console.log(`↩️  Fallback texto enviado: ${pessoa.nome}`);
+      } catch (e2) {
+        console.error(`❌ Fallback também falhou: ${e2.message}`);
+      }
+    }
   }
 
   return hoje;
 }
 
-module.exports = { verificarEDisparar, aniversariantesHoje, montarMensagemGrupo, carregarAniversariantes };
+module.exports = { verificarEDisparar, aniversariantesHoje, montarMensagem, carregarAniversariantes };
 
 // ─── CLI standalone ────────────────────────────────────────────────────────────
 
@@ -122,7 +128,7 @@ if (require.main === module) {
         const [db, mb] = b.data.split('/').map(Number);
         return ma !== mb ? ma - mb : da - db;
       }).forEach(p => {
-        console.log(`  ${p.data}  ${p.nome.padEnd(25)} ${p.loja || ''} — ${p.cargo || ''}`);
+        console.log(`  ${p.data}  ${p.nome.padEnd(25)} ${(p.loja || '').padEnd(22)} ${p.cargo || ''}`);
       });
       console.log('');
     }
@@ -135,13 +141,13 @@ if (require.main === module) {
       console.log('Sem aniversariantes hoje.');
     } else {
       console.log(`\n🎂 Aniversariante(s) hoje:\n`);
-      hoje.forEach(p => console.log(`  • ${p.nome} — ${p.loja || ''}`));
-      console.log('\nMensagem que seria enviada:\n');
-      console.log(montarMensagemGrupo(hoje));
+      hoje.forEach(p => {
+        console.log(`  • ${p.nome} — ${p.loja || ''} | foto: ${p.foto || 'não cadastrada'}`);
+        console.log('\n' + montarMensagem(p) + '\n');
+      });
     }
     return;
   }
 
-  // Padrão: verificar e disparar (sem bot, usa CallMeBot como fallback)
   verificarEDisparar(null).catch(err => console.error('Erro:', err.message));
 }

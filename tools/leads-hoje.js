@@ -15,7 +15,7 @@ const { google } = require('googleapis');
 const fs         = require('fs');
 const cron       = require('node-cron');
 const { monitorarDeskrioRange } = require('./monitor-deskrio');
-const { syncLeads, syncAtendentes } = require('./supabase-leads-sync');
+const { syncLeads, syncAtendentes, syncTickets } = require('./supabase-leads-sync');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,11 @@ const LOJA_MAP = {
   'Peg Pneus - Sorocaba':   'Peg SOR',
 };
 const LOJAS_ORDEM = ['Araraquara', 'S. Carlos', 'Americana', 'Maringá', 'Peg ARQ', 'Peg SOR'];
+
+const LOJA_KEYS_MAP = {
+  'Araraquara': 'ARQ', 'S. Carlos': 'SAO_CARLOS', 'Americana': 'AMERICANA',
+  'Maringá': 'MARINGA', 'Peg ARQ': 'PEG_ARQ', 'Peg SOR': 'PEG_SOR',
+};
 
 // Cores das lojas (pastéis) — mesmas do relatorio-mensal-sheets.js
 const LOJA_COLORS_DAT = [
@@ -87,6 +92,7 @@ function processarHoje(resultados) {
   const diasPorLoja = {};
   // { [loja]: { [atendente]: { tickets, abertos, pendentes, fechados } } }
   const atendentesPorLoja = {};
+  const ticketsList = [];
 
   resultados.forEach(emp => {
     const isPeg = emp.nome === 'Peg Pneus';
@@ -119,6 +125,23 @@ function processarHoje(resultados) {
         else if (s === 'pending') a.pendentes++;
         else if (s === 'closed')  a.fechados++;
       }
+
+      // Ticket individual para Supabase
+      ticketsList.push({
+        ticket_id:    String(t.id),
+        data:         hISO,
+        loja_key:     LOJA_KEYS_MAP[loja] ?? loja.toUpperCase().replace(/\s/g, '_'),
+        loja_label:   loja,
+        empresa:      emp.nome,
+        atendente:    nomeAte || null,
+        contato:      t.contact?.name  || null,
+        numero:       t.contact?.number || null,
+        status:       s,
+        origem:       t.origin || null,
+        criado_em:    t.createdAt  || null,
+        fechado_em:   t.closedAt   || null,
+        tempo_espera: typeof t.waitTime === 'number' ? t.waitTime : null,
+      });
     });
 
     (emp.ativosRaw || []).forEach(t => {
@@ -136,7 +159,7 @@ function processarHoje(resultados) {
     diasPorLoja[l].contatos = diasPorLoja[l].contatos.size;
   }
 
-  return { diasPorLoja, atendentesPorLoja };
+  return { diasPorLoja, atendentesPorLoja, ticketsList };
 }
 
 // ─── Formatação de uma linha de dados ────────────────────────────────────────
@@ -203,7 +226,7 @@ async function atualizarLinhaHoje() {
 
   // 1. Buscar dados de hoje no Deskrio
   const resultados = await monitorarDeskrioRange(hoje, hoje);
-  const { diasPorLoja, atendentesPorLoja } = processarHoje(resultados);
+  const { diasPorLoja, atendentesPorLoja, ticketsList } = processarHoje(resultados);
 
   const totTk = LOJAS_ORDEM.reduce((s,l) => s + (diasPorLoja[l]?.tickets || 0), 0);
   const totAv = LOJAS_ORDEM.reduce((s,l) => s + (diasPorLoja[l]?.ativos  || 0), 0);
@@ -308,6 +331,7 @@ async function atualizarLinhaHoje() {
   const hISO = hojeISO();
   await syncLeads(hISO, diasPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_diarios sync:', e.message));
   await syncAtendentes(hISO, atendentesPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_atendentes sync:', e.message));
+  await syncTickets(hISO, ticketsList).catch(e => console.warn('  ⚠️  Supabase leads_tickets sync:', e.message));
 }
 
 // ─── Remover aba "Hoje" se existir (criada por versão anterior) ───────────────

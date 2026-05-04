@@ -32,8 +32,9 @@ jobs:
         run: |
           echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                               >> .env
           echo "OI_SENHA=${{ secrets.OI_SENHA }}"                               >> .env
-          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"         >> .env
-          echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}" >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                               >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}"   >> .env
+          echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"                   >> .env
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}" >> .env
 
       - name: Criar credenciais Google Sheets

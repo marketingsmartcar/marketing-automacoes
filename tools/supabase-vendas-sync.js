@@ -9,9 +9,9 @@ const LOJAS_LABELS = {
 
 async function syncVendasOI(date, lojaResults) {
   const url  = process.env.NEXUSZ_SUPABASE_URL;
-  const key  = process.env.NEXUSZ_SUPABASE_ANON_KEY;
+  const key  = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY || process.env.NEXUSZ_SUPABASE_ANON_KEY;
   if (!url || !key) {
-    console.warn('  ⚠️  NEXUSZ_SUPABASE_URL / NEXUSZ_SUPABASE_ANON_KEY não configurados — sync ignorado');
+    console.warn('  ⚠️  NEXUSZ_SUPABASE_URL / NEXUSZ_SUPABASE_SERVICE_ROLE_KEY não configurados — sync ignorado');
     return;
   }
 

@@ -97,8 +97,30 @@ async function fotoCircular(fotoPath, diametro) {
   const mask = Buffer.from(
     `<svg width="${diametro}" height="${diametro}"><circle cx="${r}" cy="${r}" r="${r}" fill="white"/></svg>`
   );
+
+  const meta  = await sharp(fotoPath).metadata();
+  const origW = meta.width  || diametro;
+  const origH = meta.height || diametro;
+
+  // Para fotos retrato: pré-corta os 55% superiores da imagem (elimina corpo abaixo
+  // da cintura) e depois aplica entropy crop — que foca em áreas de alta informação
+  // (rosto, olhos, feições) em vez do fundo colorido que confunde o algoritmo attention.
+  if (origH > origW) {
+    const topH   = Math.round(origH * 0.55);
+    const preBuf = await sharp(fotoPath)
+      .extract({ left: 0, top: 0, width: origW, height: topH })
+      .toBuffer();
+
+    return sharp(preBuf)
+      .resize(diametro, diametro, { fit: 'cover', position: 'entropy' })
+      .composite([{ input: mask, blend: 'dest-in' }])
+      .png()
+      .toBuffer();
+  }
+
+  // Foto quadrada ou paisagem: entropy crop direto
   return sharp(fotoPath)
-    .resize(diametro, diametro, { fit: 'cover', position: 'attention' })
+    .resize(diametro, diametro, { fit: 'cover', position: 'entropy' })
     .composite([{ input: mask, blend: 'dest-in' }])
     .png()
     .toBuffer();
