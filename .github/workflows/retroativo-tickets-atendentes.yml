@@ -1,0 +1,38 @@
+name: Retroativo — Tickets + Atendentes (Deskrio → Supabase)
+
+on:
+  workflow_dispatch:
+    inputs:
+      data_inicio:
+        description: 'Data inicial (YYYY-MM-DD). Vazio = 2026-01-01.'
+        required: false
+
+jobs:
+  retroativo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "DESKRIO_API_TOKEN_BR=${{ secrets.DESKRIO_API_TOKEN_BR }}"                         >> .env
+          echo "DESKRIO_API_TOKEN_PEG=${{ secrets.DESKRIO_API_TOKEN_PEG }}"                       >> .env
+          echo "DESKRIO_INSTANCE_BR=${{ secrets.DESKRIO_INSTANCE_BR }}"                           >> .env
+          echo "DESKRIO_INSTANCE_PEG=${{ secrets.DESKRIO_INSTANCE_PEG }}"                         >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Executar retroativo
+        run: node tools/retroativo-tickets-atendentes.js ${{ github.event.inputs.data_inicio }}
