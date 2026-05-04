@@ -294,7 +294,7 @@ async function limparAba(sheets, sheetId, nome) {
           backgroundColor: { red:1, green:1, blue:1 },
           textFormat: { bold:false, foregroundColor:{ red:0.1, green:0.1, blue:0.1 } },
         }},
-        fields: 'userEnteredFormat(backgroundColor,textFormat)',
+        fields: 'userEnteredFormat(backgroundColor,textFormat,borders)',
       }},
     ]},
   }).catch(()=>{});
