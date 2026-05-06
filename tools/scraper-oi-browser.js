@@ -104,8 +104,9 @@ async function saveDebug(page, nome) {
 
 async function login(page) {
   console.log('🔐 Fazendo login...');
-  await page.goto(LOGIN_URL, { waitUntil: 'networkidle2', timeout: 30000 });
-  await page.waitForSelector('#Login1_UserName', { timeout: 15000 });
+  await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  // Aguarda o campo aparecer — até 30s (ASP.NET pode ser lento no GitHub Actions)
+  await page.waitForSelector('#Login1_UserName', { timeout: 30000 });
 
   await page.click('#Login1_UserName', { clickCount: 3 });
   await page.type('#Login1_UserName', process.env.OI_EMAIL, { delay: 30 });
@@ -492,10 +493,26 @@ async function getOIDataBrowser(dateArg, onStoreCollected) {
 
   const browser = await puppeteer.launch({
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-infobars',
+      '--window-size=1366,768',
+      '--ignore-certificate-errors',
+    ],
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1366, height: 768 });
+  await page.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+  );
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+    Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'pt', 'en-US'] });
+  });
 
   try {
     await login(page);
