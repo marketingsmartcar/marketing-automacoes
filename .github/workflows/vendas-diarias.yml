@@ -2,18 +2,18 @@ name: Vendas Diárias — Oficina Inteligente
 
 on:
   schedule:
-    # 07:00 BRT = 10:00 UTC — Segunda a Sábado
-    - cron: '0 10 * * 1-6'
+    # 20:00 BRT = 23:00 UTC — Segunda a Sábado
+    - cron: '0 23 * * 1-6'
   workflow_dispatch:
     inputs:
       data:
-        description: 'Data específica (YYYY-MM-DD). Vazio = ontem.'
+        description: 'Data específica (YYYY-MM-DD). Vazio = hoje (BRT).'
         required: false
 
 jobs:
   coletar:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -30,20 +30,34 @@ jobs:
 
       - name: Criar .env
         run: |
-          echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                               >> .env
-          echo "OI_SENHA=${{ secrets.OI_SENHA }}"                               >> .env
-          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                               >> .env
-          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}"   >> .env
-          echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"                   >> .env
-          echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}" >> .env
+          echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                                             >> .env
+          echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                             >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                       >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"             >> .env
+          echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"       >> .env
 
       - name: Criar credenciais Google Sheets
         run: |
           mkdir -p credentials
           echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
 
-      - name: Executar coleta
-        run: node tools/preencher-vendas-diarias.js ${{ github.event.inputs.data }}
+      - name: Coleta diária (hoje BRT)
+        run: |
+          # Passa a data de hoje no fuso BRT para o script
+          TODAY=$(TZ='America/Sao_Paulo' date +%Y-%m-%d)
+          echo "📅 Coletando: $TODAY"
+          node tools/preencher-vendas-diarias.js "$TODAY"
+
+      - name: Revisão semanal (apenas Sábado às 20h BRT)
+        run: |
+          DIA_SEMANA=$(TZ='America/Sao_Paulo' date +%u)
+          if [ "$DIA_SEMANA" = "6" ]; then
+            echo "📅 Sábado — iniciando revisão semanal (seg–sáb)..."
+            node tools/retroativo-planilha.js --semana
+          else
+            echo "⏭️  Dia $DIA_SEMANA — revisão semanal pulada."
+          fi
 
       - name: Salvar log como artefato
         if: always()

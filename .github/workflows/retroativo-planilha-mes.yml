@@ -1,0 +1,49 @@
+name: Retroativo Planilha + Supabase (Mês)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mes:
+        description: 'Mês (1–12)'
+        required: true
+        default: '5'
+      ano:
+        description: 'Ano (ex: 2026)'
+        required: true
+        default: '2026'
+
+jobs:
+  retroativo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                                             >> .env
+          echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                             >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                       >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"             >> .env
+
+      - name: Criar credenciais Google Sheets
+        run: |
+          mkdir -p credentials
+          echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
+
+      - name: Executar retroativo
+        run: |
+          echo "📅 Retroativo: ${{ github.event.inputs.mes }}/${{ github.event.inputs.ano }}"
+          node tools/retroativo-planilha.js --mes ${{ github.event.inputs.mes }} --ano ${{ github.event.inputs.ano }}
