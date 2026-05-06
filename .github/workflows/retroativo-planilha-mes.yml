@@ -47,3 +47,12 @@ jobs:
         run: |
           echo "📅 Retroativo: ${{ github.event.inputs.mes }}/${{ github.event.inputs.ano }}"
           node tools/retroativo-planilha.js --mes ${{ github.event.inputs.mes }} --ano ${{ github.event.inputs.ano }}
+
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-oi-${{ github.run_number }}
+          path: output/debug-oi/
+          if-no-files-found: ignore
+          retention-days: 3

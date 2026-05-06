@@ -105,6 +105,15 @@ async function saveDebug(page, nome) {
 async function login(page) {
   console.log('🔐 Fazendo login...');
   await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
+
+  // Diagnóstico: loga URL e título real da página carregada
+  const realUrl   = page.url();
+  const pageTitle = await page.title().catch(() => '?');
+  const bodyText  = await page.evaluate(() => document.body?.innerText?.slice(0, 300) || '').catch(() => '');
+  console.log(`  🌐 URL: ${realUrl}`);
+  console.log(`  📄 Título: ${pageTitle}`);
+  if (bodyText) console.log(`  📝 Conteúdo: ${bodyText.replace(/\n/g, ' ').trim().slice(0, 200)}`);
+
   // Aguarda o campo aparecer — até 30s (ASP.NET pode ser lento no GitHub Actions)
   await page.waitForSelector('#Login1_UserName', { timeout: 30000 });
 
