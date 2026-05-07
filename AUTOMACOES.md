@@ -514,4 +514,50 @@ node tools/scraper-oi-colaboradores.js --data-inicio 01/05/2026 --data-fim 31/05
 
 ---
 
-*Última atualização: 07/05/2026 — OI Colaboradores: coleta Participação por Consultor + Grupos, sync Supabase, aba NexusZ*
+---
+
+## 12. Coleta Social Media (Instagram + Facebook) → NexusZ
+
+**O que faz:** Acessa a Meta Graph API v21.0 para cada conta (BR Instagram, BR Facebook, Peg Araraquara Instagram/Facebook, Peg Sorocaba Facebook), coleta seguidores, posts e métricas de engajamento (curtidas, comentários, compartilhamentos). Sincroniza no Supabase do NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-social-media.js` |
+| Tabela snapshots | `social_account_snapshots` (NexusZ) |
+| Tabela posts | `social_posts` (NexusZ) |
+| Agendamento | **GitHub Actions** — todo dia às **09h BRT** |
+| Workflow | `.github/workflows/social-media.yml` |
+| Env vars necessárias | `META_IG_ID_BR`, `META_ACCESS_TOKEN_BR`, `META_PAGE_ID_BR`, `META_PAGE_TOKEN_BR`, `META_IG_ID_PEG_ARQ`, `META_ACCESS_TOKEN_PEG`, `META_PAGE_ID_PEG_ARQ`, `META_PAGE_TOKEN_PEG_ARQ`, `META_PAGE_ID_PEG_SOR`, `META_PAGE_TOKEN_PEG_SOR`, `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
+
+**Contas coletadas:**
+
+| Chave | Label | Plataforma |
+|-------|-------|-----------|
+| BR | BR Pneus & Oficina | Instagram + Facebook |
+| PEG_ARQ | Peg Pneus Araraquara | Instagram + Facebook |
+| PEG_SOR | Peg Pneus Sorocaba | Facebook (Instagram pendente — `META_IG_ID_PEG_SOR` não configurado) |
+
+**Como rodar manualmente:**
+```bash
+npm run social        # alias
+node tools/coletar-social-media.js
+```
+
+**Regras importantes:**
+- Instagram coleta até 200 posts (paginado de 100 em 100)
+- Facebook coleta até 200 posts
+- Posts inseridos em lotes de 50; se o lote falhar, tenta um a um
+- `sanitize()` remove caracteres de controle das captions (evita PGRST102 no Supabase)
+- Upsert de snapshots por `(conta_key, plataforma, data)` — um por dia
+- Upsert de posts por `post_id` — histórico completo acumulado
+- **Tokens Facebook expiram** — renovar Page Access Tokens no Meta Business Manager quando código de erro 190 aparecer
+
+**Visualização no NexusZ:**
+- Menu: Marketing → Social Media
+- Rota: `/admin/social-media`
+- Componente: `NexusZ/src/pages/admin/AdminSocialMedia.tsx`
+- Cards globais de seguidores + engajamento; tabs por conta; melhor/pior post; tabela completa
+
+---
+
+*Última atualização: 07/05/2026 — Social Media: coleta Instagram + Facebook Graph API, sync Supabase, dashboard NexusZ*
