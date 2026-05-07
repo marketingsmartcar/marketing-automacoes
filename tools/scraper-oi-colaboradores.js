@@ -356,67 +356,47 @@ async function extrairTabelaGrupos(page) {
   });
 }
 
-// ── Coleta O.S. para vendedor (habilita "Mostrar O.S." + paginação) ──────────
+// ── Coleta O.S. para vendedor (extrai diretamente da tabela, sem navegar por OS) ──
 
 async function coletarOSVendedor(page, nomeColab) {
-  // Aumenta timeout para páginas pesadas com muitas O.S.
   await page.setDefaultTimeout(120000);
 
-  // Tenta habilitar "Mostrar O.S." = Sim
   const enabled = await habilitarMostrarOS(page);
   if (enabled) {
     console.log(`      🔍 "Mostrar O.S." habilitado para ${nomeColab.split('(')[0].trim()}`);
     const reloaded = await submitFiltro(page);
-    if (reloaded) await sleep(3000); // aguarda página pesada carregar
+    if (reloaded) await sleep(5000); // aguarda página pesada carregar
   }
 
-  // Coleta todos os links de O.S. passando por todas as páginas
-  const todosOsLinks = [];
-  let pagina = 1;
+  const os_list = [];
+  const vistos  = new Set();
+  let pagina    = 1;
 
   while (true) {
-    const linksNaPagina = await extrairLinksOS(page);
-    todosOsLinks.push(...linksNaPagina);
+    const rows = await extrairTabelaOS(page);
+    for (const row of rows) {
+      if (vistos.has(row.os_numero)) continue;
+      vistos.add(row.os_numero);
+      os_list.push(row);
+    }
 
     const { temProxima, totalPaginas } = await infoPaginacao(page);
     if (pagina === 1 && totalPaginas > 1) {
-      console.log(`      📋 ${totalPaginas} página(s) de OS encontrada(s)`);
+      console.log(`      📋 ${totalPaginas} página(s) de OS`);
     }
-
     if (!temProxima) break;
 
-    console.log(`      ➡️  Navegando para página ${pagina + 1} de OS...`);
+    console.log(`      ➡️  Página ${pagina + 1}/${totalPaginas}...`);
     await clicarProximaPagina(page);
     pagina++;
-    await sleep(1000);
+    await sleep(2000);
   }
 
-  if (!todosOsLinks.length) {
-    console.log(`      ⚠️  Nenhum link de O.S. encontrado`);
-    return [];
+  if (os_list.length) {
+    console.log(`      📋 ${os_list.length} O.S. em ${pagina} página(s)`);
+  } else {
+    console.log(`      ⚠️  Nenhuma O.S. encontrada`);
   }
-  // Deduplica por número de OS (pode haver duplicatas entre páginas)
-  const vistos = new Set();
-  const linksUnicos = todosOsLinks.filter(l => {
-    if (vistos.has(l.osNum)) return false;
-    vistos.add(l.osNum);
-    return true;
-  });
-  console.log(`      📋 ${linksUnicos.length} O.S. única(s) em ${pagina} página(s)`);
-
-  const os_list = [];
-  const paginaAtual = page.url();
-
-  for (const osLink of linksUnicos) {
-    try {
-      const os = await extrairDetalhesOS(page, osLink, paginaAtual);
-      if (os) os_list.push(os);
-      await sleep(400);
-    } catch (err) {
-      console.log(`      ⚠️  OS ${osLink.osNum}: ${err.message}`);
-    }
-  }
-
   return os_list;
 }
 
@@ -561,165 +541,68 @@ async function submitFiltro(page) {
   return clicked;
 }
 
-// ── Extrai links das O.S. da página (lista expandida) ────────────────────────
+// ── Extrai O.S. diretamente da tabela (sem navegar a cada OS) ────────────────
 
-async function extrairLinksOS(page) {
-  // Usa $$eval para buscar apenas as tags <a> sem trazer todo o DOM para o Node.js
-  return page.$$eval('a', (links) => {
-    const resultado = [];
-    const vistos = new Set();
-
-    for (const a of links) {
-      const texto = a.textContent.trim();
-      if (!/^\d{4,6}$/.test(texto)) continue;
-      if (vistos.has(texto)) continue;
-      vistos.add(texto);
-
-      const href    = a.href || '';
-      const onclick = a.getAttribute('onclick') || '';
-      const tr      = a.closest('tr');
-      const cells   = tr
-        ? Array.from(tr.querySelectorAll('td')).map(c => c.textContent.trim())
-        : [];
-
-      resultado.push({
-        osNum:  texto,
-        href:   href.startsWith('javascript:') ? '' : href,
-        onclick,
-        jsHref: href.startsWith('javascript:') ? href : '',
-        rowData: cells,
-      });
-    }
-    return resultado;
-  }).catch(() => []);
-}
-
-// ── Extrai detalhes de uma O.S. individual ───────────────────────────────────
-
-async function extrairDetalhesOS(page, osLink, voltarUrl) {
-  let navegou = false;
-
-  if (osLink.href && osLink.href.startsWith('http')) {
-    await page.goto(osLink.href, { waitUntil: 'networkidle2', timeout: 20000 });
-    navegou = true;
-  } else if (osLink.jsHref) {
-    const jsMatch = osLink.jsHref.match(/__doPostBack\('([^']+)','([^']*)'\)/);
-    if (jsMatch) {
-      const [, et, ea] = jsMatch;
-      await page.evaluate((et, ea) => {
-        if (typeof __doPostBack === 'function') __doPostBack(et, ea);
-        else {
-          const etEl = document.querySelector('#__EVENTTARGET');
-          const eaEl = document.querySelector('#__EVENTARGUMENT');
-          if (etEl) etEl.value = et;
-          if (eaEl) eaEl.value = ea;
-          document.querySelector('form')?.submit();
-        }
-      }, et, ea);
-      try {
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 12000 });
-      } catch (_) { await sleep(2000); }
-      navegou = true;
-    }
-  } else if (osLink.onclick) {
-    // Tenta executar o onclick diretamente
-    const match = osLink.onclick.match(/__doPostBack\('([^']+)','([^']*)'\)/);
-    if (match) {
-      const [, et, ea] = match;
-      await page.evaluate((et, ea) => {
-        if (typeof __doPostBack === 'function') __doPostBack(et, ea);
-      }, et, ea);
-      try {
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 12000 });
-      } catch (_) { await sleep(2000); }
-      navegou = true;
-    }
-  }
-
-  if (!navegou) return null;
-  await sleep(300);
-
-  // Extrai dados da O.S.
-  const os = await page.evaluate((osNum) => {
-    const body = document.body.textContent || '';
-
-    // Helper: extrai valor de "Label: Valor" no texto
-    const extrai = (regex) => {
-      const m = body.match(regex);
-      return m ? m[1].trim() : '';
-    };
-
-    // Campos do cabeçalho
-    const osNumero  = extrai(/O\.S\.?\s*N[ºo°]?[:\s]+(\d+)/i) || osNum;
-    const osData    = extrai(/Data[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
-    const cliente   = extrai(/Cliente[:\s]+([A-ZÀ-Ú ]+?)(?:\s{2,}|\n|Tipo|Veículo)/i);
-    const tipo      = extrai(/Tipo[:\s]+([A-ZÀ-Ú0-9 ]+?)(?:\s{2,}|\n|Veículo|Pesquisa)/i);
-    const veiculo   = extrai(/Veículo[:\s]+([A-Z0-9 ]+?)(?:\s{2,}|\n|Placa)/i);
-    const placa     = extrai(/Placa[:\s]+([A-Z0-9]+?)(?:\s{2,}|\n|Hodom)/i);
-    const responsavel = extrai(/Respons[aá]vel[:\s]+([A-ZÀ-Ú ]+?)(?:\s{2,}|\n|Pesquisa|Observ)/i);
-    const pesquisa  = extrai(/Pesquisa[:\s]+([A-ZÀ-Ú ]+?)(?:\s{2,}|\n)/i);
-
-    // Totais
-    const vlServMatch = body.match(/SERVI[CÇ]OS?\s+R\$\s*([\d.,]+)/i);
-    const vlProdMatch = body.match(/PRODUTOS?\s+R\$\s*([\d.,]+)/i);
-    const vlTotMatch  = body.match(/TOTAL\s+O\.S\.\s+R\$\s*([\d.,]+)/i);
-
+async function extrairTabelaOS(page) {
+  return page.evaluate(() => {
     const parseNum = (str) => {
       if (!str) return null;
-      const n = parseFloat(str.replace(/\./g, '').replace(',', '.'));
+      const clean = String(str).replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
+      const n = parseFloat(clean);
       return isNaN(n) ? null : n;
     };
 
-    // Tabela de itens: busca por "Código" + "Descrição" + "Executor"
-    const tables = Array.from(document.querySelectorAll('table'));
-    const prodTbl = tables.find(t => {
-      const h = (t.rows[0] || {}).textContent || '';
-      return /c[oó]digo/i.test(h) && /descri/i.test(h) && /executor/i.test(h);
-    });
-
-    const items = [];
-    if (prodTbl) {
-      for (const row of prodTbl.rows) {
-        const cells = Array.from(row.querySelectorAll('td'));
-        if (cells.length < 6) continue;
-        const codigo = cells[0]?.textContent.trim();
-        if (!codigo || !/\d/.test(codigo)) continue;
-        if (/TOTAL/i.test(cells[0]?.textContent)) continue;
-
-        items.push({
-          codigo:    cells[0]?.textContent.trim(),
-          descricao: cells[1]?.textContent.trim(),
-          grupo:     cells[2]?.textContent.trim(),
-          qtd:       parseInt(cells[3]?.textContent.trim()) || 1,
-          vl_total:  parseNum(cells[4]?.textContent.trim()),
-          desconto:  parseNum(cells[5]?.textContent.trim()),
-          custo:     parseNum(cells[6]?.textContent.trim()),
-          executor:  cells[cells.length - 1]?.textContent.trim(),
-        });
-      }
+    // Localiza a tabela que contém links numéricos de OS (4-6 dígitos)
+    let osTbl = null;
+    for (const t of document.querySelectorAll('table')) {
+      const hasOsLink = Array.from(t.querySelectorAll('a')).some(a => /^\d{4,6}$/.test(a.textContent.trim()));
+      if (hasOsLink) { osTbl = t; break; }
     }
+    if (!osTbl) return [];
 
-    return {
-      os_numero:   osNumero,
-      os_data:     osData,
-      cliente:     cliente.replace(/\s+/g, ' ').trim(),
-      veiculo:     veiculo.trim(),
-      placa:       placa.trim(),
-      tipo:        tipo.trim(),
-      pesquisa:    pesquisa.trim(),
-      responsavel: responsavel.replace(/\s+/g, ' ').trim(),
-      vl_servico:  parseNum(vlServMatch?.[1]),
-      vl_produto:  parseNum(vlProdMatch?.[1]),
-      vl_total:    parseNum(vlTotMatch?.[1]),
-      items,
-    };
-  }, osLink.osNum);
+    const result = [];
+    for (const row of osTbl.rows) {
+      const osLink = Array.from(row.querySelectorAll('a')).find(a => /^\d{4,6}$/.test(a.textContent.trim()));
+      if (!osLink) continue;
 
-  // Volta para a página do grupo
-  await page.goto(voltarUrl, { waitUntil: 'networkidle2', timeout: 20000 }).catch(() => sleep(2000));
-  await sleep(500);
+      const cells = Array.from(row.querySelectorAll('td')).map(c => c.textContent.trim());
+      const osNum = osLink.textContent.trim();
 
-  return os;
+      // Data: célula com padrão DD/MM/AAAA
+      const osData = cells.find(c => /\d{2}\/\d{2}\/\d{4}/.test(c))?.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || '';
+
+      // Células monetárias (últimas 3: serviço, produto, total)
+      const moneyIdxs = [];
+      cells.forEach((c, i) => {
+        if (/R\$/.test(c) || /^\d{1,3}(\.\d{3})*,\d{2}$/.test(c)) moneyIdxs.push(i);
+      });
+
+      // Cliente: primeiro texto longo sem ser data, número ou moeda
+      const cliente = cells.find(c =>
+        c.length > 3 &&
+        !/\d{2}\/\d{2}\/\d{4}/.test(c) &&
+        !/^\d{1,6}$/.test(c) &&
+        !/R\$/.test(c) &&
+        !/^[\d.,]+$/.test(c)
+      ) || '';
+
+      result.push({
+        os_numero:   osNum,
+        os_data:     osData,
+        cliente:     cliente.slice(0, 100),
+        tipo:        '',
+        responsavel: '',
+        veiculo:     '',
+        placa:       '',
+        pesquisa:    '',
+        vl_servico:  moneyIdxs.length >= 3 ? parseNum(cells[moneyIdxs[moneyIdxs.length - 3]]) : null,
+        vl_produto:  moneyIdxs.length >= 2 ? parseNum(cells[moneyIdxs[moneyIdxs.length - 2]]) : null,
+        vl_total:    moneyIdxs.length >= 1 ? parseNum(cells[moneyIdxs[moneyIdxs.length - 1]]) : null,
+        items:       [],
+      });
+    }
+    return result;
+  }).catch(() => []);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
