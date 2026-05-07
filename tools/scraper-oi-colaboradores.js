@@ -180,21 +180,58 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
   }
   console.log(`    ${rows.length} colaborador(es) encontrado(s)`);
 
+  // Passo 1: determina cargo de cada linha individual → índice nome(4-char prefix) → cargo
+  function detectCargo(nome) {
+    const matchParen = nome.match(/\((.+?)\)$/);
+    const detalhes   = matchParen ? matchParen[1].trim().toUpperCase() : '';
+    if (/mec[aâ]nico/i.test(detalhes))        return 'MECANICO';
+    if (/vend|consultor/i.test(detalhes))      return 'VENDEDOR';
+    if (/estoque/i.test(detalhes))             return 'ESTOQUE';
+    if (/gerente/i.test(detalhes))             return 'GERENTE';
+    if (/^\d+\s+\w.+\//.test(nome))           return 'GRUPO';
+    if (detalhes)                              return 'VENDEDOR';
+    return 'OUTRO';
+  }
+
+  // Mapa de prefixo (4 chars, sem espaço, uppercase) → cargo para lookup fuzzy
+  const prefixoCargo = new Map();
+  for (const c of rows) {
+    const cg = detectCargo(c.nome);
+    if (cg !== 'GRUPO' && cg !== 'OUTRO') {
+      const nomeBase = c.nome.replace(/\s*\(.*?\)\s*$/, '').trim();
+      const key = nomeBase.replace(/\s+/g, '').toUpperCase().slice(0, 4);
+      if (key) prefixoCargo.set(key, cg);
+    }
+  }
+
+  // Resolve cargo composto de linha de grupo (ex: "3 GUILHERME / ADRIANO PEG SOROCABA")
+  function resolveGrupoCargo(nomeGrupo) {
+    // Extrai parte antes do parêntese, remove número inicial
+    const semParen = nomeGrupo.replace(/\s*\(.*?\)\s*$/, '').trim();
+    const semNum   = semParen.replace(/^\d+\s+/, '');
+    // Divide pelos membros (separados por " / " ou " \/ ")
+    const membros  = semNum.split(/\s*\/\s*/);
+    const cargos   = [];
+    for (const m of membros) {
+      const key = m.replace(/\s+/g, '').toUpperCase().slice(0, 4);
+      const cg  = prefixoCargo.get(key);
+      if (cg && !cargos.includes(cg)) cargos.push(cg);
+    }
+    return cargos.length > 0 ? cargos.join('/') : 'GRUPO';
+  }
+
   const resultado = [];
 
   for (const c of rows) {
     const matchParen = c.nome.match(/\((.+?)\)$/);
     const detalhes   = matchParen ? matchParen[1].trim().toUpperCase() : '';
 
-    let cargo = 'OUTRO';
-    if (/mec[aâ]nico/i.test(detalhes))       cargo = 'MECANICO';
-    else if (/vend|consultor/i.test(detalhes)) cargo = 'VENDEDOR';
-    else if (/estoque/i.test(detalhes))        cargo = 'ESTOQUE';
-    else if (/gerente/i.test(detalhes))        cargo = 'GERENTE';
-    // Linhas de grupo (ex: "3 GUILHERME / ADRIANO PEG ARARAQUARA") → equipe mista
-    else if (/^\d+\s+\w.+\//.test(c.nome))    cargo = 'GRUPO';
-    // Sem cargo explícito mas tem parênteses com nome de loja → consultor/vendedor
-    else if (detalhes)                         cargo = 'VENDEDOR';
+    let cargo = detectCargo(c.nome);
+    // Para grupos, tenta compor cargo dos membros
+    let cargoGrupo = null;
+    if (cargo === 'GRUPO') {
+      cargoGrupo = resolveGrupoCargo(c.nome);
+    }
 
     const nomeBase = c.nome.replace(/\s*\(.*?\)\s*$/, '').trim();
     const unidade  = detalhes.replace(/mec[aâ]nico|vendedor|consultor.*?de.*?vendas|estoque|gerente/i, '').trim();
@@ -202,7 +239,7 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
     const row = {
       nome:        c.nome,
       nome_base:   nomeBase,
-      cargo,
+      cargo:       cargo === 'GRUPO' ? (cargoGrupo || 'GRUPO') : cargo,
       unidade,
       faturamento: parseBRL(c.fat),
       cmv:         parseBRL(c.cmv),
