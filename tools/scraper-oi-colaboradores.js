@@ -359,12 +359,15 @@ async function extrairTabelaGrupos(page) {
 // ── Coleta O.S. para vendedor (habilita "Mostrar O.S." + paginação) ──────────
 
 async function coletarOSVendedor(page, nomeColab) {
+  // Aumenta timeout para páginas pesadas com muitas O.S.
+  await page.setDefaultTimeout(120000);
+
   // Tenta habilitar "Mostrar O.S." = Sim
   const enabled = await habilitarMostrarOS(page);
   if (enabled) {
     console.log(`      🔍 "Mostrar O.S." habilitado para ${nomeColab.split('(')[0].trim()}`);
     const reloaded = await submitFiltro(page);
-    if (reloaded) await sleep(1500);
+    if (reloaded) await sleep(3000); // aguarda página pesada carregar
   }
 
   // Coleta todos os links de O.S. passando por todas as páginas
@@ -561,36 +564,34 @@ async function submitFiltro(page) {
 // ── Extrai links das O.S. da página (lista expandida) ────────────────────────
 
 async function extrairLinksOS(page) {
-  return page.evaluate(() => {
+  // Usa $$eval para buscar apenas as tags <a> sem trazer todo o DOM para o Node.js
+  return page.$$eval('a', (links) => {
     const resultado = [];
     const vistos = new Set();
 
-    // Busca todos os links que pareçam O.S. (número 4-6 dígitos)
-    const todos_links = Array.from(document.querySelectorAll('a'));
-    for (const a of todos_links) {
+    for (const a of links) {
       const texto = a.textContent.trim();
       if (!/^\d{4,6}$/.test(texto)) continue;
       if (vistos.has(texto)) continue;
       vistos.add(texto);
 
-      const href = a.href || '';
+      const href    = a.href || '';
       const onclick = a.getAttribute('onclick') || '';
-      // Pega o grupo da linha — procura na linha da tabela
-      const tr = a.closest('tr');
-      const cells = tr ? Array.from(tr.querySelectorAll('td')).map(c => c.textContent.trim()) : [];
+      const tr      = a.closest('tr');
+      const cells   = tr
+        ? Array.from(tr.querySelectorAll('td')).map(c => c.textContent.trim())
+        : [];
 
       resultado.push({
-        osNum: texto,
-        href: href.startsWith('javascript:') ? '' : href,
+        osNum:  texto,
+        href:   href.startsWith('javascript:') ? '' : href,
         onclick,
         jsHref: href.startsWith('javascript:') ? href : '',
-        // Dados da linha que contém o link
         rowData: cells,
       });
     }
-
     return resultado;
-  });
+  }).catch(() => []);
 }
 
 // ── Extrai detalhes de uma O.S. individual ───────────────────────────────────
