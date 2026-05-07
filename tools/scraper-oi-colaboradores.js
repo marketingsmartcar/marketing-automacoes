@@ -182,7 +182,7 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
     const matchParen = c.nome.match(/\((.+?)\)$/);
     const detalhes   = matchParen ? matchParen[1].trim().toUpperCase() : '';
 
-    let cargo = 'OUTRO';
+    let cargo = 'VENDEDOR'; // padrão: quem aparece no relatório sem cargo explícito é consultor/vendedor
     if (/mec[aâ]nico/i.test(detalhes)) cargo = 'MECANICO';
     else if (/vend|consultor/i.test(detalhes)) cargo = 'VENDEDOR';
     else if (/estoque/i.test(detalhes)) cargo = 'ESTOQUE';
