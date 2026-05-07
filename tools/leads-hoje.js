@@ -293,11 +293,13 @@ async function atualizarLinhaHoje() {
 
   // 7. Escrever linha de hoje
   const rowNum = todayRowIdx + 1; // 1-indexed
+  // Pad com strings vazias para apagar colunas legadas (ex-Jaú/Ibitinga) além das 23 atuais
+  const rowValsPadded = [...rowVals, '', '', '', '', '', '', ''];
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `'${nomeMes}'!A${rowNum}`,
     valueInputOption: 'RAW',
-    requestBody: { values: [rowVals] },
+    requestBody: { values: [rowValsPadded] },
   });
 
   // 8. Recalcular e atualizar linha TOTAL
@@ -323,7 +325,7 @@ async function atualizarLinhaHoje() {
     spreadsheetId: SPREADSHEET_ID,
     range: `'${nomeMes}'!A${totalRowNum}`,
     valueInputOption: 'RAW',
-    requestBody: { values: [['TOTAL', '', ...totalCols]] },
+    requestBody: { values: [['TOTAL', '', ...totalCols, '', '', '', '', '', '', '']] },
   });
 
   console.log(`✅ Linha ${hoje} + TOTAL atualizados na aba "${nomeMes}" (linhas ${rowNum}/${totalRowNum}).`);
