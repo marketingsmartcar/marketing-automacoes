@@ -389,7 +389,16 @@ async function coletarOSVendedor(page, nomeColab) {
 
   // Aguarda navegação completar (AutoPostBack ou submit — o que vier primeiro)
   await navPromise;
-  await sleep(2000); // pequeno buffer pós-rendering
+
+  // Espera a tabela de OS aparecer no DOM usando polling (mais robusto que sleep fixo).
+  // page.evaluate() faz UMA chamada CDP e trava se o browser ainda renderiza.
+  // waitForFunction com polling retenta a cada 2s sem bloquear.
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('a'))
+      .some(a => /^\d{4,6}$/.test((a.textContent || '').trim()));
+  }, { timeout: 90000, polling: 2000 }).catch(() => {});
+
+  await sleep(1500); // buffer final pós-render
 
   const os_list = [];
   const vistos  = new Set();
