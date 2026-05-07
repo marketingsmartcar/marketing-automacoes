@@ -1,9 +1,9 @@
-name: Social Media — Coleta Diária
+name: Social Media — Coleta Horária
 
 on:
   schedule:
-    # 09:00 BRT = 12:00 UTC
-    - cron: '0 12 * * *'
+    # Toda hora de seg-sáb das 08:00 às 19:00 BRT (11:00–22:00 UTC)
+    - cron: '0 11-22 * * 1-6'
   workflow_dispatch:
 
 jobs:

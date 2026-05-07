@@ -44,7 +44,10 @@
     "leads:hoje": "node tools/leads-hoje.js --agora",
     "leads:scheduler": "node tools/leads-hoje.js",
     "social": "node tools/coletar-social-media.js",
-    "social:media": "node tools/coletar-social-media.js"
+    "social:media": "node tools/coletar-social-media.js",
+    "ads:supabase": "node tools/coletar-ads-supabase.js",
+    "ads:supabase:meta": "node tools/coletar-ads-supabase.js --meta",
+    "ads:supabase:google": "node tools/coletar-ads-supabase.js --google"
   },
   "keywords": [],
   "author": "",

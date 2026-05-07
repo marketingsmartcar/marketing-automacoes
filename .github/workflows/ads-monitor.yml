@@ -1,0 +1,59 @@
+name: ADS Monitor — Coleta Horária
+
+on:
+  schedule:
+    # Toda hora de seg-sáb das 08:00 às 19:00 BRT (11:00–22:00 UTC)
+    - cron: '0 11-22 * * 1-6'
+  workflow_dispatch:
+
+jobs:
+  coletar:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Adicionar Git bash ao PATH
+        shell: powershell
+        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Instalar dependências
+        shell: bash
+        run: npm ci
+
+      - name: Criar .env
+        shell: bash
+        run: |
+          echo "META_ACCESS_TOKEN_BR=${{ secrets.META_ACCESS_TOKEN_BR }}"                         >> .env
+          echo "META_ACCESS_TOKEN_PEG=${{ secrets.META_ACCESS_TOKEN_PEG }}"                       >> .env
+          echo "META_ACCOUNT_BR_MARINGA=${{ secrets.META_ACCOUNT_BR_MARINGA }}"                   >> .env
+          echo "META_ACCOUNT_BR_AMERICANA=${{ secrets.META_ACCOUNT_BR_AMERICANA }}"               >> .env
+          echo "META_ACCOUNT_BR_SAO_CARLOS=${{ secrets.META_ACCOUNT_BR_SAO_CARLOS }}"             >> .env
+          echo "META_ACCOUNT_BR_ARARAQUARA=${{ secrets.META_ACCOUNT_BR_ARARAQUARA }}"             >> .env
+          echo "META_ACCOUNT_PEG_SOROCABA=${{ secrets.META_ACCOUNT_PEG_SOROCABA }}"               >> .env
+          echo "META_ACCOUNT_PEG_ARARAQUARA=${{ secrets.META_ACCOUNT_PEG_ARARAQUARA }}"           >> .env
+          echo "GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}"             >> .env
+          echo "GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }}"                         >> .env
+          echo "GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}"                 >> .env
+          echo "GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}"                 >> .env
+          echo "GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}"         >> .env
+          echo "GOOGLE_ACCOUNT_BR_AMERICANA=${{ secrets.GOOGLE_ACCOUNT_BR_AMERICANA }}"           >> .env
+          echo "GOOGLE_ACCOUNT_BR_ARARAQUARA=${{ secrets.GOOGLE_ACCOUNT_BR_ARARAQUARA }}"         >> .env
+          echo "GOOGLE_ACCOUNT_BR_MARINGA=${{ secrets.GOOGLE_ACCOUNT_BR_MARINGA }}"               >> .env
+          echo "GOOGLE_ACCOUNT_BR_SAO_CARLOS=${{ secrets.GOOGLE_ACCOUNT_BR_SAO_CARLOS }}"         >> .env
+          echo "GOOGLE_ACCOUNT_PEG_ARARAQUARA=${{ secrets.GOOGLE_ACCOUNT_PEG_ARARAQUARA }}"       >> .env
+          echo "GOOGLE_ACCOUNT_PEG_SOROCABA=${{ secrets.GOOGLE_ACCOUNT_PEG_SOROCABA }}"           >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Coletar dados ADS → Supabase
+        shell: bash
+        run: node tools/coletar-ads-supabase.js
