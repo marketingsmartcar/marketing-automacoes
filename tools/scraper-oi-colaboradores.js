@@ -340,8 +340,11 @@ async function extrairTabelaGrupos(page) {
       if (!grupo) continue;
       // Ignora cabeçalhos e totais
       if (/^(grupo|regra|total)/i.test(grupo)) continue;
-      // Ignora linhas que pareçam nomes de pessoas (padrão OI: "NOME (CARGO UNIDADE)")
-      if (/\((mec[aâ]nico|vendedor|consultor|estoque|gerente|operador)/i.test(grupo)) continue;
+      // Ignora linhas de lixo / cabeçalhos / nomes de pessoas
+      if (grupo.length > 100) continue;              // blob de cabeçalho completo da tabela
+      if (/R\$/.test(grupo)) continue;               // linhas estatísticas com valores monetários
+      if (/\(\s*(mec[aâ]nico|vendedor|consultor|estoque|gerente|operador)/i.test(grupo)) continue;
+      if (/exclu[ií]do|desistência|desistencia/i.test(grupo)) continue;
 
       const tipo  = cells[1]?.textContent.trim() || '';
       const fat   = cells[2]?.textContent.trim() || '';
