@@ -392,10 +392,15 @@ async function extrairTabelaGrupos(page) {
       // Ignora cabeçalhos e totais
       if (/^(grupo|regra|total)/i.test(grupo)) continue;
       // Ignora linhas de lixo / cabeçalhos / nomes de pessoas
-      if (grupo.length > 100) continue;              // blob de cabeçalho completo da tabela
-      if (/R\$/.test(grupo)) continue;               // linhas estatísticas com valores monetários
+      if (grupo.length > 100) continue;
+      if (/R\$/.test(grupo)) continue;
       if (/\(\s*(mec[aâ]nico|vendedor|consultor|estoque|gerente|operador)/i.test(grupo)) continue;
       if (/exclu[ií]do|desistência|desistencia/i.test(grupo)) continue;
+      // Ignora linhas de estatística tipo "6 - 14,29 %" e grupos administrativos
+      if (/^\d+\s*[-–]\s*[\d,]+\s*%/.test(grupo)) continue;
+      if (/^(fachada|google[\s/]|adm[\s_]consumo|venda\s+combo|revis[aã]o\s+porta|mercadoria\s+operacional)/i.test(grupo)) continue;
+      const GRUPOS_ADM = new Set(['FACHADA','GOOGLE/SITE/LANDINGPAGE','ADM CONSUMO INTERNO','VENDA COMBO PORTA','VENDA COMBO AGENDAMENTO','REVISÃO PORTA','REVISAO PORTA','MERCADORIA OPERACIONAL','CIBELE REGINA OLIVEIRA']);
+      if (GRUPOS_ADM.has(grupo.toUpperCase())) continue;
 
       const tipo  = cells[1]?.textContent.trim() || '';
       const fat   = cells[2]?.textContent.trim() || '';
