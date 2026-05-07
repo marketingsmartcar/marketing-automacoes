@@ -525,7 +525,7 @@ node tools/scraper-oi-colaboradores.js --data-inicio 01/05/2026 --data-fim 31/05
 | Script | `tools/coletar-social-media.js` |
 | Tabela snapshots | `social_account_snapshots` (NexusZ) |
 | Tabela posts | `social_posts` (NexusZ) |
-| Agendamento | **GitHub Actions** — todo dia às **09h BRT** |
+| Agendamento | **GitHub Actions** — toda hora das **08h às 19h BRT** (seg–sáb) |
 | Workflow | `.github/workflows/social-media.yml` |
 | Env vars necessárias | `META_IG_ID_BR`, `META_ACCESS_TOKEN_BR`, `META_PAGE_ID_BR`, `META_PAGE_TOKEN_BR`, `META_IG_ID_PEG_ARQ`, `META_ACCESS_TOKEN_PEG`, `META_PAGE_ID_PEG_ARQ`, `META_PAGE_TOKEN_PEG_ARQ`, `META_PAGE_ID_PEG_SOR`, `META_PAGE_TOKEN_PEG_SOR`, `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
 
@@ -560,4 +560,41 @@ node tools/coletar-social-media.js
 
 ---
 
-*Última atualização: 07/05/2026 — Social Media: coleta Instagram + Facebook Graph API, sync Supabase, dashboard NexusZ*
+## 13. Monitor ADS → NexusZ (Dashboard Horário)
+
+**O que faz:** Coleta saldo, spend e métricas de performance (CTR, CPC, impressões, cliques, conversões) de todas as contas Meta Ads e Google Ads e salva snapshots em `ads_snapshots` no Supabase. O dashboard NexusZ exibe os dados com semáforo de alertas e atualiza automaticamente a cada hora.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-ads-supabase.js` |
+| Tabela | `ads_snapshots` (NexusZ) |
+| Agendamento | **GitHub Actions** — toda hora das **08h às 19h BRT** (seg–sáb) |
+| Workflow | `.github/workflows/ads-monitor.yml` |
+| Env vars necessárias | `META_ACCESS_TOKEN_BR`, `META_ACCESS_TOKEN_PEG`, `META_ACCOUNT_BR_*` (4), `META_ACCOUNT_PEG_*` (2), `GOOGLE_ADS_*` (5 vars), `GOOGLE_ACCOUNT_BR_*` (4), `GOOGLE_ACCOUNT_PEG_*` (2), `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
+
+**Contas monitoradas (12 total):**
+- Meta Ads: BR Pneus Maringá, Americana, São Carlos, Araraquara + Peg Pneus Sorocaba, Araraquara
+- Google Ads: BR Pneus Americana, Araraquara, Maringá, São Carlos + Peg Pneus Araraquara, Sorocaba
+
+**⚠️ REGRA CRÍTICA META:** BR Pneus Araraquara → Pix nos **FUNDOS**. Todas as outras 5 contas Meta → Pix no **SALDO**.
+
+**Thresholds de alerta:**
+- Meta: saldo < R$100 🔴 / < R$200 🟠 | CTR < 0,5% 🔴 / < 1% 🟡
+- Google: saldo < R$50 🔴 / < R$100 🟠 | CTR < 1% 🔴 / < 2% 🟠 | CPC > R$10 🔴 / > R$5 🟠
+
+**Como rodar manualmente:**
+```bash
+npm run ads:supabase             # Meta + Google
+npm run ads:supabase:meta        # só Meta
+npm run ads:supabase:google      # só Google
+```
+
+**Visualização no NexusZ:**
+- Menu: ADS (ícone raio ⚡)
+- Rota: `/admin/ads`
+- Componente: `NexusZ/src/pages/admin/AdminAds.tsx`
+- Cards por conta com Meta + Google lado a lado; semáforo de status; totais consolidados; refetch automático a cada hora
+
+---
+
+*Última atualização: 07/05/2026 — ADS Monitor Supabase: dashboard horário NexusZ; Social Media atualizado para coleta horária*
