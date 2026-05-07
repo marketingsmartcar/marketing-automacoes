@@ -458,4 +458,60 @@ node tools/video-editor/editor-automatico.js "C:\caminho\video.mp4"  # processar
 
 ---
 
-*Última atualização: 27/04/2026 — logo Peg colorida; contraste/saturação aumentados; pastas com timestamp de edição*
+---
+
+## 11. Coleta OI Colaboradores → NexusZ (Supabase)
+
+**O que faz:** Acessa o Oficina Inteligente via Puppeteer, navega em "Gestão Periódica" de cada loja e coleta a tabela "Participação por Consultor" (faturamento, CMV, lucro bruto, itens, produto%, serviço%). Para cada colaborador, clica em "Grupo" para obter o breakdown por produto/serviço. Sincroniza no Supabase do NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Script principal | `tools/scraper-oi-colaboradores.js` |
+| Módulo de sync | `tools/supabase-colaboradores-sync.js` |
+| Tabela resumo | `oi_colaboradores_resumo` (NexusZ) |
+| Tabela grupos | `oi_colaboradores_grupos` (NexusZ) |
+| Migration SQL | `NexusZ/supabase/migrations/20260507120000_create_oi_colaboradores.sql` |
+| Agendamento | **GitHub Actions** — todo dia às **8h BRT** (seg–dom) + recoleta mês anterior todo Domingo |
+| Workflow | `.github/workflows/oi-colaboradores.yml` |
+| Env vars necessárias | `OI_EMAIL`, `OI_SENHA`, `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
+
+**Como rodar:**
+```bash
+npm run oi:colaboradores              # mês atual
+node tools/scraper-oi-colaboradores.js --mes 5 --ano 2026
+node tools/scraper-oi-colaboradores.js --data-inicio 01/05/2026 --data-fim 31/05/2026
+```
+
+**Lojas coletadas (7 lojas — mesmas das vendas diárias):**
+
+| Chave | Label OI |
+|-------|----------|
+| BR1 | BR01 CENTRO |
+| BR2 | BR02 VILA |
+| BR3 | BR03 AMERICANA |
+| BR4 | BR04 SAO CARLOS |
+| BR5 | BR05 MARINGA |
+| PEG1 | PEG11 ARARAQUARA |
+| PEG2 | PEG12 SOROCABA |
+
+**Lógica de cargo (detectado pelo nome entre parênteses):**
+- `(MECANICO *)` → cargo = `MECANICO`
+- `(VEND* | CONSULTOR*)` → cargo = `VENDEDOR`
+- `(ESTOQUE*)` → cargo = `ESTOQUE`
+- `(GERENTE*)` → cargo = `GERENTE`
+- Outros → `OUTRO`
+
+**Regras importantes:**
+- NÃO marca "Mostrar O.S. = Sim" — desnecessário para mecânicos, evita timeout por página enorme
+- Cada clique em "Grupo" dispara um `__doPostBack` do ASP.NET; o scraper detecta se abre em nova aba ou na mesma página
+- Upsert no resumo (chave única: `loja_key + data_inicio + data_fim + nome`)
+- Grupos: apaga o período/loja e reinsere (DELETE + INSERT)
+
+**Visualização no NexusZ:**
+- Aba "OI Colaboradores" em Relatórios > Consolidado do Mês
+- Filtros por cargo e por loja; tabela expandível mostra grupos por colaborador
+- Componente: `NexusZ/src/components/admin/reports/ConsolidadoColabOITab.tsx`
+
+---
+
+*Última atualização: 07/05/2026 — OI Colaboradores: coleta Participação por Consultor + Grupos, sync Supabase, aba NexusZ*

@@ -1,0 +1,86 @@
+name: OI Colaboradores — Coleta Mensal
+
+on:
+  schedule:
+    # 08:00 BRT = 11:00 UTC — Segunda a Domingo
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    inputs:
+      mes:
+        description: 'Mês (1-12). Vazio = mês atual.'
+        required: false
+      ano:
+        description: 'Ano (ex: 2026). Vazio = ano atual.'
+        required: false
+
+jobs:
+  coletar:
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Adicionar Git bash ao PATH
+        shell: powershell
+        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Instalar dependências
+        shell: bash
+        run: npm ci
+
+      - name: Criar .env
+        shell: bash
+        run: |
+          echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                                                 >> .env
+          echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                                 >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"                 >> .env
+
+      - name: Coletar mês atual (BRT)
+        shell: bash
+        run: |
+          MES=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getMonth()+1))")
+          ANO=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getFullYear()))")
+
+          # Override via workflow_dispatch
+          if [ -n "${{ github.event.inputs.mes }}" ]; then MES="${{ github.event.inputs.mes }}"; fi
+          if [ -n "${{ github.event.inputs.ano }}" ]; then ANO="${{ github.event.inputs.ano }}"; fi
+
+          echo "📅 Coletando OI Colaboradores: mês $MES / $ANO"
+          node tools/scraper-oi-colaboradores.js --mes "$MES" --ano "$ANO"
+
+      - name: Recoleta mês anterior (todo Domingo)
+        shell: bash
+        run: |
+          DIA_SEMANA=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getDay()))")
+          if [ "$DIA_SEMANA" = "0" ]; then
+            MES_ANT=$(node -e "
+              const d = new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()));
+              d.setDate(0);
+              process.stdout.write(String(d.getMonth()+1)+' '+String(d.getFullYear()));
+            ")
+            MES=$(echo $MES_ANT | cut -d' ' -f1)
+            ANO=$(echo $MES_ANT | cut -d' ' -f2)
+            echo "🔄 Domingo — recoletando mês anterior: $MES/$ANO"
+            node tools/scraper-oi-colaboradores.js --mes "$MES" --ano "$ANO"
+          else
+            echo "⏭️  Dia $DIA_SEMANA — recoleta do mês anterior pulada."
+          fi
+
+      - name: Salvar screenshots de debug como artefato
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-colab-${{ github.run_number }}
+          path: output/debug-oi/
+          if-no-files-found: ignore
+          retention-days: 3
