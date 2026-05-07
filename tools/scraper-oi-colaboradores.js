@@ -196,7 +196,9 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
   // Overrides de cargo para colaboradores que só aparecem em grupos (nunca como linha individual)
   // Chave = 4-char prefix (sem espaços, uppercase)
   const CARGO_OVERRIDE = new Map([
-    ['GUIL', 'MECANICO'], // GUILHERME DA SILVA ROSA (PEG) — montador
+    ['GUIL', 'MONTADOR'], // GUILHERME (PEG Araraquara) — montador de pneus
+    ['JOAO', 'MONTADOR'], // JOÃO (PEG Sorocaba) — montador de pneus
+    ['MURI', 'ESTOQUE'],  // MURILO (PEG Sorocaba) — estoquista
   ]);
 
   // Mapa de prefixo (4 chars, sem espaço, uppercase) → cargo para lookup fuzzy

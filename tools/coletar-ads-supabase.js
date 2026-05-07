@@ -3,12 +3,13 @@
  * tools/coletar-ads-supabase.js
  *
  * Coleta dados de todas as contas Meta Ads e Google Ads e salva
- * snapshots em ads_snapshots no Supabase (NexusZ).
+ * snapshots em ads_snapshots e recargas em ads_recargas no Supabase (NexusZ).
  *
  * Uso:
  *   node tools/coletar-ads-supabase.js
  *   node tools/coletar-ads-supabase.js --meta
  *   node tools/coletar-ads-supabase.js --google
+ *   node tools/coletar-ads-supabase.js --recargas   (só recargas Meta)
  */
 
 require('dotenv').config();
@@ -18,6 +19,7 @@ const { monitorarTodas: googleTodas,  CONTAS_GOOGLE  } = require('./monitor-goog
 
 const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY;
+const GRAPH_BASE   = 'https://graph.facebook.com/v21.0';
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('❌ NEXUSZ_SUPABASE_URL / NEXUSZ_SUPABASE_SERVICE_ROLE_KEY não configurados');
@@ -31,15 +33,17 @@ const headers = {
   Prefer:          'return=minimal',
 };
 
-async function inserir(rows) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/ads_snapshots`, {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+async function inserir(tabela, rows) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}`, {
     method:  'POST',
     headers,
     body:    JSON.stringify(rows),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`Supabase INSERT falhou (${res.status}): ${body}`);
+    throw new Error(`Supabase INSERT ${tabela} falhou (${res.status}): ${body}`);
   }
 }
 
@@ -49,6 +53,19 @@ function contaKey(nome, plataforma) {
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_]/g, '') + '_' + plataforma;
 }
+
+async function fetchGraph(path, token, params = {}) {
+  const url = new URL(`${GRAPH_BASE}/${path}`);
+  url.searchParams.set('access_token', token);
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+  }
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Graph API ${path}: HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── Snapshots Meta ────────────────────────────────────────────────────────────
 
 async function coletarMeta() {
   console.log('📱 Meta Ads — coletando...');
@@ -73,10 +90,12 @@ async function coletarMeta() {
     erro:           r.erro || null,
   }));
 
-  await inserir(rows);
+  await inserir('ads_snapshots', rows);
   console.log(`  ✅ ${rows.length} conta(s) Meta salvas`);
   return rows;
 }
+
+// ── Snapshots Google ──────────────────────────────────────────────────────────
 
 async function coletarGoogle() {
   console.log('🔍 Google Ads — coletando...');
@@ -97,21 +116,82 @@ async function coletarGoogle() {
     erro:           r.erro || null,
   }));
 
-  await inserir(rows);
+  await inserir('ads_snapshots', rows);
   console.log(`  ✅ ${rows.length} conta(s) Google salvas`);
   return rows;
 }
 
+// ── Recargas Meta ─────────────────────────────────────────────────────────────
+
+async function buscarTransacoesMeta(conta) {
+  const id = conta.id.replace('act_', '');
+  try {
+    const data = await fetchGraph(`act_${id}/transactions`, conta.token, {
+      fields: 'id,time,amount,type,status',
+      limit: 100,
+    });
+    return (data.data || []).map(t => ({
+      conta_key:    contaKey(conta.nome, 'meta'),
+      conta_label:  conta.nome,
+      plataforma:   'meta',
+      // Meta retorna `time` como Unix timestamp em segundos
+      data_recarga: new Date(t.time * 1000).toISOString(),
+      valor:        Math.abs(parseFloat(t.amount || 0)),
+      tipo_recarga: conta.recarga ?? null,
+      status:       t.status || null,
+      descricao:    t.type || null,
+    })).filter(r => r.valor > 0); // ignora estornos/zerados
+  } catch (err) {
+    console.warn(`  ⚠️ Transações ${conta.nome}: ${err.message}`);
+    return [];
+  }
+}
+
+async function coletarRecargas() {
+  console.log('💳 Recargas Meta Ads — coletando transações...');
+  const todasTransacoes = await Promise.all(CONTAS_META.map(buscarTransacoesMeta));
+  const rows = todasTransacoes.flat();
+
+  if (rows.length === 0) {
+    console.log('  ℹ️ Nenhuma transação encontrada');
+    return;
+  }
+
+  // Upsert: se o mesmo registro já existe (mesma conta_key + data_recarga + valor), não duplica
+  const upsertHeaders = {
+    ...headers,
+    Prefer: 'resolution=ignore-duplicates,return=minimal',
+  };
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/ads_recargas`, {
+    method:  'POST',
+    headers: upsertHeaders,
+    body:    JSON.stringify(rows),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Supabase UPSERT ads_recargas falhou (${res.status}): ${body}`);
+  }
+  console.log(`  ✅ ${rows.length} transação(ões) Meta salvas`);
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
 async function main() {
-  const args    = process.argv.slice(2);
-  const soMeta  = args.includes('--meta');
-  const soGoogle = args.includes('--google');
+  const args      = process.argv.slice(2);
+  const soMeta    = args.includes('--meta');
+  const soGoogle  = args.includes('--google');
+  const soRecargas = args.includes('--recargas');
 
   console.log(`\n📊 Coleta ADS → Supabase — ${new Date().toLocaleString('pt-BR')}\n`);
 
   try {
-    if (!soGoogle) await coletarMeta();
-    if (!soMeta)   await coletarGoogle();
+    if (soRecargas) {
+      await coletarRecargas();
+    } else {
+      if (!soGoogle) await coletarMeta();
+      if (!soMeta)   await coletarGoogle();
+      if (!soGoogle) await coletarRecargas(); // recargas junto com Meta
+    }
     console.log('\n✅ Concluído');
   } catch (err) {
     console.error('❌', err.message);
