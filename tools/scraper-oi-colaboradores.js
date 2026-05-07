@@ -313,11 +313,21 @@ async function coletarGrupoEOS(page, grupoHref, nomeColab, cargo) {
 async function extrairTabelaGrupos(page) {
   return page.evaluate(() => {
     const allTables = Array.from(document.querySelectorAll('table'));
-    let tbl = allTables.find(t =>
-      t.textContent.includes('Grupo ou Regra') ||
-      t.textContent.includes('Por Grupo') ||
-      (t.textContent.includes('Faturamento') && t.textContent.includes('Lucro Bruto') && t.rows.length > 2)
-    );
+
+    // Prioridade 1: tabela com cabeçalho explícito "Grupo ou Regra" ou "Por Grupo"
+    let tbl = allTables.find(t => {
+      const head = (t.rows[0] || t.rows[1] || { textContent: '' }).textContent;
+      return /grupo\s*(ou\s*regra)?/i.test(head) && /faturamento/i.test(head);
+    });
+
+    // Prioridade 2: tabela onde a 1ª coluna do cabeçalho contém "grupo" (não "responsável" / "nome")
+    if (!tbl) {
+      tbl = allTables.find(t => {
+        const firstCell = (t.rows[0]?.cells[0] || t.rows[1]?.cells[0] || { textContent: '' }).textContent.trim();
+        return /grupo/i.test(firstCell) && !/respons|nome/i.test(firstCell);
+      });
+    }
+
     if (!tbl) return [];
 
     const rows = Array.from(tbl.querySelectorAll('tr'));
@@ -327,8 +337,11 @@ async function extrairTabelaGrupos(page) {
       const cells = Array.from(row.querySelectorAll('td'));
       if (cells.length < 4) continue;
       const grupo = cells[0].textContent.trim();
-      if (!grupo || /grupo|regra|total/i.test(grupo) && cells.length < 6) continue;
-      if (/^total/i.test(grupo)) continue;
+      if (!grupo) continue;
+      // Ignora cabeçalhos e totais
+      if (/^(grupo|regra|total)/i.test(grupo)) continue;
+      // Ignora linhas que pareçam nomes de pessoas (padrão OI: "NOME (CARGO UNIDADE)")
+      if (/\((mec[aâ]nico|vendedor|consultor|estoque|gerente|operador)/i.test(grupo)) continue;
 
       const tipo  = cells[1]?.textContent.trim() || '';
       const fat   = cells[2]?.textContent.trim() || '';
