@@ -2,8 +2,9 @@
 /**
  * tools/scraper-oi-colaboradores.js
  *
- * Coleta dados de "Participação por Consultor" (Gestão Periódica + Mostrar O.S.=Sim)
+ * Coleta dados de "Participação por Consultor" (Gestão Periódica)
  * para cada loja do OI, separando mecânicos de vendedores.
+ * Para vendedores: também habilita "Mostrar O.S." e coleta cada O.S. com itens.
  *
  * Uso:
  *   node tools/scraper-oi-colaboradores.js --mes 5 --ano 2026
@@ -99,7 +100,7 @@ async function trocarLoja(page, loja) {
   await sleep(800);
 }
 
-// ── Coletarcolaboradores de uma loja ──────────────────────────────────────────
+// ── Coleta colaboradores de uma loja ─────────────────────────────────────────
 
 async function coletarColaboradoresLoja(page, startStr, endStr) {
   console.log(`  📊 Participação por Consultor (${startStr} → ${endStr})...`);
@@ -107,7 +108,6 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
   await page.goto(RELATORIO_URL, { waitUntil: 'networkidle2', timeout: 30000 });
   await page.waitForSelector('#ctl00_cph_txtDataInicial', { timeout: 10000 });
 
-  // Preenche datas
   await page.evaluate((start, end) => {
     const setVal = (sel, v) => {
       const el = document.querySelector(sel);
@@ -121,23 +121,18 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
   }, startStr, endStr);
   await sleep(300);
 
-  // Clica "Gestão Periódica" (mesmo padrão do scraper existente que funciona)
   await page.waitForSelector('#ctl00_cph_btnGestaoPeriodica', { timeout: 5000 });
   try {
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 45000 }),
       page.click('#ctl00_cph_btnGestaoPeriodica'),
     ]);
-    console.log('    ✅ Relatório carregado');
   } catch (_) {
-    await sleep(5000); // UpdatePanel — aguarda render
-    console.log('    ✅ Relatório carregado (AJAX)');
+    await sleep(5000);
   }
   await sleep(1000);
 
-  // Extrai dados diretamente da tabela Participação (escopo limitado = rápido)
   const rows = await page.evaluate(() => {
-    // Acha a tabela que tem "Nome*" + "Faturamento" + "Lucro Bruto" no cabeçalho
     const tables = document.querySelectorAll('table');
     let tbl = null;
     for (const t of tables) {
@@ -153,10 +148,8 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
       if (row.cells.length < 8) continue;
       const nome = row.cells[0].textContent.trim();
       if (!nome || /^nome/i.test(nome) || nome === '') continue;
-      // Linha de total: primeira célula sem letras ou só espaço
       if (!/[a-zA-ZÀ-ú]/.test(nome)) continue;
 
-      // Pega link Grupo — o href do ASP.NET é "javascript:__doPostBack(...)"
       const links = row.querySelectorAll('a');
       const grupoA = Array.from(links).find(a => a.textContent.trim() === 'Grupo');
 
@@ -170,7 +163,6 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
         pctProd: row.cells[9]?.textContent.trim() || '',
         vlServ:  row.cells[10]?.textContent.trim() || '',
         pctServ: row.cells[11]?.textContent.trim() || '',
-        // .href devolve a URL completa incluindo "javascript:__doPostBack(...)"
         grupoHref: grupoA ? grupoA.href : '',
       });
     }
@@ -213,17 +205,18 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
       vl_servico:  parseBRL(c.vlServ),
       pct_servico: parseInt(c.pctServ) || 0,
       grupos:      [],
+      os_list:     [],
     };
 
-    // Para mecânicos E vendedores: coleta grupos via link PostBack
     if (c.grupoHref && (cargo === 'MECANICO' || cargo === 'VENDEDOR' || cargo === 'ESTOQUE')) {
       try {
-        row.grupos = await coletarGrupos(page, c.grupoHref, c.nome);
-        console.log(`    └─ ${nomeBase}: ${row.grupos.length} grupo(s)`);
+        const { grupos, os_list } = await coletarGrupoEOS(page, c.grupoHref, c.nome, cargo);
+        row.grupos  = grupos;
+        row.os_list = os_list;
+        console.log(`    └─ ${nomeBase}: ${row.grupos.length} grupo(s), ${row.os_list.length} OS`);
       } catch (err) {
-        console.log(`    └─ ${nomeBase}: ❌ grupos — ${err.message}`);
+        console.log(`    └─ ${nomeBase}: ❌ grupos/OS — ${err.message}`);
         await saveDebug(page, `grupo-${nomeBase.slice(0, 20).replace(/\s/g, '_')}`);
-        // Volta para a lista principal após erro
         await page.goto(RELATORIO_URL, { waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
         await page.click('#ctl00_cph_btnGestaoPeriodica').catch(() => {});
         await sleep(3000);
@@ -236,19 +229,14 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
   return resultado;
 }
 
-// ── Coleta grupos de um colaborador ──────────────────────────────────────────
+// ── Navega para a página do grupo via PostBack ────────────────────────────────
 
-async function coletarGrupos(page, grupoHref, nomeColab) {
-  // grupoHref pode ser:
-  //   "javascript:__doPostBack('ctl00$cph$...','Grupo')"   ← ASP.NET WebForms
-  //   "https://..."  ← URL direta (raro)
+async function navegarParaGrupo(page, grupoHref) {
   const jsMatch = grupoHref.match(/__doPostBack\('([^']+)','([^']*)'\)/);
 
   if (jsMatch) {
-    const eventTarget   = jsMatch[1];
-    const eventArgument = jsMatch[2];
+    const [, et, ea] = jsMatch;
 
-    // Detecta nova aba antes de disparar o PostBack
     const newPagePromise = new Promise(resolve => {
       const handler = async target => {
         const np = await target.page().catch(() => null);
@@ -271,53 +259,64 @@ async function coletarGrupos(page, grupoHref, nomeColab) {
         if (eaEl) eaEl.value = ea;
         form.submit();
       }
-    }, eventTarget, eventArgument);
+    }, et, ea);
 
     const newPage = await newPagePromise;
-    if (newPage) {
-      // Abriu em nova aba
-      await newPage.waitForSelector('table', { timeout: 15000 });
-      await sleep(500);
-      const grupos = await extrairTabelaGrupos(newPage);
-      await newPage.close().catch(() => {});
-      return grupos;
-    }
-
-    // Postback na mesma página — aguarda UpdatePanel ou navegação
-    try {
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 12000 });
-    } catch (_) {
-      await sleep(3000);
-    }
-    await sleep(500);
-    const grupos = await extrairTabelaGrupos(page);
-
-    // Volta ao relatório Gestão Periódica
-    await page.goBack({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => sleep(2000));
-    await sleep(800);
-    return grupos;
-
-  } else if (grupoHref.startsWith('http') || grupoHref.startsWith('/')) {
-    const url = grupoHref.startsWith('/') ? `${BASE_URL}${grupoHref}` : grupoHref;
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 });
-    await sleep(500);
-    const grupos = await extrairTabelaGrupos(page);
-    await page.goBack({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => sleep(2000));
-    await sleep(800);
-    return grupos;
+    return { page: newPage || page, isNewTab: !!newPage };
   }
 
-  return [];
+  if (grupoHref.startsWith('http') || grupoHref.startsWith('/')) {
+    const url = grupoHref.startsWith('/') ? `${BASE_URL}${grupoHref}` : grupoHref;
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 });
+    return { page, isNewTab: false };
+  }
+
+  return null;
 }
+
+// ── Coleta grupos + OS de um colaborador ─────────────────────────────────────
+
+async function coletarGrupoEOS(page, grupoHref, nomeColab, cargo) {
+  const nav = await navegarParaGrupo(page, grupoHref);
+  if (!nav) return { grupos: [], os_list: [] };
+
+  const targetPage = nav.page;
+
+  try {
+    await targetPage.waitForNavigation({ waitUntil: 'networkidle2', timeout: 12000 });
+  } catch (_) {
+    await sleep(3000);
+  }
+  await sleep(500);
+
+  // Extrai grupos (sempre)
+  const grupos = await extrairTabelaGrupos(targetPage);
+
+  // Para vendedores: habilita "Mostrar O.S." e extrai OS com itens
+  let os_list = [];
+  if (cargo === 'VENDEDOR') {
+    os_list = await coletarOSVendedor(targetPage, nomeColab);
+  }
+
+  if (nav.isNewTab) {
+    await targetPage.close().catch(() => {});
+  } else {
+    await page.goBack({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => sleep(2000));
+    await sleep(800);
+  }
+
+  return { grupos, os_list };
+}
+
+// ── Extrai tabela "Por Grupo" ─────────────────────────────────────────────────
 
 async function extrairTabelaGrupos(page) {
   return page.evaluate(() => {
-    // Busca tabela "Por Grupo ou Regra"
     const allTables = Array.from(document.querySelectorAll('table'));
     let tbl = allTables.find(t =>
       t.textContent.includes('Grupo ou Regra') ||
       t.textContent.includes('Por Grupo') ||
-      t.textContent.includes('Faturamento') && t.textContent.includes('Lucro Bruto') && t.rows.length > 2
+      (t.textContent.includes('Faturamento') && t.textContent.includes('Lucro Bruto') && t.rows.length > 2)
     );
     if (!tbl) return [];
 
@@ -327,24 +326,386 @@ async function extrairTabelaGrupos(page) {
     for (const row of rows) {
       const cells = Array.from(row.querySelectorAll('td'));
       if (cells.length < 4) continue;
-
       const grupo = cells[0].textContent.trim();
       if (!grupo || /grupo|regra|total/i.test(grupo) && cells.length < 6) continue;
       if (/^total/i.test(grupo)) continue;
 
-      const tipo = cells[1]?.textContent.trim() || '';
-      const fat  = cells[2]?.textContent.trim() || '';
-      const cmv  = cells[3]?.textContent.trim() || '';
+      const tipo  = cells[1]?.textContent.trim() || '';
+      const fat   = cells[2]?.textContent.trim() || '';
+      const cmv   = cells[3]?.textContent.trim() || '';
       const lucro = cells[4]?.textContent.trim() || '';
       const itens = cells[cells.length - 1]?.textContent.trim() || '';
 
       if (!fat.includes('R$') && !fat.match(/[\d,]/)) continue;
-
       result.push({ grupo, tipo, fat, cmv, lucro, itens });
     }
-
     return result;
   });
+}
+
+// ── Coleta O.S. para vendedor (habilita "Mostrar O.S." + paginação) ──────────
+
+async function coletarOSVendedor(page, nomeColab) {
+  // Tenta habilitar "Mostrar O.S." = Sim
+  const enabled = await habilitarMostrarOS(page);
+  if (enabled) {
+    console.log(`      🔍 "Mostrar O.S." habilitado para ${nomeColab.split('(')[0].trim()}`);
+    const reloaded = await submitFiltro(page);
+    if (reloaded) await sleep(1500);
+  }
+
+  // Coleta todos os links de O.S. passando por todas as páginas
+  const todosOsLinks = [];
+  let pagina = 1;
+
+  while (true) {
+    const linksNaPagina = await extrairLinksOS(page);
+    todosOsLinks.push(...linksNaPagina);
+
+    const { temProxima, totalPaginas } = await infoPaginacao(page);
+    if (pagina === 1 && totalPaginas > 1) {
+      console.log(`      📋 ${totalPaginas} página(s) de OS encontrada(s)`);
+    }
+
+    if (!temProxima) break;
+
+    console.log(`      ➡️  Navegando para página ${pagina + 1} de OS...`);
+    await clicarProximaPagina(page);
+    pagina++;
+    await sleep(1000);
+  }
+
+  if (!todosOsLinks.length) {
+    console.log(`      ⚠️  Nenhum link de O.S. encontrado`);
+    return [];
+  }
+  // Deduplica por número de OS (pode haver duplicatas entre páginas)
+  const vistos = new Set();
+  const linksUnicos = todosOsLinks.filter(l => {
+    if (vistos.has(l.osNum)) return false;
+    vistos.add(l.osNum);
+    return true;
+  });
+  console.log(`      📋 ${linksUnicos.length} O.S. única(s) em ${pagina} página(s)`);
+
+  const os_list = [];
+  const paginaAtual = page.url();
+
+  for (const osLink of linksUnicos) {
+    try {
+      const os = await extrairDetalhesOS(page, osLink, paginaAtual);
+      if (os) os_list.push(os);
+      await sleep(400);
+    } catch (err) {
+      console.log(`      ⚠️  OS ${osLink.osNum}: ${err.message}`);
+    }
+  }
+
+  return os_list;
+}
+
+// ── Verifica paginação de OS ──────────────────────────────────────────────────
+
+async function infoPaginacao(page) {
+  return page.evaluate(() => {
+    const body = document.body.textContent || '';
+    // "Página 1 de 4"
+    const m = body.match(/P[aá]gina\s+(\d+)\s+de\s+(\d+)/i);
+    const paginaAtual  = m ? parseInt(m[1]) : 1;
+    const totalPaginas = m ? parseInt(m[2]) : 1;
+
+    // Verifica se o link "Próxima" existe e está ativo
+    const links = Array.from(document.querySelectorAll('a'));
+    const proxLink = links.find(a => /pr[oó]xima|next|>>/i.test(a.textContent.trim()));
+    const temProxima = !!proxLink && paginaAtual < totalPaginas;
+
+    return { paginaAtual, totalPaginas, temProxima };
+  });
+}
+
+// ── Clica no link "Próxima" da lista de OS ───────────────────────────────────
+
+async function clicarProximaPagina(page) {
+  const clicou = await page.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('a'));
+    const proxLink = links.find(a => /pr[oó]xima|next|>>/i.test(a.textContent.trim()));
+    if (!proxLink) return false;
+
+    const href = proxLink.href || '';
+    if (href.startsWith('javascript:')) {
+      // PostBack
+      const m = href.match(/__doPostBack\('([^']+)','([^']*)'\)/);
+      if (m) {
+        if (typeof __doPostBack === 'function') __doPostBack(m[1], m[2]);
+        else {
+          const etEl = document.querySelector('#__EVENTTARGET');
+          const eaEl = document.querySelector('#__EVENTARGUMENT');
+          if (etEl) etEl.value = m[1];
+          if (eaEl) eaEl.value = m[2];
+          document.querySelector('form')?.submit();
+        }
+        return true;
+      }
+    }
+    proxLink.click();
+    return true;
+  });
+
+  if (clicou) {
+    try {
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+    } catch (_) {
+      await sleep(2000);
+    }
+  }
+}
+
+// ── Habilita "Mostrar O.S." na página ────────────────────────────────────────
+
+async function habilitarMostrarOS(page) {
+  return page.evaluate(() => {
+    // Tentativas por seletor direto
+    const seletores = [
+      'select[id*="MostrarOS"]',
+      'select[id*="mostrarOS"]',
+      'select[id*="mostrar_os"]',
+      'select[id*="ddlMostrarOS"]',
+      'select[id*="ExibirOS"]',
+      'select[name*="MostrarOS"]',
+      'input[type="checkbox"][id*="MostrarOS"]',
+      'input[type="checkbox"][id*="chkMostrarOS"]',
+    ];
+
+    for (const sel of seletores) {
+      const el = document.querySelector(sel);
+      if (!el) continue;
+      if (el.tagName === 'SELECT') {
+        for (const opt of el.options) {
+          if (/^(sim|s|1|yes|true)$/i.test(opt.value) || /^(sim|yes)$/i.test(opt.text.trim())) {
+            if (el.value !== opt.value) {
+              el.value = opt.value;
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            return true;
+          }
+        }
+      } else if (el.type === 'checkbox') {
+        if (!el.checked) {
+          el.checked = true;
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        return true;
+      }
+    }
+
+    // Busca por texto ao redor
+    for (const sel of document.querySelectorAll('select')) {
+      const contexto = [
+        sel.closest('td, div, span')?.previousElementSibling?.textContent || '',
+        document.querySelector(`label[for="${sel.id}"]`)?.textContent || '',
+        sel.closest('tr')?.cells[0]?.textContent || '',
+      ].join(' ').toLowerCase();
+
+      if (/mostrar\s*(o\.?s\.?|ordens?)/.test(contexto)) {
+        for (const opt of sel.options) {
+          if (/sim|yes|1/i.test(opt.text) || /^(s|1)$/i.test(opt.value)) {
+            sel.value = opt.value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  });
+}
+
+// ── Submete o formulário de filtro da página do grupo ────────────────────────
+
+async function submitFiltro(page) {
+  const clicked = await page.evaluate(() => {
+    const btns = Array.from(document.querySelectorAll(
+      'input[type="submit"], button[type="submit"], input[type="button"], button'
+    ));
+    const btn = btns.find(b =>
+      /filtrar|buscar|gerar|aplicar|atualizar|pesquisar/i.test(b.value || b.textContent)
+    );
+    if (btn) { btn.click(); return true; }
+    return false;
+  });
+
+  if (clicked) {
+    try {
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+    } catch (_) {
+      await sleep(3000);
+    }
+  }
+  return clicked;
+}
+
+// ── Extrai links das O.S. da página (lista expandida) ────────────────────────
+
+async function extrairLinksOS(page) {
+  return page.evaluate(() => {
+    const resultado = [];
+    const vistos = new Set();
+
+    // Busca todos os links que pareçam O.S. (número 4-6 dígitos)
+    const todos_links = Array.from(document.querySelectorAll('a'));
+    for (const a of todos_links) {
+      const texto = a.textContent.trim();
+      if (!/^\d{4,6}$/.test(texto)) continue;
+      if (vistos.has(texto)) continue;
+      vistos.add(texto);
+
+      const href = a.href || '';
+      const onclick = a.getAttribute('onclick') || '';
+      // Pega o grupo da linha — procura na linha da tabela
+      const tr = a.closest('tr');
+      const cells = tr ? Array.from(tr.querySelectorAll('td')).map(c => c.textContent.trim()) : [];
+
+      resultado.push({
+        osNum: texto,
+        href: href.startsWith('javascript:') ? '' : href,
+        onclick,
+        jsHref: href.startsWith('javascript:') ? href : '',
+        // Dados da linha que contém o link
+        rowData: cells,
+      });
+    }
+
+    return resultado;
+  });
+}
+
+// ── Extrai detalhes de uma O.S. individual ───────────────────────────────────
+
+async function extrairDetalhesOS(page, osLink, voltarUrl) {
+  let navegou = false;
+
+  if (osLink.href && osLink.href.startsWith('http')) {
+    await page.goto(osLink.href, { waitUntil: 'networkidle2', timeout: 20000 });
+    navegou = true;
+  } else if (osLink.jsHref) {
+    const jsMatch = osLink.jsHref.match(/__doPostBack\('([^']+)','([^']*)'\)/);
+    if (jsMatch) {
+      const [, et, ea] = jsMatch;
+      await page.evaluate((et, ea) => {
+        if (typeof __doPostBack === 'function') __doPostBack(et, ea);
+        else {
+          const etEl = document.querySelector('#__EVENTTARGET');
+          const eaEl = document.querySelector('#__EVENTARGUMENT');
+          if (etEl) etEl.value = et;
+          if (eaEl) eaEl.value = ea;
+          document.querySelector('form')?.submit();
+        }
+      }, et, ea);
+      try {
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 12000 });
+      } catch (_) { await sleep(2000); }
+      navegou = true;
+    }
+  } else if (osLink.onclick) {
+    // Tenta executar o onclick diretamente
+    const match = osLink.onclick.match(/__doPostBack\('([^']+)','([^']*)'\)/);
+    if (match) {
+      const [, et, ea] = match;
+      await page.evaluate((et, ea) => {
+        if (typeof __doPostBack === 'function') __doPostBack(et, ea);
+      }, et, ea);
+      try {
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 12000 });
+      } catch (_) { await sleep(2000); }
+      navegou = true;
+    }
+  }
+
+  if (!navegou) return null;
+  await sleep(300);
+
+  // Extrai dados da O.S.
+  const os = await page.evaluate((osNum) => {
+    const body = document.body.textContent || '';
+
+    // Helper: extrai valor de "Label: Valor" no texto
+    const extrai = (regex) => {
+      const m = body.match(regex);
+      return m ? m[1].trim() : '';
+    };
+
+    // Campos do cabeçalho
+    const osNumero  = extrai(/O\.S\.?\s*N[ºo°]?[:\s]+(\d+)/i) || osNum;
+    const osData    = extrai(/Data[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+    const cliente   = extrai(/Cliente[:\s]+([A-ZÀ-Ú ]+?)(?:\s{2,}|\n|Tipo|Veículo)/i);
+    const tipo      = extrai(/Tipo[:\s]+([A-ZÀ-Ú0-9 ]+?)(?:\s{2,}|\n|Veículo|Pesquisa)/i);
+    const veiculo   = extrai(/Veículo[:\s]+([A-Z0-9 ]+?)(?:\s{2,}|\n|Placa)/i);
+    const placa     = extrai(/Placa[:\s]+([A-Z0-9]+?)(?:\s{2,}|\n|Hodom)/i);
+    const responsavel = extrai(/Respons[aá]vel[:\s]+([A-ZÀ-Ú ]+?)(?:\s{2,}|\n|Pesquisa|Observ)/i);
+    const pesquisa  = extrai(/Pesquisa[:\s]+([A-ZÀ-Ú ]+?)(?:\s{2,}|\n)/i);
+
+    // Totais
+    const vlServMatch = body.match(/SERVI[CÇ]OS?\s+R\$\s*([\d.,]+)/i);
+    const vlProdMatch = body.match(/PRODUTOS?\s+R\$\s*([\d.,]+)/i);
+    const vlTotMatch  = body.match(/TOTAL\s+O\.S\.\s+R\$\s*([\d.,]+)/i);
+
+    const parseNum = (str) => {
+      if (!str) return null;
+      const n = parseFloat(str.replace(/\./g, '').replace(',', '.'));
+      return isNaN(n) ? null : n;
+    };
+
+    // Tabela de itens: busca por "Código" + "Descrição" + "Executor"
+    const tables = Array.from(document.querySelectorAll('table'));
+    const prodTbl = tables.find(t => {
+      const h = (t.rows[0] || {}).textContent || '';
+      return /c[oó]digo/i.test(h) && /descri/i.test(h) && /executor/i.test(h);
+    });
+
+    const items = [];
+    if (prodTbl) {
+      for (const row of prodTbl.rows) {
+        const cells = Array.from(row.querySelectorAll('td'));
+        if (cells.length < 6) continue;
+        const codigo = cells[0]?.textContent.trim();
+        if (!codigo || !/\d/.test(codigo)) continue;
+        if (/TOTAL/i.test(cells[0]?.textContent)) continue;
+
+        items.push({
+          codigo:    cells[0]?.textContent.trim(),
+          descricao: cells[1]?.textContent.trim(),
+          grupo:     cells[2]?.textContent.trim(),
+          qtd:       parseInt(cells[3]?.textContent.trim()) || 1,
+          vl_total:  parseNum(cells[4]?.textContent.trim()),
+          desconto:  parseNum(cells[5]?.textContent.trim()),
+          custo:     parseNum(cells[6]?.textContent.trim()),
+          executor:  cells[cells.length - 1]?.textContent.trim(),
+        });
+      }
+    }
+
+    return {
+      os_numero:   osNumero,
+      os_data:     osData,
+      cliente:     cliente.replace(/\s+/g, ' ').trim(),
+      veiculo:     veiculo.trim(),
+      placa:       placa.trim(),
+      tipo:        tipo.trim(),
+      pesquisa:    pesquisa.trim(),
+      responsavel: responsavel.replace(/\s+/g, ' ').trim(),
+      vl_servico:  parseNum(vlServMatch?.[1]),
+      vl_produto:  parseNum(vlProdMatch?.[1]),
+      vl_total:    parseNum(vlTotMatch?.[1]),
+      items,
+    };
+  }, osLink.osNum);
+
+  // Volta para a página do grupo
+  await page.goto(voltarUrl, { waitUntil: 'networkidle2', timeout: 20000 }).catch(() => sleep(2000));
+  await sleep(500);
+
+  return os;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -352,7 +713,6 @@ async function extrairTabelaGrupos(page) {
 async function main() {
   const args = process.argv.slice(2);
 
-  // Parse --mes / --ano ou --data-inicio / --data-fim
   const getMesAno = () => {
     const mesIdx = args.indexOf('--mes');
     const anoIdx = args.indexOf('--ano');
@@ -403,7 +763,7 @@ async function main() {
   });
 
   const resultadoGeral = {};
-  let totalColabs = 0, totalGrupos = 0, falhas = [];
+  let totalColabs = 0, totalGrupos = 0, totalOS = 0, falhas = [];
 
   try {
     await login(page);
@@ -416,7 +776,8 @@ async function main() {
         resultadoGeral[loja.key] = colabs;
         totalColabs += colabs.length;
         totalGrupos += colabs.reduce((s, c) => s + c.grupos.length, 0);
-        console.log(`  ✅ ${loja.key}: ${colabs.length} colab(s), ${colabs.reduce((s, c) => s + c.grupos.length, 0)} grupo(s)`);
+        totalOS     += colabs.reduce((s, c) => s + c.os_list.length, 0);
+        console.log(`  ✅ ${loja.key}: ${colabs.length} colab(s), ${colabs.reduce((s, c) => s + c.grupos.length, 0)} grupos, ${colabs.reduce((s, c) => s + c.os_list.length, 0)} OS`);
 
         await syncColaboradoresOI(loja.key, loja.label, range.start, range.end, colabs);
 
@@ -429,7 +790,7 @@ async function main() {
       }
     }
 
-    console.log(`\n✅ Concluído: ${totalColabs} colaboradores, ${totalGrupos} registros de grupos`);
+    console.log(`\n✅ Concluído: ${totalColabs} colaboradores, ${totalGrupos} grupos, ${totalOS} ordens de serviço`);
     if (falhas.length) console.log(`❌ Falhas (${falhas.length}): ${falhas.join(', ')}`);
 
   } catch (err) {
