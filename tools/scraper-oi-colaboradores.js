@@ -149,6 +149,10 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
       const nome = row.cells[0].textContent.trim();
       if (!nome || /^nome/i.test(nome) || nome === '') continue;
       if (!/[a-zA-ZÀ-ú]/.test(nome)) continue;
+      // Nomes de colaboradores no OI são em MAIÚSCULAS — itens de menu/navegação têm minúsculas
+      const lc = (nome.match(/[a-záéíóúâêôãõüç]/g) || []).length;
+      const uc = (nome.match(/[A-ZÁÉÍÓÚÂÊÔÃÕÜÇ]/g) || []).length;
+      if (lc > 2 && lc > uc * 0.2) continue;
 
       const links = row.querySelectorAll('a');
       const grupoA = Array.from(links).find(a => a.textContent.trim() === 'Grupo');
@@ -182,13 +186,15 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
     const matchParen = c.nome.match(/\((.+?)\)$/);
     const detalhes   = matchParen ? matchParen[1].trim().toUpperCase() : '';
 
-    let cargo = 'VENDEDOR'; // padrão: quem aparece no relatório sem cargo explícito é consultor/vendedor
-    if (/mec[aâ]nico/i.test(detalhes)) cargo = 'MECANICO';
+    let cargo = 'OUTRO';
+    if (/mec[aâ]nico/i.test(detalhes))       cargo = 'MECANICO';
     else if (/vend|consultor/i.test(detalhes)) cargo = 'VENDEDOR';
-    else if (/estoque/i.test(detalhes)) cargo = 'ESTOQUE';
-    else if (/gerente/i.test(detalhes)) cargo = 'GERENTE';
-    // Linhas de grupo (ex: "3 GUILHERME / ADRIANO PEG ARARAQUARA") → montadores
-    else if (/^\d+\s+\w.+\//.test(c.nome)) cargo = 'MECANICO';
+    else if (/estoque/i.test(detalhes))        cargo = 'ESTOQUE';
+    else if (/gerente/i.test(detalhes))        cargo = 'GERENTE';
+    // Linhas de grupo (ex: "3 GUILHERME / ADRIANO PEG ARARAQUARA") → equipe mista
+    else if (/^\d+\s+\w.+\//.test(c.nome))    cargo = 'GRUPO';
+    // Sem cargo explícito mas tem parênteses com nome de loja → consultor/vendedor
+    else if (detalhes)                         cargo = 'VENDEDOR';
 
     const nomeBase = c.nome.replace(/\s*\(.*?\)\s*$/, '').trim();
     const unidade  = detalhes.replace(/mec[aâ]nico|vendedor|consultor.*?de.*?vendas|estoque|gerente/i, '').trim();
