@@ -193,14 +193,20 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
     return 'OUTRO';
   }
 
+  // Overrides de cargo para colaboradores que só aparecem em grupos (nunca como linha individual)
+  // Chave = 4-char prefix (sem espaços, uppercase)
+  const CARGO_OVERRIDE = new Map([
+    ['GUIL', 'MECANICO'], // GUILHERME DA SILVA ROSA (PEG) — montador
+  ]);
+
   // Mapa de prefixo (4 chars, sem espaço, uppercase) → cargo para lookup fuzzy
-  const prefixoCargo = new Map();
+  const prefixoCargo = new Map(CARGO_OVERRIDE); // parte dos overrides como base
   for (const c of rows) {
     const cg = detectCargo(c.nome);
     if (cg !== 'GRUPO' && cg !== 'OUTRO') {
       const nomeBase = c.nome.replace(/\s*\(.*?\)\s*$/, '').trim();
       const key = nomeBase.replace(/\s+/g, '').toUpperCase().slice(0, 4);
-      if (key) prefixoCargo.set(key, cg);
+      if (key && !CARGO_OVERRIDE.has(key)) prefixoCargo.set(key, cg); // não sobrescreve override
     }
   }
 
