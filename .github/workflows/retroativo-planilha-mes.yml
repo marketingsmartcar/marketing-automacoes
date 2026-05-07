@@ -14,7 +14,7 @@ on:
 
 jobs:
   retroativo:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 480
 
     steps:
@@ -28,9 +28,11 @@ jobs:
           cache: 'npm'
 
       - name: Instalar dependências
+        shell: bash
         run: npm ci
 
       - name: Criar .env
+        shell: bash
         run: |
           echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                                             >> .env
           echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                             >> .env
@@ -39,11 +41,13 @@ jobs:
           echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"             >> .env
 
       - name: Criar credenciais Google Sheets
+        shell: bash
         run: |
           mkdir -p credentials
           echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
 
       - name: Executar retroativo
+        shell: bash
         run: |
           echo "📅 Retroativo: ${{ github.event.inputs.mes }}/${{ github.event.inputs.ano }}"
           node tools/retroativo-planilha.js --mes ${{ github.event.inputs.mes }} --ano ${{ github.event.inputs.ano }}

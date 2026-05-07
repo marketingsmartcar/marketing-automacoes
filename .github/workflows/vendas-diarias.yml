@@ -12,7 +12,7 @@ on:
 
 jobs:
   coletar:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 120
 
     steps:
@@ -26,9 +26,11 @@ jobs:
           cache: 'npm'
 
       - name: Instalar dependências
+        shell: bash
         run: npm ci
 
       - name: Criar .env
+        shell: bash
         run: |
           echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                                             >> .env
           echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                             >> .env
@@ -38,20 +40,22 @@ jobs:
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"       >> .env
 
       - name: Criar credenciais Google Sheets
+        shell: bash
         run: |
           mkdir -p credentials
           echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
 
       - name: Coleta diária (hoje BRT)
+        shell: bash
         run: |
-          # Passa a data de hoje no fuso BRT para o script
-          TODAY=$(TZ='America/Sao_Paulo' date +%Y-%m-%d)
+          TODAY=$(node -e "process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()))")
           echo "📅 Coletando: $TODAY"
           node tools/preencher-vendas-diarias.js "$TODAY"
 
       - name: Revisão semanal (apenas Sábado às 20h BRT)
+        shell: bash
         run: |
-          DIA_SEMANA=$(TZ='America/Sao_Paulo' date +%u)
+          DIA_SEMANA=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getDay()))")
           if [ "$DIA_SEMANA" = "6" ]; then
             echo "📅 Sábado — iniciando revisão semanal (seg–sáb)..."
             node tools/retroativo-planilha.js --semana
