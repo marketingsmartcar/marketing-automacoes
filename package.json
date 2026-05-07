@@ -37,10 +37,14 @@
     "oi:listar": "node tools/scraper-oi-browser.js --listar",
     "oi:coletar": "node tools/scraper-oi-browser.js",
     "oi:teste": "node tools/scraper-oi-browser.js --sem-espera",
+    "oi:colaboradores": "node tools/scraper-oi-colaboradores.js",
+    "oi:colaboradores:mes": "node tools/scraper-oi-colaboradores.js --mes",
     "editor": "node tools/video-editor/editor-automatico.js",
     "editor:video": "node tools/video-editor/editor-automatico.js",
     "leads:hoje": "node tools/leads-hoje.js --agora",
-    "leads:scheduler": "node tools/leads-hoje.js"
+    "leads:scheduler": "node tools/leads-hoje.js",
+    "social": "node tools/coletar-social-media.js",
+    "social:media": "node tools/coletar-social-media.js"
   },
   "keywords": [],
   "author": "",

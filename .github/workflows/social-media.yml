@@ -1,0 +1,51 @@
+name: Social Media — Coleta Diária
+
+on:
+  schedule:
+    # 09:00 BRT = 12:00 UTC
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  coletar:
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Adicionar Git bash ao PATH
+        shell: powershell
+        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Instalar dependências
+        shell: bash
+        run: npm ci
+
+      - name: Criar .env
+        shell: bash
+        run: |
+          echo "META_ACCESS_TOKEN_BR=${{ secrets.META_ACCESS_TOKEN_BR }}"           >> .env
+          echo "META_ACCESS_TOKEN_PEG=${{ secrets.META_ACCESS_TOKEN_PEG }}"         >> .env
+          echo "META_IG_ID_BR=${{ secrets.META_IG_ID_BR }}"                         >> .env
+          echo "META_IG_ID_PEG_ARQ=${{ secrets.META_IG_ID_PEG_ARQ }}"               >> .env
+          echo "META_IG_ID_PEG_SOR=${{ secrets.META_IG_ID_PEG_SOR }}"               >> .env
+          echo "META_PAGE_ID_BR=${{ secrets.META_PAGE_ID_BR }}"                     >> .env
+          echo "META_PAGE_TOKEN_BR=${{ secrets.META_PAGE_TOKEN_BR }}"               >> .env
+          echo "META_PAGE_ID_PEG_ARQ=${{ secrets.META_PAGE_ID_PEG_ARQ }}"           >> .env
+          echo "META_PAGE_TOKEN_PEG_ARQ=${{ secrets.META_PAGE_TOKEN_PEG_ARQ }}"     >> .env
+          echo "META_PAGE_ID_PEG_SOR=${{ secrets.META_PAGE_ID_PEG_SOR }}"           >> .env
+          echo "META_PAGE_TOKEN_PEG_SOR=${{ secrets.META_PAGE_TOKEN_PEG_SOR }}"     >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"             >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Coletar dados Social Media
+        shell: bash
+        run: node tools/coletar-social-media.js
