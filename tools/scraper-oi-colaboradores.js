@@ -364,8 +364,10 @@ async function coletarOSVendedor(page, nomeColab) {
   const enabled = await habilitarMostrarOS(page);
   if (enabled) {
     console.log(`      🔍 "Mostrar O.S." habilitado para ${nomeColab.split('(')[0].trim()}`);
-    const reloaded = await submitFiltro(page);
-    if (reloaded) await sleep(5000); // aguarda página pesada carregar
+    await submitFiltro(page);
+    // Aguarda AJAX + rendering completos — o onChange pode disparar reload automático
+    await page.waitForNetworkIdle({ idleTime: 1500, timeout: 90000 }).catch(() => null);
+    await sleep(5000); // buffer extra para rendering de 100+ OS
   }
 
   const os_list = [];
@@ -552,11 +554,16 @@ async function extrairTabelaOS(page) {
       return isNaN(n) ? null : n;
     };
 
-    // Localiza a tabela que contém links numéricos de OS (4-6 dígitos)
+    // Localiza a tabela dentro do content placeholder (evita menus de navegação)
+    const container = document.querySelector('#ctl00_cph, #ContentPlaceHolder1, .content-area') || document.body;
     let osTbl = null;
-    for (const t of document.querySelectorAll('table')) {
-      const hasOsLink = Array.from(t.querySelectorAll('a')).some(a => /^\d{4,6}$/.test(a.textContent.trim()));
-      if (hasOsLink) { osTbl = t; break; }
+    for (const t of container.querySelectorAll('table')) {
+      // Amostra as primeiras 4 linhas de dados para detectar se tem OS
+      const sample = Array.from(t.rows).slice(1, 5);
+      const hasOS = sample.some(row =>
+        Array.from(row.querySelectorAll('a')).some(a => /^\d{4,6}$/.test(a.textContent.trim()))
+      );
+      if (hasOS) { osTbl = t; break; }
     }
     if (!osTbl) return [];
 
