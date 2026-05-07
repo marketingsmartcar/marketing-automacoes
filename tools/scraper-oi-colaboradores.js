@@ -187,6 +187,8 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
     else if (/vend|consultor/i.test(detalhes)) cargo = 'VENDEDOR';
     else if (/estoque/i.test(detalhes)) cargo = 'ESTOQUE';
     else if (/gerente/i.test(detalhes)) cargo = 'GERENTE';
+    // Linhas de grupo (ex: "3 GUILHERME / ADRIANO PEG ARARAQUARA") → montadores
+    else if (/^\d+\s+\w.+\//.test(c.nome)) cargo = 'MECANICO';
 
     const nomeBase = c.nome.replace(/\s*\(.*?\)\s*$/, '').trim();
     const unidade  = detalhes.replace(/mec[aâ]nico|vendedor|consultor.*?de.*?vendas|estoque|gerente/i, '').trim();
