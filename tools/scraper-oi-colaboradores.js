@@ -361,14 +361,24 @@ async function extrairTabelaGrupos(page) {
 async function coletarOSVendedor(page, nomeColab) {
   await page.setDefaultTimeout(120000);
 
+  // Configura listener de navegação ANTES de habilitar Mostrar OS
+  // — AutoPostBack do dropdown dispara logo após page.evaluate() retornar
+  const navPromise = page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 120000 })
+    .catch(() => null);
+
   const enabled = await habilitarMostrarOS(page);
-  if (enabled) {
-    console.log(`      🔍 "Mostrar O.S." habilitado para ${nomeColab.split('(')[0].trim()}`);
-    await submitFiltro(page);
-    // Aguarda AJAX + rendering completos — o onChange pode disparar reload automático
-    await page.waitForNetworkIdle({ idleTime: 1500, timeout: 90000 }).catch(() => null);
-    await sleep(5000); // buffer extra para rendering de 100+ OS
+  if (!enabled) {
+    return []; // sem dropdown → sem OS
   }
+
+  console.log(`      🔍 "Mostrar O.S." habilitado para ${nomeColab.split('(')[0].trim()}`);
+
+  // Tenta também clicar no botão de filtro (caso não tenha AutoPostBack)
+  await submitFiltro(page);
+
+  // Aguarda navegação completar (AutoPostBack ou submit — o que vier primeiro)
+  await navPromise;
+  await sleep(2000); // pequeno buffer pós-rendering
 
   const os_list = [];
   const vistos  = new Set();
