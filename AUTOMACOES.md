@@ -227,6 +227,8 @@ pm2 start br-pneus-bot
 
 **Pasta de vídeos:** `C:\Users\Nick\Desktop\Projetos\Videos\Conteudo das lojas\`
 
+> **08/05/2026 — Jaú (BR6) e Ibitinga (BR7) removidas da fila:** 16 entradas removidas de `data/stories-state.json` (`br_60s` + `historico`). Lojas encerradas — vídeos dessas unidades não devem ser readicionados.
+
 **Scripts de emergência:**
 ```bash
 node tools/stories/deletar-e-repostar.js     # apaga todos e reposta do zero
@@ -562,12 +564,12 @@ node tools/coletar-social-media.js
 
 ## 13. Monitor ADS → NexusZ (Dashboard Horário)
 
-**O que faz:** Coleta saldo, spend e métricas de performance (CTR, CPC, impressões, cliques, conversões) de todas as contas Meta Ads e Google Ads e salva snapshots em `ads_snapshots` no Supabase. O dashboard NexusZ exibe os dados com semáforo de alertas e atualiza automaticamente a cada hora.
+**O que faz:** Coleta saldo, spend e métricas de performance (CTR, CPC, impressões, cliques, conversões) de todas as contas Meta Ads e Google Ads e salva snapshots em `ads_snapshots` no Supabase. **Também detecta e registra recargas automaticamente** em `ads_recargas`, eliminando a necessidade de entrada manual.
 
 | Campo | Valor |
 |-------|-------|
 | Script | `tools/coletar-ads-supabase.js` |
-| Tabela | `ads_snapshots` (NexusZ) |
+| Tabelas | `ads_snapshots` + `ads_recargas` (NexusZ) |
 | Agendamento | **GitHub Actions** — toda hora das **08h às 19h BRT** (seg–sáb) |
 | Workflow | `.github/workflows/ads-monitor.yml` |
 | Env vars necessárias | `META_ACCESS_TOKEN_BR`, `META_ACCESS_TOKEN_PEG`, `META_ACCOUNT_BR_*` (4), `META_ACCOUNT_PEG_*` (2), `GOOGLE_ADS_*` (5 vars), `GOOGLE_ACCOUNT_BR_*` (4), `GOOGLE_ACCOUNT_PEG_*` (2), `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
@@ -584,17 +586,25 @@ node tools/coletar-social-media.js
 
 **Como rodar manualmente:**
 ```bash
-npm run ads:supabase             # Meta + Google
+npm run ads:supabase             # Meta + Google + recargas
 npm run ads:supabase:meta        # só Meta
 npm run ads:supabase:google      # só Google
+node tools/coletar-ads-supabase.js --recargas  # só recargas (Meta + Google)
 ```
+
+**Detecção automática de recargas:**
+- **Google Ads:** usa `account_budget_proposal` — cada aumento no `proposed_spending_limit_micros` equivale a uma recarga; o ID da proposta (`proposal_XXXX`) é salvo em `descricao` para dedup perfeito. Histórico completo desde a criação da conta.
+- **Meta Ads — contas "fundos"** (BR São Carlos, BR Araraquara, PEG Sorocaba): compara `spend_cap` atual (total lifetime acumulado) com a soma já armazenada em `ads_recargas`; delta = nova recarga.
+- **Meta Ads — contas "saldo"** (BR Maringá, BR Americana, PEG Araraquara): compara `balance + amount_spent` (efetivo total depositado) com soma armazenada; delta = nova recarga.
+- Limitação Meta: não há acesso ao histórico de transações pela API (endpoint bloqueado). Na **primeira execução**, todo o histórico vira um único registro com a data da coleta. Runs subsequentes capturam incrementos individuais.
 
 **Visualização no NexusZ:**
 - Menu: ADS (ícone raio ⚡)
 - Rota: `/admin/ads`
 - Componente: `NexusZ/src/pages/admin/AdminAds.tsx`
-- Cards por conta com Meta + Google lado a lado; semáforo de status; totais consolidados; refetch automático a cada hora
+- Cards por conta com Meta + Google lado a lado; semáforo de status; totais consolidados; seção de recargas com filtro por período; refetch automático a cada hora
+- **Entrada manual removida** — recargas são coletadas exclusivamente de forma automática
 
 ---
 
-*Última atualização: 07/05/2026 — ADS Monitor Supabase: dashboard horário NexusZ; Social Media atualizado para coleta horária*
+*Última atualização: 08/05/2026 — Recargas ADS automáticas: Google via account_budget_proposal + Meta via spend_cap/balance delta; modal de entrada manual removido do NexusZ*

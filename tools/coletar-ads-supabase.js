@@ -69,7 +69,7 @@ async function fetchGraph(path, token, params = {}) {
 
 async function coletarMeta() {
   console.log('📱 Meta Ads — coletando...');
-  const resultados = await metaTodas();
+  const { resultados } = await metaTodas();
   const rows = resultados.map(r => ({
     conta_key:      contaKey(r.nome, 'meta'),
     conta_label:    r.nome,
@@ -99,7 +99,7 @@ async function coletarMeta() {
 
 async function coletarGoogle() {
   console.log('🔍 Google Ads — coletando...');
-  const resultados = await googleTodas();
+  const { resultados } = await googleTodas();
   const rows = resultados.map(r => ({
     conta_key:      contaKey(r.nome, 'google'),
     conta_label:    r.nome,
@@ -121,76 +121,214 @@ async function coletarGoogle() {
   return rows;
 }
 
-// ── Recargas Meta ─────────────────────────────────────────────────────────────
+// ── Recargas Meta (via spend_cap / balance+amount_spent cumulativo) ───────────
 
-async function buscarTransacoesMeta(conta) {
-  const id = conta.id.replace('act_', '');
-  try {
-    const data = await fetchGraph(`act_${id}/transactions`, conta.token, {
-      fields: 'id,time,amount,type,status',
-      limit: 100,
-    });
-    return (data.data || []).map(t => ({
-      conta_key:    contaKey(conta.nome, 'meta'),
-      conta_label:  conta.nome,
-      plataforma:   'meta',
-      // Meta retorna `time` como Unix timestamp em segundos
-      data_recarga: new Date(t.time * 1000).toISOString(),
-      valor:        Math.abs(parseFloat(t.amount || 0)),
-      tipo_recarga: conta.recarga ?? null,
-      status:       t.status || null,
-      descricao:    t.type || null,
-    })).filter(r => r.valor > 0); // ignora estornos/zerados
-  } catch (err) {
-    console.warn(`  ⚠️ Transações ${conta.nome}: ${err.message}`);
-    return [];
+async function coletarRecargasMeta() {
+  console.log('💳 Recargas Meta Ads — detectando via spend_cap/balance...');
+
+  // Soma já armazenada por conta para calcular delta
+  const sumRes  = await fetch(
+    `${SUPABASE_URL}/rest/v1/ads_recargas?plataforma=eq.meta&select=conta_key,valor`,
+    { headers }
+  );
+  const sumRows = sumRes.ok ? await sumRes.json().catch(() => []) : [];
+  const storedByConta = new Map();
+  for (const r of sumRows) {
+    storedByConta.set(r.conta_key, (storedByConta.get(r.conta_key) || 0) + r.valor);
   }
-}
 
-async function coletarRecargas() {
-  console.log('💳 Recargas Meta Ads — coletando transações...');
-  const todasTransacoes = await Promise.all(CONTAS_META.map(buscarTransacoesMeta));
-  const rows = todasTransacoes.flat();
+  const novas = [];
 
-  if (rows.length === 0) {
-    console.log('  ℹ️ Nenhuma transação encontrada');
+  for (const conta of CONTAS_META) {
+    if (!conta.id || !conta.token) continue;
+    const cKey = contaKey(conta.nome, 'meta');
+
+    try {
+      const id   = conta.id.replace('act_', '');
+      const url  = new URL(`${GRAPH_BASE}/act_${id}`);
+      url.searchParams.set('fields', 'spend_cap,balance,amount_spent');
+      url.searchParams.set('access_token', conta.token);
+      const res  = await fetch(url.toString());
+      const data = await res.json();
+
+      if (data.error) {
+        console.warn(`  ⚠️  ${conta.nome}: ${data.error.message}`);
+        continue;
+      }
+
+      let totalVidaReais;
+      if (conta.recarga === 'fundos') {
+        // spend_cap = total acumulado de fundos adicionados (em centavos)
+        const cap = parseInt(data.spend_cap || '0', 10);
+        if (cap <= 0) { console.log(`  ⚠️  ${conta.nome}: spend_cap=0 (possível cartão)`); continue; }
+        totalVidaReais = cap / 100;
+      } else {
+        // saldo: balance (atual) + amount_spent (gasto acumulado) = total já depositado
+        const bal   = parseInt(data.balance      || '0', 10);
+        const spent = parseInt(data.amount_spent || '0', 10);
+        const ef    = bal + spent;
+        if (ef <= 0) { console.log(`  ⚠️  ${conta.nome}: effective balance = 0`); continue; }
+        totalVidaReais = ef / 100;
+      }
+
+      const jaGuardado = storedByConta.get(cKey) || 0;
+      const delta      = Math.round((totalVidaReais - jaGuardado) * 100) / 100;
+
+      if (delta < 1) {
+        console.log(`  ✅ ${conta.nome}: sem nova recarga (total R$${totalVidaReais.toFixed(2)}, guardado R$${jaGuardado.toFixed(2)})`);
+        continue;
+      }
+
+      console.log(`  🆕 ${conta.nome}: nova recarga detectada R$${delta.toFixed(2)}`);
+      novas.push({
+        conta_key:   cKey,
+        conta_label: conta.nome,
+        plataforma:  'meta',
+        data_recarga: new Date().toISOString(),
+        valor:       delta,
+        tipo_recarga: conta.recarga,
+        status:      'SUCCESS',
+        descricao:   `auto_${new Date().toISOString().slice(0, 10)}`,
+      });
+    } catch (err) {
+      console.warn(`  ⚠️  ${conta.nome}: ${err.message}`);
+    }
+  }
+
+  if (novas.length === 0) {
+    console.log('  ℹ️  Sem novas recargas Meta');
     return;
   }
 
-  // Upsert: se o mesmo registro já existe (mesma conta_key + data_recarga + valor), não duplica
-  const upsertHeaders = {
-    ...headers,
-    Prefer: 'resolution=ignore-duplicates,return=minimal',
-  };
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/ads_recargas`, {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/ads_recargas`, {
     method:  'POST',
-    headers: upsertHeaders,
-    body:    JSON.stringify(rows),
+    headers: { ...headers, Prefer: 'return=minimal' },
+    body:    JSON.stringify(novas),
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Supabase UPSERT ads_recargas falhou (${res.status}): ${body}`);
+  if (!r.ok) {
+    const body = await r.text().catch(() => '');
+    throw new Error(`Supabase INSERT ads_recargas Meta falhou (${r.status}): ${body}`);
   }
-  console.log(`  ✅ ${rows.length} transação(ões) Meta salvas`);
+  console.log(`  ✅ ${novas.length} recarga(s) Meta registrada(s)`);
+}
+
+// ── Recargas Google (via account_budget_proposal deltas) ──────────────────────
+
+function criarClienteGoogle(customerId) {
+  const { GoogleAdsApi } = require('google-ads-api');
+  const api = new GoogleAdsApi({
+    client_id:       process.env.GOOGLE_ADS_CLIENT_ID,
+    client_secret:   process.env.GOOGLE_ADS_CLIENT_SECRET,
+    developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+  });
+  return api.Customer({
+    customer_id:       String(customerId).replace(/-/g, ''),
+    login_customer_id: process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID,
+    refresh_token:     process.env.GOOGLE_ADS_REFRESH_TOKEN,
+  });
+}
+
+async function coletarRecargasGoogle() {
+  console.log('💳 Recargas Google Ads — coletando account_budget_proposal...');
+
+  // Buscar descrições já salvas para dedup (proposal_XXXXXXX)
+  const existRes  = await fetch(
+    `${SUPABASE_URL}/rest/v1/ads_recargas?plataforma=eq.google&select=descricao`,
+    { headers }
+  );
+  const existRows = existRes.ok ? await existRes.json().catch(() => []) : [];
+  const jaExistem = new Set(existRows.map(r => r.descricao).filter(Boolean));
+
+  const novas = [];
+
+  for (const conta of CONTAS_GOOGLE) {
+    if (!conta.id) continue;
+    const cKey = contaKey(conta.nome, 'google');
+
+    try {
+      const customer  = criarClienteGoogle(conta.id);
+      const proposals = await customer.query(`
+        SELECT
+          account_budget_proposal.id,
+          account_budget_proposal.proposed_spending_limit_micros,
+          account_budget_proposal.creation_date_time,
+          account_budget_proposal.status
+        FROM account_budget_proposal
+        ORDER BY account_budget_proposal.creation_date_time ASC
+      `);
+
+      // Delta cumulativo: cada aumento no spending limit = recarga
+      let prevMicros = 0;
+      let novaConta  = 0;
+
+      for (const row of proposals) {
+        const p = row.account_budget_proposal;
+        if (!p) continue;
+        const curMicros = Number(p.proposed_spending_limit_micros || 0);
+        if (curMicros <= prevMicros) continue; // sem aumento, ignorar
+
+        const descId = `proposal_${p.id}`;
+        const delta  = Math.round((curMicros - prevMicros) / 10000) / 100; // micros → reais
+
+        if (!jaExistem.has(descId) && delta >= 0.01) {
+          // Normalizar data: "2026-05-02 14:32:00" → ISO
+          const dt = String(p.creation_date_time || '').replace(' ', 'T');
+          novas.push({
+            conta_key:   cKey,
+            conta_label: conta.nome,
+            plataforma:  'google',
+            data_recarga: dt || new Date().toISOString(),
+            valor:       delta,
+            tipo_recarga: null,
+            status:      'SUCCESS',
+            descricao:   descId,
+          });
+          novaConta++;
+        }
+
+        prevMicros = curMicros;
+      }
+
+      console.log(`  ✅ ${conta.nome}: ${proposals.length} propostas → ${novaConta} nova(s)`);
+    } catch (err) {
+      console.warn(`  ⚠️  ${conta.nome}: ${String(err.message || err).slice(0, 120)}`);
+    }
+  }
+
+  if (novas.length === 0) {
+    console.log('  ℹ️  Sem novas recargas Google');
+    return;
+  }
+
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/ads_recargas`, {
+    method:  'POST',
+    headers: { ...headers, Prefer: 'return=minimal' },
+    body:    JSON.stringify(novas),
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '');
+    throw new Error(`Supabase INSERT ads_recargas Google falhou (${r.status}): ${body}`);
+  }
+  console.log(`  ✅ ${novas.length} recarga(s) Google salva(s)`);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const args      = process.argv.slice(2);
-  const soMeta    = args.includes('--meta');
-  const soGoogle  = args.includes('--google');
+  const args       = process.argv.slice(2);
+  const soMeta     = args.includes('--meta');
+  const soGoogle   = args.includes('--google');
   const soRecargas = args.includes('--recargas');
 
   console.log(`\n📊 Coleta ADS → Supabase — ${new Date().toLocaleString('pt-BR')}\n`);
 
   try {
     if (soRecargas) {
-      await coletarRecargas();
+      await coletarRecargasMeta();
+      await coletarRecargasGoogle();
     } else {
-      if (!soGoogle) await coletarMeta();
-      if (!soMeta)   await coletarGoogle();
-      if (!soGoogle) await coletarRecargas(); // recargas junto com Meta
+      if (!soGoogle) { await coletarMeta();   await coletarRecargasMeta();   }
+      if (!soMeta)   { await coletarGoogle(); await coletarRecargasGoogle(); }
     }
     console.log('\n✅ Concluído');
   } catch (err) {
