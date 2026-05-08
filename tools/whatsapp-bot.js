@@ -17,7 +17,7 @@ const NUMEROS_AUTORIZADOS = (process.env.WHATSAPP_ADMIN_NUMBERS || '')
 // WHATSAPP_GRUPO_ID          → destino das mensagens agendadas via !agendar
 // WHATSAPP_GRUPO_AUTOMACAO_ID → relatórios de Ads, stories, avaliações negativas
 const GRUPO_ID               = process.env.WHATSAPP_GRUPO_ID || '';
-const GRUPO_ALERTAS_ID       = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID || GRUPO_ID;
+const GRUPO_ALERTAS_ID       = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID || '';
 const GRUPO_PEG_ATENDIMENTO  = process.env.WHATSAPP_PEG_ATENDIMENTO_ID || '';
 
 const NODE_PATH   = process.execPath;
@@ -2077,32 +2077,80 @@ module.exports = { enviarMensagem, getBotClient };
 // ─── API interna para comunicação entre processos (porta 3099) ────────────────
 
 const http = require('http');
-const apiServer = http.createServer((req, res) => {
-  if (req.method !== 'POST' || (req.url !== '/send' && req.url !== '/send-media')) {
-    res.writeHead(404); res.end(); return;
-  }
-  let body = '';
-  req.on('data', chunk => body += chunk);
-  req.on('end', async () => {
-    try {
-      if (req.url === '/send-media') {
-        const { chatId, media, caption } = JSON.parse(body);
-        const { MessageMedia } = require('whatsapp-web.js');
-        const m = new MessageMedia(media.mimetype, media.data, media.filename);
-        await client.sendMessage(chatId, m, { caption: caption || '' });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-        return;
-      }
-      const { chatId, message } = JSON.parse(body);
-      await client.sendMessage(chatId, message);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
-    } catch (e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, erro: e.message }));
-    }
+const { spawn } = require('child_process');
+
+function runCollector(script) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(process.execPath, [script], {
+      cwd:  path.join(__dirname, '..'),
+      env:  process.env,
+      stdio: 'pipe',
+    });
+    let out = '';
+    proc.stdout.on('data', d => { out += d; });
+    proc.stderr.on('data', d => { out += d; });
+    proc.on('close', code => code === 0 ? resolve(out) : reject(new Error(out.slice(-400))));
   });
+}
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json',
+};
+
+const COLLECT_ROUTES = {
+  '/collect/social': path.join(__dirname, 'coletar-social-media.js'),
+  '/collect/ads':    path.join(__dirname, 'coletar-ads-supabase.js'),
+};
+
+const apiServer = http.createServer((req, res) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, CORS_HEADERS); res.end(); return;
+  }
+
+  // Collect endpoints — responde 202 imediatamente e roda coleta em background
+  if (req.method === 'POST' && COLLECT_ROUTES[req.url]) {
+    const script = COLLECT_ROUTES[req.url];
+    console.log(`[API] Coleta manual via NexusZ: ${req.url}`);
+    res.writeHead(202, CORS_HEADERS);
+    res.end(JSON.stringify({ ok: true, running: true }));
+    runCollector(script)
+      .then(() => console.log(`[API] Coleta ${req.url} concluída`))
+      .catch(err => console.error(`[API] Coleta ${req.url} ERRO:`, err.message.slice(0, 200)));
+    return;
+  }
+
+  // Mensagem WhatsApp
+  if (req.method === 'POST' && (req.url === '/send' || req.url === '/send-media')) {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        if (req.url === '/send-media') {
+          const { chatId, media, caption } = JSON.parse(body);
+          const { MessageMedia } = require('whatsapp-web.js');
+          const m = new MessageMedia(media.mimetype, media.data, media.filename);
+          await client.sendMessage(chatId, m, { caption: caption || '' });
+          res.writeHead(200, CORS_HEADERS);
+          res.end(JSON.stringify({ ok: true }));
+          return;
+        }
+        const { chatId, message } = JSON.parse(body);
+        await client.sendMessage(chatId, message);
+        res.writeHead(200, CORS_HEADERS);
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, CORS_HEADERS);
+        res.end(JSON.stringify({ ok: false, erro: e.message }));
+      }
+    });
+    return;
+  }
+
+  res.writeHead(404, CORS_HEADERS); res.end(JSON.stringify({ ok: false }));
 });
 apiServer.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
