@@ -2079,9 +2079,15 @@ module.exports = { enviarMensagem, getBotClient };
 const http = require('http');
 const { spawn } = require('child_process');
 
+// Argumentos extras por script (ex: leads-hoje precisa de --agora para não virar scheduler)
+const COLLECT_ARGS = {
+  [path.join(__dirname, 'leads-hoje.js')]: ['--agora'],
+};
+
 function runCollector(script) {
+  const args = COLLECT_ARGS[script] || [];
   return new Promise((resolve, reject) => {
-    const proc = spawn(process.execPath, [script], {
+    const proc = spawn(process.execPath, [script, ...args], {
       cwd:  path.join(__dirname, '..'),
       env:  process.env,
       stdio: 'pipe',
@@ -2103,6 +2109,7 @@ const CORS_HEADERS = {
 const COLLECT_ROUTES = {
   '/collect/social': path.join(__dirname, 'coletar-social-media.js'),
   '/collect/ads':    path.join(__dirname, 'coletar-ads-supabase.js'),
+  '/collect/leads':  path.join(__dirname, 'leads-hoje.js'),
 };
 
 const apiServer = http.createServer((req, res) => {
