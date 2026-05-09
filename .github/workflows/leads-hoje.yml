@@ -1,0 +1,43 @@
+name: Leads — Coleta Horária
+
+on:
+  schedule:
+    # Toda hora de seg-sáb das 07:00 às 18:00 BRT (10:00–21:00 UTC)
+    - cron: '0 10-21 * * 1-6'
+  workflow_dispatch:
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Decodificar chave Google Service Account
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" | base64 -d > /tmp/gsa-key.json
+
+      - name: Criar .env
+        run: |
+          echo "DESKRIO_API_TOKEN_BR=${{ secrets.DESKRIO_API_TOKEN_BR }}"                         >> .env
+          echo "DESKRIO_API_TOKEN_PEG=${{ secrets.DESKRIO_API_TOKEN_PEG }}"                       >> .env
+          echo "DESKRIO_INSTANCE_BR=${{ secrets.DESKRIO_INSTANCE_BR }}"                           >> .env
+          echo "DESKRIO_INSTANCE_PEG=${{ secrets.DESKRIO_INSTANCE_PEG }}"                         >> .env
+          echo "GOOGLE_SERVICE_ACCOUNT_KEY=/tmp/gsa-key.json"                                     >> .env
+          echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}"         >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Coletar leads → Sheets + Supabase
+        run: node tools/leads-hoje.js --agora
