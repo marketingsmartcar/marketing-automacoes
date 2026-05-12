@@ -231,10 +231,13 @@ if (require.main === module) {
 
   console.log('🟢 Story Scheduler iniciado. Agendado para 08:00 todos os dias.');
 
-  // Agenda diário às 8h (horário de São Paulo)
-  cron.schedule('0 8 * * *', publicarStoriesDoDia, {
-    timezone: 'America/Sao_Paulo',
-  });
+  // Agenda diário às 8h (horário de São Paulo) — wrapper captura erros async
+  cron.schedule('0 8 * * *', () => {
+    publicarStoriesDoDia().catch(e => {
+      console.error('❌ [cron] Erro não capturado em publicarStoriesDoDia:', e?.message || e);
+      notificar('erro', e?.message?.slice(0, 80));
+    });
+  }, { timezone: 'America/Sao_Paulo' });
 
   // Permite rodar manualmente: node story-scheduler.js --agora
   if (process.argv.includes('--agora')) {
