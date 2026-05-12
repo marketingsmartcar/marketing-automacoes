@@ -84,6 +84,7 @@ async function coletarMeta() {
     ctr_7d:         parseFloat(r.ctr7d)         || null,
     cpc_7d:         parseFloat(r.cpc7d)         || null,
     reach_7d:       parseInt(r.reach7d)         || null,
+    leads_7d:       r.leads7d != null ? parseInt(r.leads7d) : null,
     gasto_diario:   parseFloat(r.gastoDiario)   || null,
     dias_restantes: r.diasRestantes ?? null,
     status_conta:   r.status != null ? String(r.status) : null,

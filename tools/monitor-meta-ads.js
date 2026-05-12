@@ -97,13 +97,13 @@ async function buscarInsightsConta(accountId, token, dias = 7) {
   const inicioJanela = dataN(dias);
 
   const data = await fetchGraph(`act_${id}/insights`, token, {
-    fields: 'spend,impressions,clicks,ctr,cpc,reach',
+    fields: 'spend,impressions,clicks,ctr,cpc,reach,actions',
     time_range: JSON.stringify({ since: inicioJanela, until: hoje }),
     level: 'account',
   });
 
   if (data.data && data.data.length > 0) return data.data[0];
-  return { spend: '0', impressions: '0', clicks: '0', ctr: '0', cpc: '0', reach: '0' };
+  return { spend: '0', impressions: '0', clicks: '0', ctr: '0', cpc: '0', reach: '0', actions: [] };
 }
 
 // ─── Monitor principal ─────────────────────────────────────────────────────────
@@ -144,6 +144,18 @@ async function monitorarContaMeta(conta) {
     const spend7d = parseFloat(insights.spend || 0);
     const spend3d = parseFloat(insights3d.spend || 0);
 
+    // Leads: formulários nativos (lead) ou pixel (offsite_conversion.fb_pixel_lead)
+    const actions7d = insights.actions || [];
+    const actions3d = insights3d.actions || [];
+    const extractLeads = (arr) => {
+      const a = arr.find(x => x.action_type === 'lead')
+              || arr.find(x => x.action_type === 'offsite_conversion.fb_pixel_lead')
+              || arr.find(x => x.action_type === 'offsite_conversion.lead');
+      return a ? parseInt(a.value) : 0;
+    };
+    const leads7d = extractLeads(actions7d);
+    const leads3d = extractLeads(actions3d);
+
     // Estimativa de duração: usa média dos últimos 3 dias (mais precisa)
     const gastoDiario3d = spend3d / 3;
     const gastoDiario7d = spend7d / 7;
@@ -170,6 +182,8 @@ async function monitorarContaMeta(conta) {
       ctr7d: ctr.toFixed(2),
       cpc7d: parseFloat(insights.cpc || 0).toFixed(2),
       reach7d: insights.reach || '0',
+      leads7d: leads7d,
+      leads3d: leads3d,
       erro: null,
     };
   } catch (err) {

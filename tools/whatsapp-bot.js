@@ -66,7 +66,7 @@ const client = new Client({
   authStrategy: new LocalAuth({ dataPath: SESSION_DIR }),
   webVersionCache: {
     type: 'remote',
-    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1023287950.html',
+    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1039212651-alpha.html',
   },
   puppeteer: {
     headless: true,
@@ -133,6 +133,13 @@ client.on('authenticated', () => {
 client.on('authenticated', () => {
   if (_qrServer) { _qrServer.close(); _qrServer = null; }
   console.log('\n✅ Autenticado! Sessão salva — próximo start não precisará de QR.\n');
+
+  // Watchdog: se 'ready' não disparar em 4 minutos, reinicia
+  const watchdog = setTimeout(() => {
+    console.error('⏰ Watchdog: ready não disparou em 4 min — reiniciando...');
+    process.exit(1);
+  }, 4 * 60 * 1000);
+  client.once('ready', () => clearTimeout(watchdog));
 });
 
 client.on('ready', async () => {
@@ -246,12 +253,15 @@ function formatarAlertaSimples(metaResultados, googleResultados = []) {
   const mVerm = [], mLar = [], mVerd = [];
   for (const r of metaResultados) {
     if (r.erro || r.saldo === '-1') continue;
-    const saldo = parseFloat(r.saldo || 0) / 100;
-    const dias  = r.diasRestantes !== null ? `~${r.diasRestantes}d` : '—';
-    const linha = `• ${r.nome} — R$${saldo.toFixed(0)} _(${dias})_`;
-    if (saldo < 100)      mVerm.push(linha);
-    else if (saldo < 200) mLar.push(linha);
-    else                  mVerd.push(linha);
+    const saldo  = parseFloat(r.saldo || 0) / 100;
+    const isPeg  = r.nome.toUpperCase().includes('PEG');
+    const crit   = isPeg ? 50  : 100;
+    const atenc  = isPeg ? 100 : 200;
+    const dias   = r.diasRestantes !== null ? `~${r.diasRestantes}d` : '—';
+    const linha  = `• ${r.nome} — R$${saldo.toFixed(0)} _(${dias})_`;
+    if (saldo < crit)       mVerm.push(linha);
+    else if (saldo < atenc) mLar.push(linha);
+    else                    mVerd.push(linha);
   }
 
   // ── Google ──
@@ -266,12 +276,15 @@ function formatarAlertaSimples(metaResultados, googleResultados = []) {
     if (r.saldoDisponivel !== null && r.saldoDisponivel !== undefined) {
       // Conta pré-paga: exibe saldo + dias restantes
       const saldo    = parseFloat(r.saldoDisponivel);
+      const isPegG   = r.nome.toUpperCase().includes('PEG');
+      const critG    = isPegG ? 50  : 100;
+      const atencG   = isPegG ? 100 : 200;
       const gastoDia = gasto3d > 0 ? gasto3d / 3 : gasto7d / 7;
       const dias     = gastoDia > 0 ? `~${Math.floor(saldo / gastoDia)}d` : '—';
       const linha    = `• ${r.nome} — R$${saldo.toFixed(0)} _(${dias})_`;
-      if (saldo < 100)      gVerm.push(linha);
-      else if (saldo < 200) gLar.push(linha);
-      else                  gVerd.push(linha);
+      if (saldo < critG)       gVerm.push(linha);
+      else if (saldo < atencG) gLar.push(linha);
+      else                     gVerd.push(linha);
     } else {
       // Conta pós-paga: exibe gasto 3d e orçamento diário
       const gastoDiaReal = gasto3d > 0 ? (gasto3d / 3).toFixed(0) : (gasto7d / 7).toFixed(0);
@@ -406,7 +419,12 @@ function agendarAlertasAds() {
       console.log(`✅ Relatório das ${label} enviado (Meta + Google).`);
     } catch (err) {
       console.error(`❌ Erro no relatório das ${label}:`, err.message);
-      console.error(err.stack);
+      // Frame detachado = Chrome zumbi. Sair para PM2 reiniciar limpo.
+      if (err.message?.includes('detached Frame') || err.message?.includes('Target closed')) {
+        console.log('🔄 Detectado frame detachado — saindo para PM2 reiniciar...');
+        await client.destroy().catch(() => {});
+        process.exit(1);
+      }
     }
   }
 
@@ -424,23 +442,10 @@ function agendarAlertasAds() {
 
 // ─── Cobrança automática de vídeos toda segunda-feira às 8h ──────────────────
 
+let dispararCobrancaVideos = null; // exposto para comando !cobrarvideo
+
 function agendarCobrancaVideos() {
   const HORA_DISPARO = 8; // 8h00 toda segunda
-
-  function msAteProximaSegunda() {
-    const agora = new Date();
-    const alvo  = new Date(agora);
-    // Avança até a próxima segunda-feira
-    const diasAteSegunda = (8 - agora.getDay()) % 7 || 7; // 0=dom,1=seg,...
-    // Se hoje é segunda e ainda não passou das 8h, dispara hoje
-    if (agora.getDay() === 1 && agora.getHours() < HORA_DISPARO) {
-      alvo.setHours(HORA_DISPARO, 0, 0, 0);
-    } else {
-      alvo.setDate(agora.getDate() + diasAteSegunda);
-      alvo.setHours(HORA_DISPARO, 0, 0, 0);
-    }
-    return alvo - agora;
-  }
 
   const GRUPO_VIDEOS_ID = process.env.WHATSAPP_GRUPO_VIDEOS_ID;
 
@@ -452,8 +457,7 @@ function agendarCobrancaVideos() {
       `Loja 3 - Americana ❌\n` +
       `Loja 4 - São Carlos ❌\n` +
       `Loja 5 - Maringá ❌\n` +
-      `Loja 6 - Jaú ❌\n` +
-      `Loja 7 - Ibitinga ❌\n` +
+      `Peg 1 - Araraquara ❌\n` +
       `Peg 2 - Sorocaba ❌\n\n` +
       `⚠️⚠️⚠️⚠️`;
 
@@ -477,12 +481,45 @@ function agendarCobrancaVideos() {
     }
   }
 
+  dispararCobrancaVideos = disparar; // expõe para !cobrarvideo
+
+  let jaEnviouHoje = false;
+
+  function msAteProximaSegunda() {
+    const agora = new Date();
+    const alvo  = new Date(agora);
+    if (agora.getDay() === 1 && !jaEnviouHoje) {
+      if (agora.getHours() < HORA_DISPARO) {
+        // Antes das 8h — aguarda até às 8h
+        alvo.setHours(HORA_DISPARO, 0, 0, 0);
+        return alvo - agora;
+      } else {
+        // Após as 8h — bot perdeu o horário, dispara imediatamente uma vez
+        return 1;
+      }
+    }
+    // Já enviou hoje ou não é segunda — próxima segunda às 8h
+    const diasAteSegunda = (8 - agora.getDay()) % 7 || 7;
+    alvo.setDate(agora.getDate() + diasAteSegunda);
+    alvo.setHours(HORA_DISPARO, 0, 0, 0);
+    return alvo - agora;
+  }
+
   function loop() {
-    const ms = msAteProximaSegunda();
+    const ms   = msAteProximaSegunda();
     const dias = Math.round(ms / 86400000);
-    console.log(`📹 Próxima cobrança de vídeos: segunda às ${HORA_DISPARO}h (em ~${dias} dia(s)).`);
+    if (ms <= 1) {
+      console.log(`📹 Segunda-feira: enviando cobrança de vídeos agora (bot perdeu o horário das 8h).`);
+    } else {
+      console.log(`📹 Próxima cobrança de vídeos: segunda às ${HORA_DISPARO}h (em ~${dias} dia(s)).`);
+    }
     setTimeout(async () => {
+      jaEnviouHoje = true;
       await disparar();
+      // Resetar flag à meia-noite para permitir disparo na próxima segunda
+      const meiaNoit = new Date();
+      meiaNoit.setHours(24, 0, 1, 0);
+      setTimeout(() => { jaEnviouHoje = false; }, meiaNoit - Date.now());
       loop();
     }, ms);
   }
@@ -1961,6 +1998,91 @@ $img.Dispose()
     return;
   }
 
+  // COMANDO: !workspace — códigos de verificação Google Workspace
+  if (corpo === '!workspace' || corpo.startsWith('!workspace ')) {
+    await responder(msg, '🔑 Buscando códigos do Workspace...');
+    try {
+      const { google } = require('googleapis');
+      const fs         = require('fs');
+      const path       = require('path');
+      const TOKEN_PATH = path.join(__dirname, '..', 'credentials', 'workspace-token.json');
+      const CREDS_PATH = path.join(__dirname, '..', 'credentials', 'workspace-oauth-client.json');
+
+      if (!fs.existsSync(TOKEN_PATH) || !fs.existsSync(CREDS_PATH)) {
+        await responder(msg, '❌ Token do Workspace não configurado. Rode primeiro:\n`node tools/workspace-gerar-codigos.js`');
+        return;
+      }
+
+      const creds  = JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8'));
+      const token  = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
+      const { client_id, client_secret } = creds.installed;
+      const auth   = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3456');
+      auth.setCredentials(token);
+      const admin  = google.admin({ version: 'directory_v1', auth });
+
+      const partes    = corpo.split(' ');
+      const gerarNovos = partes.includes('gerar');
+      const emailAlvo  = partes.find(p => p.includes('@'));
+
+      // Listar usuários
+      const usersRes = await admin.users.list({ domain: 'smartcarnegocios.com.br', orderBy: 'email', maxResults: 500 });
+      const usuarios = (usersRes.data.users || []).filter(u => emailAlvo ? u.primaryEmail === emailAlvo : true);
+
+      if (!usuarios.length) {
+        await responder(msg, `❌ Usuário não encontrado: ${emailAlvo}`);
+        return;
+      }
+
+      if (gerarNovos) {
+        await responder(msg, `⚠️ Gerando *novos* códigos para ${usuarios.length} usuário(s)...\n_(os códigos antigos serão invalidados)_`);
+      }
+
+      let texto = gerarNovos
+        ? `🔑 *Novos códigos gerados — Workspace*\n\n`
+        : `🔑 *Códigos de verificação — Workspace*\n\n`;
+
+      for (const user of usuarios) {
+        const email = user.primaryEmail;
+        const nome  = user.name?.givenName || email.split('@')[0];
+
+        if (gerarNovos) await admin.verificationCodes.generate({ userKey: email }).catch(() => {});
+
+        const codesRes = await admin.verificationCodes.list({ userKey: email }).catch(() => ({ data: {} }));
+        const codigos  = (codesRes.data.items || []).filter(c => !c.isAlreadyUsed);
+
+        if (!codigos.length) {
+          texto += `👤 *${nome}*\n_sem códigos ativos_\n\n`;
+        } else {
+          texto += `👤 *${nome}*\n`;
+          texto += codigos.map(c => `\`${c.verificationCode}\``).join('  ') + '\n\n';
+        }
+      }
+
+      texto += `_Total: ${usuarios.length} usuário(s)_`;
+
+      // Mensagem pode ser longa — enviar em partes se necessário
+      if (texto.length > 3800) {
+        const metade = Math.floor(usuarios.length / 2);
+        await responder(msg, texto.slice(0, 3800) + '\n...');
+        await responder(msg, '_(continuação)_\n' + texto.slice(3800));
+      } else {
+        await responder(msg, texto);
+      }
+    } catch (err) {
+      console.error('[workspace]', err.message);
+      await responder(msg, `❌ Erro: ${err.message}`);
+    }
+    return;
+  }
+
+  // COMANDO: !cobrarvideo — dispara a cobrança de vídeos manualmente
+  if (corpo === '!cobrarvideo') {
+    if (!dispararCobrancaVideos) { await responder(msg, '❌ Função não inicializada ainda.'); return; }
+    await responder(msg, '📹 Enviando cobrança de vídeos ao grupo...');
+    await dispararCobrancaVideos();
+    return;
+  }
+
   // COMANDO: !ajuda
   if (corpo === '!ajuda' || corpo === 'ajuda' || corpo === 'help') {
     await responder(msg,
@@ -1996,7 +2118,8 @@ $img.Dispose()
       '`!reviews` → Ver lojas monitoradas\n' +
       '`!reviewstestar` → Verificar agora manualmente\n' +
       '_Alertas automáticos a cada 30 min._\n\n' +
-      '🎬 *Tema de vídeo semanal:*\n' +
+      '🎬 *Vídeos:*\n' +
+      '`!cobrarvideo` → Enviar cobrança de vídeos ao grupo agora\n' +
       '`!tema-preview` → Preview semana seguinte\n' +
       '`!tema-preview 18` → Preview semana específica\n' +
       '`!confirmar-tema` → Enviar tema aprovado ao grupo de conteúdos\n\n' +
@@ -2013,6 +2136,11 @@ $img.Dispose()
       '_Após o comando: envie a foto → nome → cargo → cidade._\n\n' +
       '🔑 *Senhas:*\n' +
       '`!senha <setor>` → Consultar senha do setor (privado)\n\n' +
+      '🖥️ *Google Workspace:*\n' +
+      '`!workspace` → Listar códigos de backup de todos os usuários\n' +
+      '`!workspace gerar` → Gerar *novos* códigos para todos\n' +
+      '`!workspace rh@smartcarnegocios.com.br` → Códigos de um usuário\n' +
+      '`!workspace gerar rh@smartcarnegocios.com.br` → Gerar novo para um usuário\n\n' +
       '`!grupos` → Listar grupos\n' +
       '`!ajuda` → Esta mensagem\n\n' +
       '_Relatórios automáticos de Ads: 8h–17h (hora em hora) + 17h30 (seg–sáb)._'
@@ -2031,17 +2159,20 @@ client.on('message_create', (msg) => { if (msg.fromMe) processarMensagem(msg).ca
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-async function rodarMonitor(flags = '--meta --auto') {
+function rodarMonitor(flags = '--meta --auto') {
+  const args = flags.trim().split(/\s+/);
   return new Promise((resolve) => {
-    try {
-      const out = execSync(
-        `"${NODE_PATH}" "${MONITOR_ADS}" ${flags}`,
-        { encoding: 'utf8', timeout: 60000, cwd: path.join(__dirname, '..') }
-      );
-      resolve(out);
-    } catch (err) {
-      resolve(err.stdout || err.message || 'Erro ao consultar.');
-    }
+    let out = '';
+    const proc = spawn(process.execPath, [MONITOR_ADS, ...args], {
+      cwd:         path.join(__dirname, '..'),
+      env:         process.env,
+      stdio:       'pipe',
+      windowsHide: true,
+    });
+    proc.stdout.on('data', d => { out += d; });
+    proc.stderr.on('data', d => { out += d; });
+    proc.on('close', () => resolve(out));
+    setTimeout(() => { try { proc.kill(); } catch {} resolve(out || 'Timeout.'); }, 65000);
   });
 }
 
@@ -2088,9 +2219,10 @@ function runCollector(script) {
   const args = COLLECT_ARGS[script] || [];
   return new Promise((resolve, reject) => {
     const proc = spawn(process.execPath, [script, ...args], {
-      cwd:  path.join(__dirname, '..'),
-      env:  process.env,
-      stdio: 'pipe',
+      cwd:          path.join(__dirname, '..'),
+      env:          process.env,
+      stdio:        'pipe',
+      windowsHide:  true,
     });
     let out = '';
     proc.stdout.on('data', d => { out += d; });
@@ -2107,9 +2239,10 @@ const CORS_HEADERS = {
 };
 
 const COLLECT_ROUTES = {
-  '/collect/social': path.join(__dirname, 'coletar-social-media.js'),
-  '/collect/ads':    path.join(__dirname, 'coletar-ads-supabase.js'),
-  '/collect/leads':  path.join(__dirname, 'leads-hoje.js'),
+  '/collect/social':    path.join(__dirname, 'coletar-social-media.js'),
+  '/collect/ads':       path.join(__dirname, 'coletar-ads-supabase.js'),
+  '/collect/leads':     path.join(__dirname, 'leads-hoje.js'),
+  '/collect/avaliacoes':path.join(__dirname, 'coletar-avaliacoes.js'),
 };
 
 const apiServer = http.createServer((req, res) => {
@@ -2177,7 +2310,28 @@ process.on('unhandledRejection', (reason) => {
   if (reason instanceof Error) console.error(reason.stack);
 });
 
+// Graceful shutdown: garante que o Chrome filho é morto antes do PM2 reiniciar
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM — encerrando bot...');
+  client.destroy().catch(() => {}).finally(() => process.exit(0));
+});
+
 // ─── Start ─────────────────────────────────────────────────────────────────────
 
-console.log('🔄 Iniciando WhatsApp Bot...');
-client.initialize();
+(async () => {
+  let tentativas = 3;
+  while (tentativas-- > 0) {
+    try {
+      console.log('🔄 Iniciando WhatsApp Bot...');
+      await client.initialize();
+      break;
+    } catch (e) {
+      if (e.message?.includes('already running') && tentativas > 0) {
+        console.log(`⏳ Browser ainda ativo — aguardando 8s (${tentativas} tentativas restantes)...`);
+        await new Promise(r => setTimeout(r, 8000));
+        continue;
+      }
+      throw e;
+    }
+  }
+})();
