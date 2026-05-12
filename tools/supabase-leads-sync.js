@@ -42,6 +42,7 @@ async function syncLeads(dataISO, diasPorLoja) {
   let cfg;
   try { cfg = getSupabaseConfig(); } catch (e) { console.warn('  ⚠️ ', e.message, '— sync ignorado'); return; }
 
+  const coletadoEm = new Date().toISOString();
   const rows = Object.entries(diasPorLoja).map(([lojaLabel, dados]) => ({
     data:           dataISO,
     loja_key:       LOJA_KEYS[lojaLabel] ?? lojaLabel.toUpperCase().replace(/\s/g, '_'),
@@ -49,6 +50,7 @@ async function syncLeads(dataISO, diasPorLoja) {
     tickets:        dados.tickets       ?? 0,
     ativos:         dados.ativos        ?? 0,
     novos_contatos: dados.contatos      ?? 0,
+    coletado_em:    coletadoEm,
   }));
 
   if (!rows.length) { console.warn('  ⚠️  Nenhuma loja com dados — sync leads_diarios ignorado'); return; }

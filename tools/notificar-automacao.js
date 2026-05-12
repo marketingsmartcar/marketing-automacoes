@@ -5,7 +5,7 @@
  * Registra status de automações e envia lista completa no grupo de automações.
  *
  * Uso:
- *   node tools/notificar-automacao.js --nome "Vendas Diárias" --status inicio
+ *   node tools/notificar-automacao.js --nome "OI Lojas" --status inicio
  *   node tools/notificar-automacao.js --nome "OI Colaboradores" --status fim
  *   node tools/notificar-automacao.js --nome "Monitor ADS" --status erro --detalhe "token expirado"
  *   node tools/notificar-automacao.js --nome "Monitor ADS" --status inicio --silencioso
@@ -25,16 +25,15 @@ const STATUS_FILE = path.join(__dirname, '..', 'data', 'automacao-status.json');
 const BOT_URL     = 'http://127.0.0.1:3099/send';
 const GRUPO_ID    = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID;
 
-// Ordem e metadados de todas as automações
+// Ordem e metadados de todas as automações (OI Retroativo não entra na lista diária)
 const AUTOMACOES_DEF = [
-  { nome: 'Stories',              horario: '08h diário'     },
-  { nome: 'OI Colaboradores',     horario: '08h diário'     },
-  { nome: 'OI Retroativo Semana', horario: 'Domingo 08h'    },
-  { nome: 'Monitor ADS',          horario: '08h–19h/hora'   },
-  { nome: 'Social Media',         horario: '08h–19h/hora'   },
-  { nome: 'Leads Hoje',           horario: '07h–18h/hora'   },
-  { nome: 'Leads Planilha',       horario: '18h diário'     },
-  { nome: 'Vendas Diárias',       horario: '20h seg–sáb'    },
+  { nome: 'Stories',          horario: '08h diário'     },
+  { nome: 'OI Colaboradores', horario: '08h diário'     },
+  { nome: 'OI Lojas',         horario: '20h seg–sáb'    },
+  { nome: 'Monitor ADS',      horario: '08h–19h/hora'   },
+  { nome: 'Social Media',     horario: '08h–19h/hora'   },
+  { nome: 'Leads Hoje',       horario: '07h–18h/hora'   },
+  { nome: 'Leads Planilha',   horario: '18h diário'     },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -167,6 +166,23 @@ async function main() {
   }
 
   salvar(estado);
+
+  // OI Retroativo Semana: mensagem avulsa (não entra na lista diária)
+  if (nome === 'OI Retroativo Semana') {
+    if (status === 'fim') {
+      const msg = `✅ *OI Retroativo Semana* concluído às ${hora}.`;
+      console.log('[notificar]\n' + msg);
+      await enviarWA(msg);
+    } else if (status === 'erro') {
+      const det = detalhe ? `: ${detalhe}` : '';
+      const msg = `❌ *OI Retroativo Semana* — erro às ${hora}${det}`;
+      console.log('[notificar]\n' + msg);
+      await enviarWA(msg);
+    } else {
+      console.log(`[notificar] OI Retroativo Semana — ${status} (sem notificação de início)`);
+    }
+    return;
+  }
 
   // Erros SEMPRE notificam; silencioso nunca notifica; outros sempre notificam
   if (!silencioso || status === 'erro') {

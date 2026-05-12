@@ -1,4 +1,4 @@
-name: Vendas Diárias — Oficina Inteligente
+name: OI Lojas — Oficina Inteligente
 
 on:
   schedule:
@@ -51,7 +51,7 @@ jobs:
 
       - name: Notificar início
         shell: bash
-        run: node tools/notificar-automacao.js --nome "Vendas Diárias" --status inicio
+        run: node tools/notificar-automacao.js --nome "OI Lojas" --status inicio
 
       - name: Coleta diária (hoje BRT)
         shell: bash
@@ -75,12 +75,12 @@ jobs:
       - name: Notificar conclusão
         if: success()
         shell: bash
-        run: node tools/notificar-automacao.js --nome "Vendas Diárias" --status fim
+        run: node tools/notificar-automacao.js --nome "OI Lojas" --status fim
 
       - name: Notificar erro
         if: failure()
         shell: bash
-        run: node tools/notificar-automacao.js --nome "Vendas Diárias" --status erro
+        run: node tools/notificar-automacao.js --nome "OI Lojas" --status erro
 
       - name: Salvar log como artefato
         if: always()
