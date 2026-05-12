@@ -45,7 +45,22 @@ jobs:
           echo "META_PAGE_TOKEN_PEG_SOR=${{ secrets.META_PAGE_TOKEN_PEG_SOR }}"     >> .env
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"             >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}" >> .env
+
+      - name: Registrar início (silencioso)
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Social Media" --status inicio --silencioso
 
       - name: Coletar dados Social Media
         shell: bash
         run: node tools/coletar-social-media.js
+
+      - name: Registrar conclusão (silencioso)
+        if: success()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Social Media" --status fim --silencioso
+
+      - name: Notificar erro
+        if: failure()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Social Media" --status erro

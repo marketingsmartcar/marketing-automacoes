@@ -8,7 +8,7 @@ on:
 
 jobs:
   coletar:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
 
     steps:
@@ -21,10 +21,16 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Adicionar Git bash ao PATH
+        shell: powershell
+        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Instalar dependências
+        shell: bash
         run: npm ci
 
       - name: Criar .env
+        shell: bash
         run: |
           echo "META_ACCESS_TOKEN_BR=${{ secrets.META_ACCESS_TOKEN_BR }}"                         >> .env
           echo "META_ACCESS_TOKEN_PEG=${{ secrets.META_ACCESS_TOKEN_PEG }}"                       >> .env
@@ -47,6 +53,22 @@ jobs:
           echo "GOOGLE_ACCOUNT_PEG_SOROCABA=${{ secrets.GOOGLE_ACCOUNT_PEG_SOROCABA }}"           >> .env
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"           >> .env
+
+      - name: Registrar início (silencioso)
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Monitor ADS" --status inicio --silencioso
 
       - name: Coletar dados ADS → Supabase
+        shell: bash
         run: node tools/coletar-ads-supabase.js
+
+      - name: Registrar conclusão (silencioso)
+        if: success()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Monitor ADS" --status fim --silencioso
+
+      - name: Notificar erro
+        if: failure()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Monitor ADS" --status erro

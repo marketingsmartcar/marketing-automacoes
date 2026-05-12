@@ -49,10 +49,15 @@ jobs:
           mkdir -p credentials
           echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
 
+      - name: Notificar início
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Vendas Diárias" --status inicio
+
       - name: Coleta diária (hoje BRT)
         shell: bash
         run: |
           TODAY=$(node -e "process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()))")
+          if [ -n "${{ github.event.inputs.data }}" ]; then TODAY="${{ github.event.inputs.data }}"; fi
           echo "📅 Coletando: $TODAY"
           node tools/preencher-vendas-diarias.js "$TODAY"
 
@@ -66,6 +71,16 @@ jobs:
           else
             echo "⏭️  Dia $DIA_SEMANA — revisão semanal pulada."
           fi
+
+      - name: Notificar conclusão
+        if: success()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Vendas Diárias" --status fim
+
+      - name: Notificar erro
+        if: failure()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "Vendas Diárias" --status erro
 
       - name: Salvar log como artefato
         if: always()

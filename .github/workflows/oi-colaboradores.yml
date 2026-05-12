@@ -44,6 +44,11 @@ jobs:
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
           echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"                 >> .env
+          echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"           >> .env
+
+      - name: Notificar início
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "OI Colaboradores" --status inicio
 
       - name: Coletar mês atual (BRT)
         shell: bash
@@ -58,23 +63,39 @@ jobs:
           echo "📅 Coletando OI Colaboradores: mês $MES / $ANO"
           node tools/scraper-oi-colaboradores.js --mes "$MES" --ano "$ANO"
 
-      - name: Recoleta mês anterior (todo Domingo)
+      - name: Retroativo da semana (todo Domingo)
         shell: bash
         run: |
           DIA_SEMANA=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getDay()))")
           if [ "$DIA_SEMANA" = "0" ]; then
-            MES_ANT=$(node -e "
-              const d = new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()));
-              d.setDate(0);
-              process.stdout.write(String(d.getMonth()+1)+' '+String(d.getFullYear()));
+            node tools/notificar-automacao.js --nome "OI Retroativo Semana" --status inicio
+            DATAS=$(node -e "
+              const hoje = new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()));
+              const dia  = hoje.getDay(); // 0 = domingo
+              const seg  = new Date(hoje); seg.setDate(hoje.getDate() - 6); // segunda passada
+              const sab  = new Date(hoje); sab.setDate(hoje.getDate() - 1); // sábado passado
+              const fmt  = d => d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
+              process.stdout.write(fmt(seg) + ' ' + fmt(sab));
             ")
-            MES=$(echo $MES_ANT | cut -d' ' -f1)
-            ANO=$(echo $MES_ANT | cut -d' ' -f2)
-            echo "🔄 Domingo — recoletando mês anterior: $MES/$ANO"
-            node tools/scraper-oi-colaboradores.js --mes "$MES" --ano "$ANO"
+            DATA_INICIO=$(echo $DATAS | cut -d' ' -f1)
+            DATA_FIM=$(echo    $DATAS | cut -d' ' -f2)
+            echo "🔄 Domingo — retroativo da semana: $DATA_INICIO → $DATA_FIM"
+            node tools/scraper-oi-colaboradores.js --data-inicio "$DATA_INICIO" --data-fim "$DATA_FIM" \
+              && node tools/notificar-automacao.js --nome "OI Retroativo Semana" --status fim \
+              || node tools/notificar-automacao.js --nome "OI Retroativo Semana" --status erro
           else
-            echo "⏭️  Dia $DIA_SEMANA — recoleta do mês anterior pulada."
+            echo "⏭️  Dia $DIA_SEMANA — retroativo semanal pulado."
           fi
+
+      - name: Notificar conclusão
+        if: success()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "OI Colaboradores" --status fim
+
+      - name: Notificar erro
+        if: failure()
+        shell: bash
+        run: node tools/notificar-automacao.js --nome "OI Colaboradores" --status erro
 
       - name: Salvar screenshots de debug como artefato
         if: failure()

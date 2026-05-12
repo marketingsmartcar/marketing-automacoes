@@ -85,6 +85,15 @@ function getNomeMesAtual() {
   return `${MESES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+function calcTempoEspera(t) {
+  if (t.waitTime != null && t.waitTime !== '') return parseInt(t.waitTime);
+  if (t.createdAt && t.updatedAt) {
+    const diff = Math.round((new Date(t.updatedAt) - new Date(t.createdAt)) / 1000);
+    return Math.max(0, diff);
+  }
+  return null;
+}
+
 // ─── Processar dados do dia ───────────────────────────────────────────────────
 
 function processarHoje(resultados) {
@@ -140,7 +149,7 @@ function processarHoje(resultados) {
         origem:       t.origin || null,
         criado_em:    t.createdAt  || null,
         fechado_em:   t.closedAt   || null,
-        tempo_espera: typeof t.waitTime === 'number' ? t.waitTime : null,
+        tempo_espera: calcTempoEspera(t),
       });
     });
 
@@ -356,9 +365,20 @@ async function removerAbaHojeSeExistir() {
 
 // ─── Entrypoint ───────────────────────────────────────────────────────────────
 
+const { execSync: _notifLeads } = require('child_process');
+function notificarLeads(status, detalhe) {
+  try {
+    const args = `--nome "Leads Hoje" --status ${status} --silencioso${detalhe ? ` --detalhe "${detalhe}"` : ''}`;
+    _notifLeads(`node "${path.join(__dirname, 'notificar-automacao.js')}" ${args}`, { stdio: 'inherit', timeout: 10000 });
+  } catch {}
+}
+
 if (require.main === module) {
   if (process.argv.includes('--agora')) {
-    atualizarLinhaHoje().catch(e => { console.error('❌ Fatal:', e.message); process.exit(1); });
+    notificarLeads('inicio');
+    atualizarLinhaHoje()
+      .then(() => notificarLeads('fim'))
+      .catch(e => { notificarLeads('erro', e.message.slice(0, 80)); console.error('❌ Fatal:', e.message); process.exit(1); });
   } else {
     removerAbaHojeSeExistir();
 
@@ -368,12 +388,18 @@ if (require.main === module) {
     // Executa imediatamente ao iniciar se estiver no horário
     const h = emBRT().getHours();
     if (h >= 7 && h <= 18) {
-      atualizarLinhaHoje().catch(e => console.warn('⚠️  Primeira execução falhou:', e.message));
+      notificarLeads('inicio');
+      atualizarLinhaHoje()
+        .then(() => notificarLeads('fim'))
+        .catch(e => { notificarLeads('erro', e.message.slice(0, 80)); console.warn('⚠️  Primeira execução falhou:', e.message); });
     }
 
     // Cron: minuto 0, horas 7–18, segunda a sábado
     cron.schedule('0 7-18 * * 1-6', () => {
-      atualizarLinhaHoje().catch(e => console.warn('⚠️  Atualização falhou:', e.message));
+      notificarLeads('inicio');
+      atualizarLinhaHoje()
+        .then(() => notificarLeads('fim'))
+        .catch(e => { notificarLeads('erro', e.message.slice(0, 80)); console.warn('⚠️  Atualização falhou:', e.message); });
     }, { timezone: 'America/Sao_Paulo' });
   }
 }

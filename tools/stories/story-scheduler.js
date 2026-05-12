@@ -65,7 +65,16 @@ const VIDEOS_POR_DIA = 3;
 const MAX_SEG_POOL   = 60; // pool único: vídeos até 60s
 
 // ─── Função principal de publicação ──────────────────────────────────────────
+const { execSync: _notifExec } = require('child_process');
+function notificar(status, detalhe) {
+  try {
+    const args = `--nome "Stories" --status ${status}${detalhe ? ` --detalhe "${detalhe}"` : ''}`;
+    _notifExec(`node "${path.join(__dirname, '..', 'notificar-automacao.js')}" ${args}`, { stdio: 'inherit', timeout: 10000 });
+  } catch {}
+}
+
 async function publicarStoriesDoDia() {
+  notificar('inicio');
   // Impede execuções concorrentes — usa escrita atômica (flag 'wx') para evitar race condition
   try {
     fs.writeFileSync(LOCK_FILE, new Date().toISOString(), { flag: 'wx' });
@@ -199,6 +208,7 @@ async function publicarStoriesDoDia() {
     console.log('📲 Notificação enviada ao grupo.');
   }
 
+  notificar('fim');
   // Remove lock ao finalizar
   if (fs.existsSync(LOCK_FILE)) fs.unlinkSync(LOCK_FILE);
 }
