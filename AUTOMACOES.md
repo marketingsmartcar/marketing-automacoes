@@ -593,10 +593,10 @@ node tools/coletar-ads-supabase.js --recargas  # só recargas (Meta + Google)
 ```
 
 **Detecção automática de recargas:**
-- **Google Ads:** usa `account_budget_proposal` — cada aumento no `proposed_spending_limit_micros` equivale a uma recarga; o ID da proposta (`proposal_XXXX`) é salvo em `descricao` para dedup perfeito. Histórico completo desde a criação da conta.
-- **Meta Ads — contas "fundos"** (BR São Carlos, BR Araraquara, PEG Sorocaba): compara `spend_cap` atual (total lifetime acumulado) com a soma já armazenada em `ads_recargas`; delta = nova recarga.
-- **Meta Ads — contas "saldo"** (BR Maringá, BR Americana, PEG Araraquara): compara `balance + amount_spent` (efetivo total depositado) com soma armazenada; delta = nova recarga.
-- Limitação Meta: não há acesso ao histórico de transações pela API (endpoint bloqueado). Na **primeira execução**, todo o histórico vira um único registro com a data da coleta. Runs subsequentes capturam incrementos individuais.
+- **Google Ads:** usa `account_budget_proposal` — cada aumento no `proposed_spending_limit_micros` equivale a uma recarga Pix; o ID da proposta (`proposal_XXXX`) é salvo em `descricao` para dedup perfeito. Data e valor individuais por pagamento. Histórico completo desde a criação da conta.
+- **Meta Ads — TODAS as contas:** compara `balance + amount_spent` (total efetivo depositado, em centavos) com soma armazenada em `ads_recargas`; delta = nova recarga. Funciona para contas "fundos" (incluindo BR Araraquara onde `spend_cap = 0`) e "saldo".
+- **Limitação Meta:** o endpoint `/transactions` retorna erro de permissão — não é possível obter transações individuais. O delta captura o valor correto mas a **data registrada é a hora da detecção** (± 1h do cron), não a data exata do Pix. Na primeira execução, todo o histórico acumulado vira um único registro.
+- **Atenção São Carlos e Peg Sorocaba:** versão anterior usava `spend_cap` que pode divergir ~R$128 de `balance + amount_spent`. Essas contas não registram novas recargas até o total real superar o valor armazenado.
 
 **Visualização no NexusZ:**
 - Menu: ADS (ícone raio ⚡)
@@ -607,4 +607,71 @@ node tools/coletar-ads-supabase.js --recargas  # só recargas (Meta + Google)
 
 ---
 
-*Última atualização: 08/05/2026 — Recargas ADS automáticas: Google via account_budget_proposal + Meta via spend_cap/balance delta; modal de entrada manual removido do NexusZ*
+---
+
+## 14. Sistema de Notificações de Automações
+
+**O que faz:** A cada início ou conclusão de automação, envia uma mensagem no grupo de automações com o status de **todas** as automações do dia em uma lista unificada.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/notificar-automacao.js` |
+| Estado | `data/automacao-status.json` (reset automático à meia-noite) |
+| Destino | `WHATSAPP_GRUPO_AUTOMACAO_ID` (grupo Automações) |
+| Endpoint | POST `localhost:3099/send` (bot precisa estar online) |
+
+**Uso:**
+```bash
+node tools/notificar-automacao.js --nome "Vendas Diárias" --status inicio
+node tools/notificar-automacao.js --nome "OI Colaboradores" --status fim
+node tools/notificar-automacao.js --nome "Monitor ADS" --status erro --detalhe "token expirado"
+node tools/notificar-automacao.js --nome "Social Media" --status inicio --silencioso
+```
+
+**Flag `--silencioso`:** Atualiza o arquivo de status mas **não envia WA** — usado em automações horárias (ADS, Social Media, Leads Hoje) para evitar spam. Erros sempre notificam, independente do flag.
+
+**Automações com notificação:**
+
+| Automação | Notifica | Workflow/Script |
+|-----------|----------|----------------|
+| Stories | Início + Fim | `story-scheduler.js` (PM2) |
+| OI Colaboradores | Início + Fim | `oi-colaboradores.yml` |
+| OI Retroativo Semana | Início + Fim | `oi-colaboradores.yml` (apenas Domingo) |
+| Monitor ADS | Silencioso + Erro | `ads-monitor.yml` |
+| Social Media | Silencioso + Erro | `social-media.yml` |
+| Leads Hoje | Silencioso + Erro | `leads-hoje.js` (PM2) |
+| Leads Planilha | Início + Fim | `relatorio-leads.yml` |
+| Vendas Diárias | Início + Fim | `vendas-diarias.yml` |
+
+**Mensagem gerada:**
+```
+🤖 Automações — terça-feira, 12/05/2026
+
+✅ Stories — concluído às 08:12 (10min)
+🔄 OI Colaboradores — em andamento desde 08:00
+⏳ OI Retroativo Semana — aguardando (Domingo 08h)
+✅ Monitor ADS — concluído às 08:05
+✅ Social Media — concluído às 08:07
+⏳ Leads Hoje — aguardando (07h–18h/hora)
+⏳ Leads Planilha — aguardando (18h diário)
+⏳ Vendas Diárias — aguardando (20h seg–sáb)
+```
+
+---
+
+## 15. Retroativo Semanal OI Colaboradores (Domingo)
+
+**O que faz:** Todo Domingo, após a coleta normal do mês atual, recoleta a semana passada (Segunda → Sábado) para confirmar e corrigir valores de colaboradores.
+
+| Campo | Valor |
+|-------|-------|
+| Workflow | `.github/workflows/oi-colaboradores.yml` (step "Retroativo da semana") |
+| Horário | Todo Domingo às **8h BRT** (junto com coleta normal) |
+| Período | Segunda a Sábado da semana anterior |
+| Script | `tools/scraper-oi-colaboradores.js --data-inicio DD/MM/YYYY --data-fim DD/MM/YYYY` |
+
+> **Mudança mai/2026:** substituiu a recoleta do mês anterior (lenta, ~3h) pela recoleta da semana (rápida, ~20min) — objetivo é confirmar consistência dos dados recentes, não histórico completo.
+
+---
+
+*Última atualização: 12/05/2026 — Sistema de notificações WA para todas as automações; retroativo semanal OI (domingo = semana, não mês anterior); recargas Google desabilitadas (account_budget_proposal ≠ depósitos reais)*

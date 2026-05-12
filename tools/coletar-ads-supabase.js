@@ -74,18 +74,18 @@ async function coletarMeta() {
     conta_key:      contaKey(r.nome, 'meta'),
     conta_label:    r.nome,
     plataforma:     'meta',
-    tipo_recarga:   r.recarga,
+    tipo_recarga:   r.recarga   ?? null,
     saldo_reais:    r.saldo && r.saldo !== '-1' ? parseFloat(r.saldo) / 100 : null,
-    saldo_display:  r.saldoDisplay,
-    spend_7d:       parseFloat(r.spend7d) || null,
-    spend_3d:       parseFloat(r.spend3d) || null,
-    impressions_7d: parseInt(r.impressions7d) || null,
-    clicks_7d:      parseInt(r.clicks7d) || null,
-    ctr_7d:         parseFloat(r.ctr7d) || null,
-    cpc_7d:         parseFloat(r.cpc7d) || null,
-    reach_7d:       parseInt(r.reach7d) || null,
-    gasto_diario:   parseFloat(r.gastoDiario) || null,
-    dias_restantes: r.diasRestantes,
+    saldo_display:  r.saldoDisplay  ?? null,
+    spend_7d:       parseFloat(r.spend7d)       || null,
+    spend_3d:       parseFloat(r.spend3d)       || null,
+    impressions_7d: parseInt(r.impressions7d)   || null,
+    clicks_7d:      parseInt(r.clicks7d)        || null,
+    ctr_7d:         parseFloat(r.ctr7d)         || null,
+    cpc_7d:         parseFloat(r.cpc7d)         || null,
+    reach_7d:       parseInt(r.reach7d)         || null,
+    gasto_diario:   parseFloat(r.gastoDiario)   || null,
+    dias_restantes: r.diasRestantes ?? null,
     status_conta:   r.status != null ? String(r.status) : null,
     erro:           r.erro || null,
   }));
@@ -121,32 +121,42 @@ async function coletarGoogle() {
   return rows;
 }
 
-// ── Recargas Meta (via spend_cap / balance+amount_spent cumulativo) ───────────
+// ── Recargas Meta (via balance+amount_spent delta, threshold ≥ R$25) ──────────
+// A API /transactions é bloqueada. Usamos balance+amount_spent — inclui BASELINE
+// no total acumulado e só registra depósitos com delta ≥ R$25 para filtrar ruído.
 
 async function coletarRecargasMeta() {
-  console.log('💳 Recargas Meta Ads — detectando via spend_cap/balance...');
+  console.log('💳 Recargas Meta Ads — detectando via balance+amount_spent (Δ ≥ R$25)...');
 
-  // Soma já armazenada por conta para calcular delta
+  // Soma TODOS os registros (BASELINE + SUCCESS) para ter o zero-point correto
   const sumRes  = await fetch(
     `${SUPABASE_URL}/rest/v1/ads_recargas?plataforma=eq.meta&select=conta_key,valor`,
     { headers }
   );
-  const sumRows = sumRes.ok ? await sumRes.json().catch(() => []) : [];
+  const sumRows  = sumRes.ok ? await sumRes.json().catch(() => []) : [];
   const storedByConta = new Map();
   for (const r of sumRows) {
     storedByConta.set(r.conta_key, (storedByConta.get(r.conta_key) || 0) + r.valor);
   }
 
+  // Descricoes já salvas — dedup por hash do total (pix_{key}_{totalArredondado})
+  const existRes  = await fetch(
+    `${SUPABASE_URL}/rest/v1/ads_recargas?plataforma=eq.meta&select=descricao`,
+    { headers }
+  );
+  const existRows = existRes.ok ? await existRes.json().catch(() => []) : [];
+  const jaExistem = new Set(existRows.map(r => r.descricao).filter(Boolean));
+
   const novas = [];
+  const agora  = new Date().toISOString();
 
   for (const conta of CONTAS_META) {
     if (!conta.id || !conta.token) continue;
     const cKey = contaKey(conta.nome, 'meta');
 
     try {
-      const id   = conta.id.replace('act_', '');
-      const url  = new URL(`${GRAPH_BASE}/act_${id}`);
-      url.searchParams.set('fields', 'spend_cap,balance,amount_spent');
+      const url  = new URL(`${GRAPH_BASE}/${conta.id}`);
+      url.searchParams.set('fields', 'balance,amount_spent');
       url.searchParams.set('access_token', conta.token);
       const res  = await fetch(url.toString());
       const data = await res.json();
@@ -156,39 +166,51 @@ async function coletarRecargasMeta() {
         continue;
       }
 
-      let totalVidaReais;
-      if (conta.recarga === 'fundos') {
-        // spend_cap = total acumulado de fundos adicionados (em centavos)
-        const cap = parseInt(data.spend_cap || '0', 10);
-        if (cap <= 0) { console.log(`  ⚠️  ${conta.nome}: spend_cap=0 (possível cartão)`); continue; }
-        totalVidaReais = cap / 100;
-      } else {
-        // saldo: balance (atual) + amount_spent (gasto acumulado) = total já depositado
-        const bal   = parseInt(data.balance      || '0', 10);
-        const spent = parseInt(data.amount_spent || '0', 10);
-        const ef    = bal + spent;
-        if (ef <= 0) { console.log(`  ⚠️  ${conta.nome}: effective balance = 0`); continue; }
-        totalVidaReais = ef / 100;
-      }
+      const bal             = parseInt(data.balance      || '0', 10);
+      const spent           = parseInt(data.amount_spent || '0', 10);
+      const totalVidaReais  = (bal + spent) / 100;
+      const jaGuardado      = storedByConta.get(cKey) || 0;
+      const primeiraVez     = jaGuardado === 0;
+      const delta           = Math.round((totalVidaReais - jaGuardado) * 100) / 100;
 
-      const jaGuardado = storedByConta.get(cKey) || 0;
-      const delta      = Math.round((totalVidaReais - jaGuardado) * 100) / 100;
-
-      if (delta < 1) {
-        console.log(`  ✅ ${conta.nome}: sem nova recarga (total R$${totalVidaReais.toFixed(2)}, guardado R$${jaGuardado.toFixed(2)})`);
+      if (primeiraVez) {
+        console.log(`  📌 ${conta.nome}: baseline inicial R$${totalVidaReais.toFixed(2)}`);
+        novas.push({
+          conta_key:    cKey,
+          conta_label:  conta.nome,
+          plataforma:   'meta',
+          data_recarga: agora,
+          valor:        totalVidaReais,
+          tipo_recarga: conta.recarga,
+          status:       'BASELINE',
+          descricao:    `baseline_${agora.slice(0, 10)}`,
+        });
         continue;
       }
 
-      console.log(`  🆕 ${conta.nome}: nova recarga detectada R$${delta.toFixed(2)}`);
+      // Delta < R$25 → ruído (variação normal do gasto dos anúncios)
+      if (delta < 25) {
+        console.log(`  ✅ ${conta.nome}: sem recarga (Δ=R$${delta.toFixed(2)} < R$25)`);
+        continue;
+      }
+
+      // Dedup por hash do total arredondado — evita duplicata se rodar duas vezes seguidas
+      const descId = `pix_${cKey}_${Math.round(totalVidaReais * 10)}`;
+      if (jaExistem.has(descId)) {
+        console.log(`  ✅ ${conta.nome}: recarga R$${delta.toFixed(2)} já registrada`);
+        continue;
+      }
+
+      console.log(`  🆕 ${conta.nome}: nova recarga R$${delta.toFixed(2)}`);
       novas.push({
-        conta_key:   cKey,
-        conta_label: conta.nome,
-        plataforma:  'meta',
-        data_recarga: new Date().toISOString(),
-        valor:       delta,
+        conta_key:    cKey,
+        conta_label:  conta.nome,
+        plataforma:   'meta',
+        data_recarga: agora,
+        valor:        delta,
         tipo_recarga: conta.recarga,
-        status:      'SUCCESS',
-        descricao:   `auto_${new Date().toISOString().slice(0, 10)}`,
+        status:       'SUCCESS',
+        descricao:    descId,
       });
     } catch (err) {
       console.warn(`  ⚠️  ${conta.nome}: ${err.message}`);
@@ -229,15 +251,22 @@ function criarClienteGoogle(customerId) {
 }
 
 async function coletarRecargasGoogle() {
-  console.log('💳 Recargas Google Ads — coletando account_budget_proposal...');
+  // account_budget_proposal reflete ajustes de campanha (não depósitos reais) — não rastreável via API padrão
+  console.log('💳 Recargas Google Ads — não disponível via API (requer painel de faturamento)');
+  return;
 
-  // Buscar descrições já salvas para dedup (proposal_XXXXXXX)
+  // Buscar descrições já salvas para dedup
   const existRes  = await fetch(
-    `${SUPABASE_URL}/rest/v1/ads_recargas?plataforma=eq.google&select=descricao`,
+    `${SUPABASE_URL}/rest/v1/ads_recargas?plataforma=eq.google&select=descricao&limit=10000`,
     { headers }
   );
   const existRows = existRes.ok ? await existRes.json().catch(() => []) : [];
   const jaExistem = new Set(existRows.map(r => r.descricao).filter(Boolean));
+
+  // Só considera proposals criadas nos últimos 90 dias
+  const corte = new Date();
+  corte.setDate(corte.getDate() - 90);
+  const corteStr = corte.toISOString().slice(0, 19).replace('T', ' '); // "YYYY-MM-DD HH:MM:SS"
 
   const novas = [];
 
@@ -257,31 +286,47 @@ async function coletarRecargasGoogle() {
         ORDER BY account_budget_proposal.creation_date_time ASC
       `);
 
-      // Delta cumulativo: cada aumento no spending limit = recarga
-      let prevMicros = 0;
+      // Primeiro: calcular baseline = maior spending limit ANTES do corte de 90d
+      let baseline   = 0;
       let novaConta  = 0;
 
       for (const row of proposals) {
-        const p = row.account_budget_proposal;
+        const p      = row.account_budget_proposal;
         if (!p) continue;
-        const curMicros = Number(p.proposed_spending_limit_micros || 0);
-        if (curMicros <= prevMicros) continue; // sem aumento, ignorar
+        const rawDt  = String(p.creationDateTime || p.creation_date_time || '');
+        const micros = Number(p.proposedSpendingLimitMicros ?? p.proposed_spending_limit_micros ?? 0);
+        if (rawDt < corteStr) {
+          if (micros > baseline) baseline = micros;
+        }
+      }
 
-        const descId = `proposal_${p.id}`;
+      // Segundo: detectar aumentos dentro dos últimos 90 dias
+      let prevMicros = baseline;
+
+      for (const row of proposals) {
+        const p      = row.account_budget_proposal;
+        if (!p) continue;
+        const rawDt  = String(p.creationDateTime || p.creation_date_time || '');
+        if (rawDt < corteStr) continue; // ignora histórico
+
+        const curMicros = Number(p.proposedSpendingLimitMicros ?? p.proposed_spending_limit_micros ?? 0);
+        if (curMicros <= prevMicros) { prevMicros = Math.max(prevMicros, curMicros); continue; }
+
+        const propId = p.id || p.resourceName || String(curMicros) + '_' + cKey + '_' + rawDt;
+        const descId = `proposal_${propId}`;
         const delta  = Math.round((curMicros - prevMicros) / 10000) / 100; // micros → reais
 
-        if (!jaExistem.has(descId) && delta >= 0.01) {
-          // Normalizar data: "2026-05-02 14:32:00" → ISO
-          const dt = String(p.creation_date_time || '').replace(' ', 'T');
+        if (!jaExistem.has(descId) && delta >= 1) {
+          const dt = rawDt.replace(' ', 'T');
           novas.push({
-            conta_key:   cKey,
-            conta_label: conta.nome,
-            plataforma:  'google',
+            conta_key:    cKey,
+            conta_label:  conta.nome,
+            plataforma:   'google',
             data_recarga: dt || new Date().toISOString(),
-            valor:       delta,
-            tipo_recarga: null,
-            status:      'SUCCESS',
-            descricao:   descId,
+            valor:        delta,
+            tipo_recarga: 'proposta',
+            status:       'SUCCESS',
+            descricao:    descId,
           });
           novaConta++;
         }
@@ -289,7 +334,7 @@ async function coletarRecargasGoogle() {
         prevMicros = curMicros;
       }
 
-      console.log(`  ✅ ${conta.nome}: ${proposals.length} propostas → ${novaConta} nova(s)`);
+      console.log(`  ✅ ${conta.nome}: ${proposals.length} propostas → ${novaConta} nova(s) (últimos 90d)`);
     } catch (err) {
       console.warn(`  ⚠️  ${conta.nome}: ${String(err.message || err).slice(0, 120)}`);
     }
