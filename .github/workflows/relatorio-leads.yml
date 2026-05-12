@@ -2,8 +2,8 @@ name: Relatório de Leads — Deskrio → Google Sheets
 
 on:
   schedule:
-    # 18:00 BRT = 21:00 UTC — todos os dias
-    - cron: '0 21 * * *'
+    # Toda hora de seg-sáb das 07:00 às 18:00 BRT (10:00–21:00 UTC)
+    - cron: '0 10-21 * * 1-6'
   workflow_dispatch:
     inputs:
       mes:
@@ -53,9 +53,9 @@ jobs:
           mkdir -p credentials
           echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
 
-      - name: Notificar início
+      - name: Notificar início (silencioso)
         shell: bash
-        run: node tools/notificar-automacao.js --nome "Leads Planilha" --status inicio
+        run: node tools/notificar-automacao.js --nome "Leads Planilha" --status inicio --silencioso
 
       - name: Executar relatório
         shell: bash
@@ -69,10 +69,10 @@ jobs:
           fi
           node tools/relatorio-mensal-sheets.js $ARGS
 
-      - name: Notificar conclusão
+      - name: Notificar conclusão (silencioso)
         if: success()
         shell: bash
-        run: node tools/notificar-automacao.js --nome "Leads Planilha" --status fim
+        run: node tools/notificar-automacao.js --nome "Leads Planilha" --status fim --silencioso
 
       - name: Notificar erro
         if: failure()

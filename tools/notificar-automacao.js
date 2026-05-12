@@ -33,7 +33,7 @@ const AUTOMACOES_DEF = [
   { nome: 'Monitor ADS',      horario: '08h–19h/hora'   },
   { nome: 'Social Media',     horario: '08h–19h/hora'   },
   { nome: 'Leads Hoje',       horario: '07h–18h/hora'   },
-  { nome: 'Leads Planilha',   horario: '18h diário'     },
+  { nome: 'Leads Planilha',   horario: '07h–18h/hora'   },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
