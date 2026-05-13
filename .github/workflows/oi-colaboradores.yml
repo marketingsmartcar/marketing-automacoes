@@ -15,7 +15,7 @@ on:
 
 jobs:
   coletar:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
@@ -28,16 +28,18 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Adicionar Git bash ao PATH
-        shell: powershell
-        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Instalar dependências do sistema (Puppeteer)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+            libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+            libxfixes3 libxrandr2 libgbm1 libasound2
 
       - name: Instalar dependências
-        shell: bash
         run: npm ci
 
       - name: Criar .env
-        shell: bash
         run: |
           echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                                                 >> .env
           echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                                 >> .env
@@ -46,12 +48,7 @@ jobs:
           echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"                 >> .env
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"           >> .env
 
-      - name: Notificar início
-        shell: bash
-        run: node tools/notificar-automacao.js --nome "OI Colaboradores" --status inicio
-
       - name: Coletar mês atual (BRT)
-        shell: bash
         run: |
           MES=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getMonth()+1))")
           ANO=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getFullYear()))")
@@ -64,38 +61,23 @@ jobs:
           node tools/scraper-oi-colaboradores.js --mes "$MES" --ano "$ANO"
 
       - name: Retroativo da semana (todo Domingo)
-        shell: bash
         run: |
           DIA_SEMANA=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getDay()))")
           if [ "$DIA_SEMANA" = "0" ]; then
-            node tools/notificar-automacao.js --nome "OI Retroativo Semana" --status inicio
             DATAS=$(node -e "
               const hoje = new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()));
-              const dia  = hoje.getDay(); // 0 = domingo
-              const seg  = new Date(hoje); seg.setDate(hoje.getDate() - 6); // segunda passada
-              const sab  = new Date(hoje); sab.setDate(hoje.getDate() - 1); // sábado passado
+              const seg  = new Date(hoje); seg.setDate(hoje.getDate() - 6);
+              const sab  = new Date(hoje); sab.setDate(hoje.getDate() - 1);
               const fmt  = d => d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
               process.stdout.write(fmt(seg) + ' ' + fmt(sab));
             ")
             DATA_INICIO=$(echo $DATAS | cut -d' ' -f1)
             DATA_FIM=$(echo    $DATAS | cut -d' ' -f2)
             echo "🔄 Domingo — retroativo da semana: $DATA_INICIO → $DATA_FIM"
-            node tools/scraper-oi-colaboradores.js --data-inicio "$DATA_INICIO" --data-fim "$DATA_FIM" \
-              && node tools/notificar-automacao.js --nome "OI Retroativo Semana" --status fim \
-              || node tools/notificar-automacao.js --nome "OI Retroativo Semana" --status erro
+            node tools/scraper-oi-colaboradores.js --data-inicio "$DATA_INICIO" --data-fim "$DATA_FIM"
           else
             echo "⏭️  Dia $DIA_SEMANA — retroativo semanal pulado."
           fi
-
-      - name: Notificar conclusão
-        if: success()
-        shell: bash
-        run: node tools/notificar-automacao.js --nome "OI Colaboradores" --status fim
-
-      - name: Notificar erro
-        if: failure()
-        shell: bash
-        run: node tools/notificar-automacao.js --nome "OI Colaboradores" --status erro
 
       - name: Salvar screenshots de debug como artefato
         if: failure()

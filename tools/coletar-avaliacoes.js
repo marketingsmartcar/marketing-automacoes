@@ -80,16 +80,39 @@ async function scrapeRating(browser, loja) {
         if (m) nota = parseFloat(m[1].replace(',', '.'));
       }
 
-      // Total de avaliações — padrão "(1.234)" ou "1.234 avaliações"
+      // Total de avaliações
       const bodyText = document.body.innerText;
-      const mParen = bodyText.match(/\((\d[\d\.,]*)\)/);
-      if (mParen) {
-        const v = parseInt(mParen[1].replace(/\D/g, ''));
-        if (v > 5) total = v;
+
+      // Padrão "(3,5 mil)" ou "(1,2 mil)"
+      const mMilParen = bodyText.match(/\(\s*(\d+[,\.]\d+)\s*mil\s*\)/i);
+      if (mMilParen) {
+        total = Math.round(parseFloat(mMilParen[1].replace(',', '.')) * 1000);
       }
+
+      // Padrão "3,5 mil avaliações" (sem parênteses)
+      if (!total) {
+        const mMilText = bodyText.match(/(\d+[,\.]\d+)\s*mil\s*avalia/i);
+        if (mMilText) total = Math.round(parseFloat(mMilText[1].replace(',', '.')) * 1000);
+      }
+
+      // Padrão "(6.016)" — ignora números < 200 para evitar capturar DDDs (16, 44…)
+      if (!total) {
+        const mParen = bodyText.match(/\((\d[\d\.]*)\)/g);
+        if (mParen) {
+          for (const m of mParen) {
+            const v = parseInt(m.replace(/\D/g, ''));
+            if (v >= 200) { total = v; break; }
+          }
+        }
+      }
+
+      // Padrão "6.016 avaliações"
       if (!total) {
         const mTotal = bodyText.match(/([\d][\d\s\.,]*)\s*avalia[çc][õo]es?/i);
-        if (mTotal) total = parseInt(mTotal[1].replace(/\D/g, '')) || null;
+        if (mTotal) {
+          const v = parseInt(mTotal[1].replace(/\D/g, ''));
+          if (v >= 10) total = v;
+        }
       }
 
       return { nota, total };
