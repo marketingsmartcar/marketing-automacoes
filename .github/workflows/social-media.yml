@@ -8,7 +8,7 @@ on:
 
 jobs:
   coletar:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -21,16 +21,10 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Adicionar Git bash ao PATH
-        shell: powershell
-        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: Instalar dependências
-        shell: bash
         run: npm ci
 
       - name: Criar .env
-        shell: bash
         run: |
           echo "META_ACCESS_TOKEN_BR=${{ secrets.META_ACCESS_TOKEN_BR }}"           >> .env
           echo "META_ACCESS_TOKEN_PEG=${{ secrets.META_ACCESS_TOKEN_PEG }}"         >> .env
@@ -48,19 +42,15 @@ jobs:
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}" >> .env
 
       - name: Registrar início (silencioso)
-        shell: bash
         run: node tools/notificar-automacao.js --nome "Social Media" --status inicio --silencioso
 
       - name: Coletar dados Social Media
-        shell: bash
         run: node tools/coletar-social-media.js
 
       - name: Registrar conclusão (silencioso)
         if: success()
-        shell: bash
         run: node tools/notificar-automacao.js --nome "Social Media" --status fim --silencioso
 
       - name: Notificar erro
         if: failure()
-        shell: bash
-        run: node tools/notificar-automacao.js --nome "Social Media" --status erro
+        run: node tools/notificar-automacao.js --nome "Monitor ADS" --status erro
