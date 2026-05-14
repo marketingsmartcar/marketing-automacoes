@@ -54,7 +54,7 @@ pm2 logs leads-hoje                               # ver logs
 
 ## 2. Coleta de Vendas Diárias → Planilha + Supabase
 
-**O que faz:** Acessa o Oficina Inteligente (OI) via Puppeteer para cada uma das 9 lojas, coleta faturamento/lucro/OS/pneus do dia, grava na planilha Google Sheets, envia dashboard no WhatsApp e sincroniza no Supabase (NexusZ).
+**O que faz:** Acessa o Oficina Inteligente (OI) via Puppeteer para cada uma das 9 lojas, coleta faturamento/lucro/OS/pneus do dia, grava na planilha Google Sheets e sincroniza no Supabase (NexusZ). **Não envia mensagem no WhatsApp** (removido em mai/2026).
 
 | Campo | Valor |
 |-------|-------|
@@ -198,6 +198,49 @@ pm2 stop br-pneus-bot
 # Get-NetTCPConnection -LocalPort 3099 | Stop-Process -Force
 pm2 start br-pneus-bot
 ```
+
+---
+
+## 9. Avaliações Google (nota média por loja)
+
+**O que faz:** Scrapa a nota média e total de avaliações de cada loja no Google Business e salva na tabela `google_ratings` do Supabase. Os dados aparecem na tela **Social Media** do NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-avaliacoes.js` |
+| Workflow | `.github/workflows/avaliacoes-google.yml` |
+| Agendamento | Seg–Sáb às **17h BRT** (20:00 UTC) |
+| Tabela Supabase | `google_ratings` |
+
+**Como rodar manualmente:**
+```bash
+node tools/coletar-avaliacoes.js
+# ou
+npm run avaliacoes
+```
+
+**Pré-requisito (uma única vez):** rodar o SQL em `supabase/migrations/create_google_ratings.sql` no Supabase SQL Editor.
+
+**Secrets necessários no GitHub Actions:**
+`NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY`, todos os `GOOGLE_PLACE_ID_*`.
+
+---
+
+## 10. CPA — Custo por Lead (NexusZ AdminAds)
+
+**O que faz:** Seção "💰 CPA" na página Dashboard ADS do NexusZ. Cruza automaticamente o gasto diário estimado de ADS (spend_7d ÷ 7) com os leads do dia da tabela `leads_diarios`. Exibe por loja: gasto Meta, gasto Google, total/dia e CPA em R$.
+
+**Sem backend adicional** — usa dados já coletados pelas automações de ADS e Leads.
+
+**Acesso:** NexusZ → Dashboard ADS → rolagem até seção "💰 CPA — Custo por Lead"
+
+---
+
+**Comportamento de recuperação (frame detachado):**
+- Se o WhatsApp perder o frame Puppeteer durante um relatório, o bot faz `process.exit(1)` para deixar o PM2 reiniciar limpo
+- O SIGTERM handler garante que o Chrome filho é encerrado antes do processo sair
+- Na inicialização, se Chrome ainda estiver ativo (race condition pós-restart), o bot tenta novamente até 3× com 8s de espera entre tentativas
+- Watchdog de 4 minutos na autenticação: se `ready` não disparar, reinicia automaticamente
 
 ---
 
@@ -674,4 +717,4 @@ node tools/notificar-automacao.js --nome "Social Media" --status inicio --silenc
 
 ---
 
-*Última atualização: 12/05/2026 — Sistema de notificações WA para todas as automações; retroativo semanal OI (domingo = semana, não mês anterior); recargas Google desabilitadas (account_budget_proposal ≠ depósitos reais)*
+*Última atualização: 14/05/2026 — Removido envio de "Vendas Acumuladas" no WhatsApp (OI Lojas só atualiza NexusZ + planilha); OI Colaboradores sempre foi só NexusZ; Leads continua atualizando NexusZ + planilha (sem WhatsApp)*

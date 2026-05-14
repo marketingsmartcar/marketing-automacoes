@@ -386,11 +386,6 @@ async function main() {
   console.log(`\n✅ Concluído! Bloco ${dateStr} → linhas ${blockStart + 1}–${blockStart + BLOCK_SIZE}`);
 
   if (oiData) {
-    const { notificarVendasDiarias } = require('./gerar-dashboard-vendas');
-    await notificarVendasDiarias(oiData, dateStr).catch(e =>
-      console.warn('⚠️  Notificação falhou:', e.message)
-    );
-
     const { syncVendasOI } = require('./supabase-vendas-sync');
     await syncVendasOI(today, oiData).catch(e =>
       console.warn('⚠️  Supabase sync falhou:', e.message)
