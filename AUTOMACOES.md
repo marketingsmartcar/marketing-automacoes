@@ -52,20 +52,18 @@ pm2 logs leads-hoje                               # ver logs
 
 ---
 
-## 2. Coleta de Vendas Diárias → Planilha + Supabase
+## 2. Coleta de Vendas Diárias → Supabase
 
-**O que faz:** Acessa o Oficina Inteligente (OI) via Puppeteer para cada uma das 9 lojas, coleta faturamento/lucro/OS/pneus do dia, grava na planilha Google Sheets e sincroniza no Supabase (NexusZ). **Não envia mensagem no WhatsApp** (removido em mai/2026).
+**O que faz:** Acessa o Oficina Inteligente (OI) via Puppeteer para cada uma das 9 lojas, coleta faturamento/lucro/OS/pneus do dia e sincroniza no Supabase (NexusZ). **Não grava na planilha Google Sheets** (removido em mai/2026). **Não envia WhatsApp** (removido em mai/2026).
 
 | Campo | Valor |
 |-------|-------|
-| Script principal | `tools/preencher-vendas-diarias.js` |
+| Script principal | `tools/coletar-vendas-diarias.js` |
 | Log | `output/relatorios/vendas-diarias.log` |
 | Agendamento | **GitHub Actions** — todo dia às **20h BRT** (Seg–Sáb) |
 | Workflow | `.github/workflows/vendas-diarias.yml` |
 
-**⚠️ Mudança de horário (mai/2026):** de 7h matinal → **20h** (fim do expediente, dados do dia já fechados).
-
-**7 Lojas ativas (ordem das colunas na planilha):**
+**7 Lojas ativas:**
 
 | Chave | Label OI | Cidade |
 |-------|----------|--------|
@@ -81,34 +79,14 @@ pm2 logs leads-hoje                               # ver logs
 
 **Como rodar manualmente:**
 ```bash
-node tools/preencher-vendas-diarias.js              # hoje (padrão)
-node tools/preencher-vendas-diarias.js 2026-05-06   # data específica
+node tools/coletar-vendas-diarias.js              # ontem (padrão)
+node tools/coletar-vendas-diarias.js 2026-05-06   # data específica
 ```
 
 **Regras importantes:**
-- Coleta o dia passado como argumento (ou hoje, quando chamado às 20h)
+- Coleta o dia anterior por padrão; se cair num domingo, usa o sábado anterior
 - Tempo total: ~10-15 min para as 9 lojas
-- Grava na planilha (`SPREADSHEET_ID = 1NFsBbu1…`) + Supabase + WhatsApp
-
-**Coleta de Pneus Vendidos (`pneuVendidos`):**
-- Abre "Selecione os Grupos de Produto..." → seleciona **22 grupos específicos** de pneu (PNEU IMPORTADO * e PNEU NACIONAL *)
-- Clica "Fechar/Salvar Seleção" → clica "Vendas por Grupo ou Marca" → abre PDF
-- Lê o total na linha **Total** do PDF (não soma linha a linha)
-- Scraper: `tools/scraper-oi-browser.js` — constante `GRUPOS_PNEU` com os 22 grupos
-
-**Revisão Semanal (todo Sábado às 20h):**
-- Após a coleta do Sábado, o workflow executa `tools/retroativo-planilha.js --semana`
-- Recoleta Seg–Sáb da semana atual do OI e sobrescreve planilha + Supabase
-- Corrige automaticamente qualquer inconsistência da semana
-- Duração: ~60–90 min
-
-**Retroativo de um mês:**
-```bash
-node tools/retroativo-planilha.js --mes 5 --ano 2026   # maio 2026
-node tools/retroativo-planilha.js                       # mês atual
-```
-Workflow manual disponível em: `.github/workflows/retroativo-planilha-mes.yml`
-→ GitHub Actions → "Retroativo Planilha + Supabase (Mês)" → Run workflow → informar mês e ano
+- Apenas Supabase — Google Sheets não é mais atualizada
 
 ---
 

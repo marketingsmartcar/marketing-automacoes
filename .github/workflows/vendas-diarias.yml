@@ -43,34 +43,17 @@ jobs:
           echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"             >> .env
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"       >> .env
 
-      - name: Criar credenciais Google Sheets
-        shell: bash
-        run: |
-          mkdir -p credentials
-          echo '${{ secrets.GOOGLE_SHEETS_KEY_JSON }}' > credentials/google-sheets-key.json
-
       - name: Notificar início
         shell: bash
         run: node tools/notificar-automacao.js --nome "OI Lojas" --status inicio
 
-      - name: Coleta diária (hoje BRT)
+      - name: Coleta diária (hoje BRT) → apenas Supabase
         shell: bash
         run: |
           TODAY=$(node -e "process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()))")
           if [ -n "${{ github.event.inputs.data }}" ]; then TODAY="${{ github.event.inputs.data }}"; fi
           echo "📅 Coletando: $TODAY"
-          node tools/preencher-vendas-diarias.js "$TODAY"
-
-      - name: Revisão semanal (apenas Sábado às 20h BRT)
-        shell: bash
-        run: |
-          DIA_SEMANA=$(node -e "process.stdout.write(String(new Date(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date())).getDay()))")
-          if [ "$DIA_SEMANA" = "6" ]; then
-            echo "📅 Sábado — iniciando revisão semanal (seg–sáb)..."
-            node tools/retroativo-planilha.js --semana
-          else
-            echo "⏭️  Dia $DIA_SEMANA — revisão semanal pulada."
-          fi
+          node tools/coletar-vendas-diarias.js "$TODAY"
 
       - name: Notificar conclusão
         if: success()
