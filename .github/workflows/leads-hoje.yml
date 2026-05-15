@@ -26,7 +26,7 @@ jobs:
 
       - name: Criar chave Google Service Account
         run: |
-          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > /tmp/gsa-key.json
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' | base64 -d > /tmp/gsa-key.json
 
       - name: Criar .env
         run: |

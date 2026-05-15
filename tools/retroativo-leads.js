@@ -30,7 +30,9 @@ const LOJA_KEYS = {
 function criarAuth() {
   const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!keyPath) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY não definido no .env');
-  const key = JSON.parse(fs.readFileSync(keyPath, 'utf8').replace(/^﻿/, ''));
+  let raw = fs.readFileSync(keyPath, 'utf8').replace(/^﻿/, '').trim();
+  if (!raw.startsWith('{')) raw = Buffer.from(raw, 'base64').toString('utf8');
+  const key = JSON.parse(raw);
   return new google.auth.GoogleAuth({ credentials: key, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
 }
 

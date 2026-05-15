@@ -31,7 +31,9 @@ function extrairLoja(whatsappName) { return LOJA_MAP[whatsappName] || null; }
 function criarAuth() {
   const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!keyPath) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY não encontrado no .env.\nDefina o caminho para o arquivo JSON da service account.');
-  const key = JSON.parse(require('fs').readFileSync(keyPath, 'utf8').replace(/^﻿/, ''));
+  let raw = require('fs').readFileSync(keyPath, 'utf8').replace(/^﻿/, '').trim();
+  if (!raw.startsWith('{')) raw = Buffer.from(raw, 'base64').toString('utf8');
+  const key = JSON.parse(raw);
   return new google.auth.GoogleAuth({
     credentials: key,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
