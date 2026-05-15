@@ -695,4 +695,29 @@ node tools/notificar-automacao.js --nome "Social Media" --status inicio --silenc
 
 ---
 
-*Última atualização: 14/05/2026 — Removido envio de "Vendas Acumuladas" no WhatsApp (OI Lojas só atualiza NexusZ + planilha); OI Colaboradores sempre foi só NexusZ; Leads continua atualizando NexusZ + planilha (sem WhatsApp)*
+---
+
+## 16. Relatório Mensal — Planilha Google Sheets
+
+**O que faz:** No dia 1 de cada mês, gera o relatório completo do mês anterior na planilha de leads. Lê tickets do Deskrio (BR Pneus + Peg Pneus), consolida por loja e por atendente, e escreve/formata a aba do mês na planilha.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/relatorio-mensal-sheets.js` |
+| Workflow | `.github/workflows/relatorio-mensal.yml` |
+| Agendamento | **Dia 1 de cada mês às 07h BRT** (10h UTC) |
+| Planilha | `1so_-C0e_awN9vlXVueViIjgijNEYks7DIwkBbUPd0vw` |
+
+**Como rodar manualmente:**
+```bash
+node tools/relatorio-mensal-sheets.js          # mês atual
+node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
+```
+
+**Dispatch manual (GitHub Actions):** Informar `mes` e `ano` opcionais. Se omitidos, usa o mês anterior.
+
+**Secrets necessários:** `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_SHEETS_SPREADSHEET_ID`, `DESKRIO_API_TOKEN_BR`, `DESKRIO_API_TOKEN_PEG`, `DESKRIO_INSTANCE_BR`, `DESKRIO_INSTANCE_PEG`.
+
+---
+
+*Última atualização: 15/05/2026 — Adicionado workflow de Relatório Mensal automático (dia 1 de cada mês); correção base64 no service account key do leads workflow.*

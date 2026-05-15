@@ -1,0 +1,70 @@
+name: Relatório Mensal — Planilha Google Sheets
+
+on:
+  schedule:
+    # Dia 1 de cada mês às 07:00 BRT (10:00 UTC)
+    - cron: '0 10 1 * *'
+  workflow_dispatch:
+    inputs:
+      mes:
+        description: 'Mês (1–12). Vazio = mês anterior.'
+        required: false
+      ano:
+        description: 'Ano (ex: 2026). Vazio = ano atual.'
+        required: false
+
+jobs:
+  relatorio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar chave Google Service Account
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' | base64 -d > /tmp/gsa-key.json
+
+      - name: Criar .env
+        run: |
+          echo "GOOGLE_SERVICE_ACCOUNT_KEY=/tmp/gsa-key.json"                                     >> .env
+          echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}"         >> .env
+          echo "DESKRIO_API_TOKEN_BR=${{ secrets.DESKRIO_API_TOKEN_BR }}"                         >> .env
+          echo "DESKRIO_API_TOKEN_PEG=${{ secrets.DESKRIO_API_TOKEN_PEG }}"                       >> .env
+          echo "DESKRIO_INSTANCE_BR=${{ secrets.DESKRIO_INSTANCE_BR }}"                           >> .env
+          echo "DESKRIO_INSTANCE_PEG=${{ secrets.DESKRIO_INSTANCE_PEG }}"                         >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Calcular mês/ano do relatório
+        id: periodo
+        run: |
+          if [ -n "${{ github.event.inputs.mes }}" ]; then
+            MES="${{ github.event.inputs.mes }}"
+            ANO="${{ github.event.inputs.ano }}"
+            if [ -z "$ANO" ]; then
+              ANO=$(date -u +%Y)
+            fi
+          else
+            # Mês anterior ao dia 1 (quando o cron dispara)
+            MES=$(date -u -d "1 month ago" +%-m)
+            ANO=$(date -u -d "1 month ago" +%Y)
+          fi
+          echo "mes=$MES" >> $GITHUB_OUTPUT
+          echo "ano=$ANO" >> $GITHUB_OUTPUT
+          echo "📅 Gerando relatório: $MES/$ANO"
+
+      - name: Gerar relatório mensal na planilha
+        run: |
+          echo "📊 Relatório de ${{ steps.periodo.outputs.mes }}/${{ steps.periodo.outputs.ano }}"
+          node tools/relatorio-mensal-sheets.js ${{ steps.periodo.outputs.mes }} ${{ steps.periodo.outputs.ano }}
