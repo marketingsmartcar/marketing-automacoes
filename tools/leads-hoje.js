@@ -61,7 +61,7 @@ const COR_BRANCO  = { red: 1, green: 1, blue: 1 };
 function criarAuth() {
   const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!keyPath) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY não definido no .env');
-  const key = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+  const key = JSON.parse(fs.readFileSync(keyPath, 'utf8').replace(/^﻿/, ''));
   return new google.auth.GoogleAuth({ credentials: key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
 }
 
