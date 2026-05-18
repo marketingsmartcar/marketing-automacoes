@@ -47,7 +47,7 @@ async function scrapeRating(browser, loja) {
     // Google Maps place page — mais estável que a URL de reviews
     const url = `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 40000 });
-    await new Promise(r => setTimeout(r, 3500));
+    await new Promise(r => setTimeout(r, 5000));
 
     const result = await page.evaluate(() => {
       let nota = null;
@@ -81,37 +81,59 @@ async function scrapeRating(browser, loja) {
       }
 
       // Total de avaliações
-      const bodyText = document.body.innerText;
+      // Normaliza o texto substituindo nbsp e thin-space por espaço comum
+      function normNum(s) { return s.replace(/[   ⁠]/g, '').replace(/\D/g, ''); }
 
-      // Padrão "(3,5 mil)" ou "(1,2 mil)"
-      const mMilParen = bodyText.match(/\(\s*(\d+[,\.]\d+)\s*mil\s*\)/i);
-      if (mMilParen) {
-        total = Math.round(parseFloat(mMilParen[1].replace(',', '.')) * 1000);
-      }
-
-      // Padrão "3,5 mil avaliações" (sem parênteses)
-      if (!total) {
-        const mMilText = bodyText.match(/(\d+[,\.]\d+)\s*mil\s*avalia/i);
-        if (mMilText) total = Math.round(parseFloat(mMilText[1].replace(',', '.')) * 1000);
-      }
-
-      // Padrão "(6.016)" — ignora números < 200 para evitar capturar DDDs (16, 44…)
-      if (!total) {
-        const mParen = bodyText.match(/\((\d[\d\.]*)\)/g);
-        if (mParen) {
-          for (const m of mParen) {
-            const v = parseInt(m.replace(/\D/g, ''));
-            if (v >= 200) { total = v; break; }
-          }
+      // Padrão 0: aria-label em qualquer elemento (ex: "6.016 avaliações", "3,5 mil avaliações")
+      for (const el of document.querySelectorAll('[aria-label]')) {
+        const lbl = el.getAttribute('aria-label') || '';
+        // "X,X mil"
+        const mMil = lbl.match(/(\d+[,\.]\d+)\s*mil\s*avalia/i);
+        if (mMil) { total = Math.round(parseFloat(mMil[1].replace(',', '.')) * 1000); break; }
+        // número inteiro
+        const mAria = lbl.match(/([\d][\d\s  \.,]*)\s*avalia[çc][õo]es?/i);
+        if (mAria) {
+          const v = parseInt(normNum(mAria[1]));
+          if (v >= 10) { total = v; break; }
         }
       }
 
-      // Padrão "6.016 avaliações"
+      // Padrão 1: innerText completo da página
+      const bodyText = document.body.innerText.replace(/[   ]/g, ' ');
+
+      // "(3,5 mil)" ou "(1,2 mil)"
       if (!total) {
-        const mTotal = bodyText.match(/([\d][\d\s\.,]*)\s*avalia[çc][õo]es?/i);
-        if (mTotal) {
-          const v = parseInt(mTotal[1].replace(/\D/g, ''));
+        const m = bodyText.match(/\(\s*(\d+[,\.]\d+)\s*mil\s*\)/i);
+        if (m) total = Math.round(parseFloat(m[1].replace(',', '.')) * 1000);
+      }
+
+      // "3,5 mil avaliações" (sem parênteses)
+      if (!total) {
+        const m = bodyText.match(/(\d+[,\.]\d+)\s*mil\s*avalia/i);
+        if (m) total = Math.round(parseFloat(m[1].replace(',', '.')) * 1000);
+      }
+
+      // "X mil avaliações" (inteiro, ex: "3 mil avaliações")
+      if (!total) {
+        const m = bodyText.match(/\b(\d+)\s*mil\s*avalia/i);
+        if (m) total = parseInt(m[1]) * 1000;
+      }
+
+      // "3.500 avaliações" / "3 500 avaliações" / "3413 avaliações"
+      if (!total) {
+        const m = bodyText.match(/([\d][\d\s\.,]*)\s*avalia[çc][õo]es?/i);
+        if (m) {
+          const v = parseInt(normNum(m[1]));
           if (v >= 10) total = v;
+        }
+      }
+
+      // "(6.016)" ou "(3 413)" — ignora < 200 (DDDs, CEPs curtos)
+      if (!total) {
+        const allParens = bodyText.match(/\([\d\s\. ,]+\)/g) || [];
+        for (const p of allParens) {
+          const v = parseInt(normNum(p));
+          if (v >= 200) { total = v; break; }
         }
       }
 
