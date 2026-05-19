@@ -2468,20 +2468,32 @@ process.on('SIGTERM', () => {
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
 
-(async () => {
-  let tentativas = 3;
-  while (tentativas-- > 0) {
-    try {
-      console.log('🔄 Iniciando WhatsApp Bot...');
-      await client.initialize();
-      break;
-    } catch (e) {
-      if (e.message?.includes('already running') && tentativas > 0) {
-        console.log(`⏳ Browser ainda ativo — aguardando 8s (${tentativas} tentativas restantes)...`);
-        await new Promise(r => setTimeout(r, 8000));
-        continue;
-      }
-      throw e;
+async function iniciarBot(tentativasRestantes = 3) {
+  try {
+    console.log('🔄 Iniciando WhatsApp Bot...');
+    await client.initialize();
+  } catch (e) {
+    const sessaoCorrempida =
+      e.message?.includes('Execution context was destroyed') ||
+      e.message?.includes('Session closed') ||
+      e.message?.includes('Target closed') ||
+      e.message?.includes('Protocol error');
+
+    if (sessaoCorrempida) {
+      console.warn('⚠️  Sessão corrompida detectada — limpando e reiniciando...');
+      try { fs.rmSync(SESSION_DIR, { recursive: true, force: true }); } catch {}
+      await new Promise(r => setTimeout(r, 3000));
+      return iniciarBot(3); // reinicia com tentativas cheias após limpar
     }
+
+    if (e.message?.includes('already running') && tentativasRestantes > 0) {
+      console.log(`⏳ Browser ainda ativo — aguardando 8s (${tentativasRestantes} tentativas restantes)...`);
+      await new Promise(r => setTimeout(r, 8000));
+      return iniciarBot(tentativasRestantes - 1);
+    }
+
+    throw e;
   }
-})();
+}
+
+iniciarBot();
