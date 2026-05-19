@@ -25,6 +25,7 @@ jobs:
         run: npm ci
 
       - name: Criar chave Google Service Account
+        continue-on-error: true
         run: |
           echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' | base64 -d > /tmp/gsa-key.json
 

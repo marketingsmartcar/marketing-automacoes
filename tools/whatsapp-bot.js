@@ -70,7 +70,12 @@ const client = new Client({
   },
   puppeteer: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    protocolTimeout: 120000,
+    args: [
+      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+      '--disable-gpu', '--disable-extensions', '--no-first-run',
+      '--disable-background-networking', '--disable-default-apps',
+    ],
   },
 });
 
@@ -120,10 +125,13 @@ poll();
   });
 }
 
+const QR_FILE = path.join(__dirname, '..', 'qr-whatsapp.png');
+
 client.on('qr', async (qr) => {
   _qrBuf = await QRCode.toBuffer(qr, { scale: 10 });
+  fs.writeFileSync(QR_FILE, _qrBuf);
   _startQrServer();
-  console.log('  📱  QR atualizado — acesse http://localhost:3200');
+  console.log('  📱  QR atualizado — acesse http://localhost:3200 ou abra qr-whatsapp.png');
 });
 
 client.on('authenticated', () => {
@@ -132,6 +140,7 @@ client.on('authenticated', () => {
 
 client.on('authenticated', () => {
   if (_qrServer) { _qrServer.close(); _qrServer = null; }
+  try { if (fs.existsSync(QR_FILE)) fs.unlinkSync(QR_FILE); } catch {}
   console.log('\n✅ Autenticado! Sessão salva — próximo start não precisará de QR.\n');
 
   // Watchdog: se 'ready' não disparar em 4 minutos, reinicia
@@ -419,10 +428,18 @@ function agendarAlertasAds() {
       console.log(`✅ Relatório das ${label} enviado (Meta + Google).`);
     } catch (err) {
       console.error(`❌ Erro no relatório das ${label}:`, err.message);
-      // Frame detachado = Chrome zumbi. Sair para PM2 reiniciar limpo.
-      if (err.message?.includes('detached Frame') || err.message?.includes('Target closed')) {
-        console.log('🔄 Detectado frame detachado — saindo para PM2 reiniciar...');
-        await client.destroy().catch(() => {});
+      // Frame detachado = Chrome zumbi. Matar o processo Chrome específico antes de sair.
+      if (err.message?.includes('detached Frame') || err.message?.includes('Target closed')
+          || err.message?.includes('timed out')) {
+        console.log('🔄 Detectado frame detachado — encerrando Chrome e saindo para PM2 reiniciar...');
+        try {
+          const chromePid = client.pupBrowser?.process()?.pid;
+          if (chromePid) {
+            execSync(`taskkill /F /T /PID ${chromePid} 2>nul`, { shell: true });
+            console.log(`🔪 Chrome PID ${chromePid} encerrado.`);
+          }
+        } catch (_) {}
+        await new Promise(r => setTimeout(r, 3000)); // aguarda Chrome liberar userDataDir
         process.exit(1);
       }
     }
@@ -483,12 +500,28 @@ function agendarCobrancaVideos() {
 
   dispararCobrancaVideos = disparar; // expõe para !cobrarvideo
 
-  let jaEnviouHoje = false;
+  const COBRANCA_STATE_FILE = path.join(__dirname, '..', 'data', 'cobranca-videos-enviado.json');
+
+  function dataHojeCobranca() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function jaEnviouHoje() {
+    try {
+      if (!fs.existsSync(COBRANCA_STATE_FILE)) return false;
+      const { data } = JSON.parse(fs.readFileSync(COBRANCA_STATE_FILE, 'utf8'));
+      return data === dataHojeCobranca();
+    } catch { return false; }
+  }
+
+  function marcarEnviadoHoje() {
+    fs.writeFileSync(COBRANCA_STATE_FILE, JSON.stringify({ data: dataHojeCobranca() }));
+  }
 
   function msAteProximaSegunda() {
     const agora = new Date();
     const alvo  = new Date(agora);
-    if (agora.getDay() === 1 && !jaEnviouHoje) {
+    if (agora.getDay() === 1 && !jaEnviouHoje()) {
       if (agora.getHours() < HORA_DISPARO) {
         // Antes das 8h — aguarda até às 8h
         alvo.setHours(HORA_DISPARO, 0, 0, 0);
@@ -514,12 +547,8 @@ function agendarCobrancaVideos() {
       console.log(`📹 Próxima cobrança de vídeos: segunda às ${HORA_DISPARO}h (em ~${dias} dia(s)).`);
     }
     setTimeout(async () => {
-      jaEnviouHoje = true;
+      marcarEnviadoHoje();
       await disparar();
-      // Resetar flag à meia-noite para permitir disparo na próxima segunda
-      const meiaNoit = new Date();
-      meiaNoit.setHours(24, 0, 1, 0);
-      setTimeout(() => { jaEnviouHoje = false; }, meiaNoit - Date.now());
       loop();
     }, ms);
   }
@@ -1998,6 +2027,35 @@ $img.Dispose()
     return;
   }
 
+  // COMANDO: !emails — contas e senhas do Google Workspace
+  if (corpo === '!emails') {
+    if (isGrupo) {
+      await responder(msg, '🔒 Este comando só funciona em conversa privada.');
+      return;
+    }
+    console.log('[EMAILS] Enviando lista de contas para', msg.from);
+    await responder(msg,
+      '📧 *Contas Workspace*\n\n' +
+      '👤 *Pós Vendas*\n`pos.venda@smartcarnegocios.com.br`\n🔑 `rTqVB@2025`\n\n' +
+      '👤 *RH*\n`rh@smartcarnegocios.com.br`\n🔑 `nBvCX@2025`\n\n' +
+      '👤 *Financeiro*\n`financeiro@smartcarnegocios.com.br`\n🔑 `vBnJH@2025`\n\n' +
+      '👤 *Marketing*\n`marketing@redesmartcar.com.br`\n🔑 `Mkt@2025`\n\n' +
+      '👤 *Supervisores*\n`supervisao.comercial@redesmartcar.com.br`\n🔑 `zXkLP@2025`\n\n' +
+      '👤 *Caixas*\n`caixa@smartcarnegocios.com.br`\n🔑 `fGyDS@2025`\n\n' +
+      '👤 *Peg Pneus*\n`comercial.peg@smartcarnegocios.com.br`\n🔑 `pLcNM@2025`\n\n' +
+      '👤 *Supervisão Técnica*\n`supervisao.tecnica@smartcarnegocios.com.br`\n🔑 `Felipe@13`\n\n' +
+      '👤 *CD*\n`estoque.cd@smartcarnegocios.com.br`\n🔑 `hJkFD@2025`\n\n' +
+      '📅 *Agendamento 1*\n`agendamento1@smartcarnegocios.com.br`\n🔑 `XjKqW@2026`\n\n' +
+      '📅 *Agendamento 2*\n`agendamento2@smartcarnegocios.com.br`\n🔑 `XjKqW@2026`\n\n' +
+      '📦 *Estoque Lojas 1, 2, 3 e 4*\n`estoque1@smartcarnegocios.com.br`\n🔑 `vRzQy@2026`\n\n' +
+      '📦 *Estoque Lojas 5, 6 e 7*\n`estoque2@smartcarnegocios.com.br`\n🔑 `vRzQy@2026`\n\n' +
+      '🏪 *Comercial Lojas 1 e 2*\n`comercial1@smartcarnegocios.com.br`\n🔑 `xSwZa@2026`\n\n' +
+      '🏪 *Comercial Lojas 3 e 4*\n`comercial2@smartcarnegocios.com.br`\n🔑 `xSwZa@2026`\n\n' +
+      '🏪 *Comercial Lojas 5 e 6*\n`comercial3@smartcarnegocios.com.br`\n🔑 `xSwZa@2026`'
+    );
+    return;
+  }
+
   // COMANDO: !workspace — códigos de verificação Google Workspace
   if (corpo === '!workspace' || corpo.startsWith('!workspace ')) {
     await responder(msg, '🔑 Buscando códigos do Workspace...');
@@ -2041,9 +2099,19 @@ $img.Dispose()
         ? `🔑 *Novos códigos gerados — Workspace*\n\n`
         : `🔑 *Códigos de verificação — Workspace*\n\n`;
 
+      const ROTULOS_EMAIL = {
+        'comercial1@smartcarnegocios.com.br': 'Comercial 1 (Lojas 1 e 2)',
+        'comercial2@smartcarnegocios.com.br': 'Comercial 2 (Lojas 3 e 4)',
+        'comercial3@smartcarnegocios.com.br': 'Comercial 3 (Lojas 5 e 6)',
+        'estoque1@smartcarnegocios.com.br':   'Estoque 1 (Lojas 1, 2, 3 e 4)',
+        'estoque2@smartcarnegocios.com.br':   'Estoque 2 (Lojas 5, 6 e 7)',
+        'agendamento1@smartcarnegocios.com.br': 'Agendamento 1',
+        'agendamento2@smartcarnegocios.com.br': 'Agendamento 2',
+      };
+
       for (const user of usuarios) {
         const email = user.primaryEmail;
-        const nome  = user.name?.givenName || email.split('@')[0];
+        const nome  = ROTULOS_EMAIL[email] || user.name?.givenName || email.split('@')[0];
 
         if (gerarNovos) await admin.verificationCodes.generate({ userKey: email }).catch(() => {});
 
@@ -2215,12 +2283,12 @@ const COLLECT_ARGS = {
   [path.join(__dirname, 'leads-hoje.js')]: ['--agora'],
 };
 
-function runCollector(script) {
+function runCollector(script, extraEnv = {}) {
   const args = COLLECT_ARGS[script] || [];
   return new Promise((resolve, reject) => {
     const proc = spawn(process.execPath, [script, ...args], {
       cwd:          path.join(__dirname, '..'),
-      env:          process.env,
+      env:          { ...process.env, ...extraEnv },
       stdio:        'pipe',
       windowsHide:  true,
     });
@@ -2240,6 +2308,8 @@ const CORS_HEADERS = {
 
 const COLLECT_ROUTES = {
   '/collect/social':    path.join(__dirname, 'coletar-social-media.js'),
+  '/collect/youtube':   path.join(__dirname, 'coletar-youtube.js'),
+  '/collect/video':     path.join(__dirname, 'coletar-social-video.js'),
   '/collect/ads':       path.join(__dirname, 'coletar-ads-supabase.js'),
   '/collect/leads':     path.join(__dirname, 'leads-hoje.js'),
   '/collect/avaliacoes':path.join(__dirname, 'coletar-avaliacoes.js'),
@@ -2260,6 +2330,86 @@ const apiServer = http.createServer((req, res) => {
     runCollector(script)
       .then(() => console.log(`[API] Coleta ${req.url} concluída`))
       .catch(err => console.error(`[API] Coleta ${req.url} ERRO:`, err.message.slice(0, 200)));
+    return;
+  }
+
+  // Gerar arte de colaborador
+  if (req.method === 'POST' && req.url === '/gerar-arte') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { colaborador_id, tipo, marca, info } = JSON.parse(body);
+        if (!colaborador_id || !tipo) {
+          res.writeHead(400, CORS_HEADERS);
+          res.end(JSON.stringify({ ok: false, erro: 'colaborador_id e tipo são obrigatórios' }));
+          return;
+        }
+        console.log(`[API] Gerar arte: tipo=${tipo} colab=${colaborador_id}`);
+        res.writeHead(202, CORS_HEADERS);
+        res.end(JSON.stringify({ ok: true, running: true }));
+        const script = path.join(__dirname, 'gerar-arte-colaborador.js');
+        const extra  = { ARTE_COLABORADOR_ID: colaborador_id, ARTE_TIPO: tipo, ...(marca ? { ARTE_MARCA: marca } : {}), ...(info ? { ARTE_INFO: info } : {}) };
+        runCollector(script, extra)
+          .then(() => console.log(`[API] Arte ${tipo}/${colaborador_id} concluída`))
+          .catch(err => console.error(`[API] Arte ERRO:`, err.message.slice(0, 200)));
+      } catch (e) {
+        res.writeHead(400, CORS_HEADERS);
+        res.end(JSON.stringify({ ok: false, erro: 'JSON inválido' }));
+      }
+    });
+    return;
+  }
+
+  // Download direto de arquivo do Drive (proxy para o NexusZ)
+  if (req.method === 'GET' && req.url.startsWith('/download-arte')) {
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    const fileId  = params.get('id');
+    const nome    = params.get('name') || 'arte.png';
+    if (!fileId) { res.writeHead(400, CORS_HEADERS); res.end('file id obrigatorio'); return; }
+    (async () => {
+      const SA_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      const { google } = require('googleapis');
+      let parsed;
+      try { parsed = JSON.parse(SA_JSON); } catch { parsed = JSON.parse(Buffer.from(SA_JSON, 'base64').toString('utf8')); }
+      const auth  = new google.auth.GoogleAuth({ credentials: parsed, scopes: ['https://www.googleapis.com/auth/drive.readonly'] });
+      const drive = google.drive({ version: 'v3', auth });
+      const fileRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'stream' });
+      res.writeHead(200, {
+        ...CORS_HEADERS,
+        'Content-Type':        'image/png',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(nome)}"`,
+      });
+      fileRes.data.pipe(res);
+    })().catch(e => {
+      res.writeHead(500, CORS_HEADERS);
+      res.end(e.message);
+    });
+    return;
+  }
+
+  // Tornar arquivo do Drive público (usado após upload de foto de perfil)
+  if (req.method === 'POST' && req.url === '/drive-set-public') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { file_id } = JSON.parse(body);
+        if (!file_id) { res.writeHead(400, CORS_HEADERS); res.end(JSON.stringify({ ok: false, erro: 'file_id obrigatório' })); return; }
+        const SA_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+        const { google } = require('googleapis');
+        let parsed;
+        try { parsed = JSON.parse(SA_JSON); } catch { parsed = JSON.parse(Buffer.from(SA_JSON, 'base64').toString('utf8')); }
+        const auth  = new google.auth.GoogleAuth({ credentials: parsed, scopes: ['https://www.googleapis.com/auth/drive'] });
+        const drive = google.drive({ version: 'v3', auth });
+        await drive.permissions.create({ fileId: file_id, requestBody: { role: 'reader', type: 'anyone' }, supportsAllDrives: true });
+        res.writeHead(200, CORS_HEADERS);
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, CORS_HEADERS);
+        res.end(JSON.stringify({ ok: false, erro: e.message }));
+      }
+    });
     return;
   }
 
