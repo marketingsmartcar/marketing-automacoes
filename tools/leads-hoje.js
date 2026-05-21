@@ -135,9 +135,9 @@ function processarHoje(resultados) {
         if (s === 'open')    a.abertos++;
         else if (s === 'pending') a.pendentes++;
         else if (s === 'closed')  a.fechados++;
-        // Conta como lead se o contato foi criado hoje
-        const cDia = (t.contact?.createdAt || '').slice(0, 10);
-        if (cDia === hISO && t.contactId) a.novos_contatos++;
+        // Conta como lead (receptivo) se a origem não for ativo/outbound
+        const orig = (t.origin || '').toLowerCase();
+        if (!orig.includes('ativo') && orig !== 'active') a.novos_contatos++;
       }
 
       // Ticket individual para Supabase
