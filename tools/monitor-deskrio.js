@@ -823,6 +823,51 @@ async function gerarRankingDashboardPng(periodo = 'semana') {
   return { pngPath, resultados };
 }
 
+// ─── Buscar lista de agentes por instância ─────────────────────────────────────
+
+async function fetchAgentesInstancias() {
+  const resultado = {};
+  for (const empresa of EMPRESAS) {
+    const { instancia, token } = empresa;
+    let agentes = null;
+
+    // Tenta /v1/api/agents
+    try {
+      const raw = await get(instancia, token, '/v1/api/agents');
+      const arr = Array.isArray(raw) ? raw : (raw?.agents || raw?.data || []);
+      if (arr.length > 0) {
+        agentes = arr.map(a => ({
+          nome:     (a.name || a.nome || '').trim(),
+          agent_id: String(a.id ?? a.agent_id ?? ''),
+          email:    a.email ?? null,
+          ativo:    a.active ?? a.ativo ?? true,
+        })).filter(a => a.nome);
+      }
+    } catch (_) {}
+
+    // Fallback: /v1/api/users
+    if (!agentes) {
+      try {
+        const raw = await get(instancia, token, '/v1/api/users');
+        const arr = Array.isArray(raw) ? raw : (raw?.users || raw?.data || []);
+        if (arr.length > 0) {
+          agentes = arr.map(a => ({
+            nome:     (a.name || a.nome || '').trim(),
+            agent_id: String(a.id ?? ''),
+            email:    a.email ?? null,
+            ativo:    a.active ?? a.ativo ?? true,
+          })).filter(a => a.nome);
+        }
+      } catch (_) {}
+    }
+
+    if (agentes && agentes.length > 0) {
+      resultado[instancia] = agentes;
+    }
+  }
+  return resultado;
+}
+
 // ─── CLI standalone ────────────────────────────────────────────────────────────
 
 if (require.main === module) {
@@ -832,4 +877,4 @@ if (require.main === module) {
     .catch(err => console.error('❌ Erro:', err.message));
 }
 
-module.exports = { monitorarDeskrio, monitorarDeskrioRange, formatarResumo, formatarVerificacao, gerarDeskrioDashboardPng, gerarDeskrioDashboardPngRange, gerarRanking, formatarRanking, gerarRankingDashboardPng };
+module.exports = { monitorarDeskrio, monitorarDeskrioRange, formatarResumo, formatarVerificacao, gerarDeskrioDashboardPng, gerarDeskrioDashboardPngRange, gerarRanking, formatarRanking, gerarRankingDashboardPng, fetchAgentesInstancias };

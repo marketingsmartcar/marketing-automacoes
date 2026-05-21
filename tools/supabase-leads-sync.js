@@ -101,4 +101,32 @@ async function syncTickets(dataISO, ticketsList) {
   console.log(`  ✅ leads_tickets — ${ticketsList.length} tickets gravados para ${dataISO}`);
 }
 
-module.exports = { syncLeads, syncAtendentes, syncTickets };
+// Sincroniza agentes Deskrio → leads_agentes
+// agentesPorInstancia: { [instancia]: [{ nome, agent_id?, email? }] }
+async function syncAgentes(agentesPorInstancia) {
+  let cfg;
+  try { cfg = getSupabaseConfig(); } catch (e) { console.warn('  ⚠️ ', e.message, '— sync agentes ignorado'); return; }
+
+  const agora = new Date().toISOString();
+  const rows = [];
+  for (const [instancia, agentes] of Object.entries(agentesPorInstancia)) {
+    for (const ag of agentes) {
+      rows.push({
+        instancia,
+        nome:          ag.nome,
+        agent_id:      ag.agent_id  ?? null,
+        email:         ag.email     ?? null,
+        ativo:         ag.ativo     ?? true,
+        atualizado_em: agora,
+      });
+    }
+  }
+
+  if (!rows.length) { console.warn('  ⚠️  Nenhum agente — sync leads_agentes ignorado'); return; }
+  for (let i = 0; i < rows.length; i += 100) {
+    await upsert(cfg.url, cfg.key, 'leads_agentes', 'instancia,nome', rows.slice(i, i + 100));
+  }
+  console.log(`  ✅ leads_agentes — ${rows.length} agentes gravados`);
+}
+
+module.exports = { syncLeads, syncAtendentes, syncTickets, syncAgentes };

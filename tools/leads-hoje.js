@@ -14,8 +14,8 @@ require('dotenv').config();
 const { google } = require('googleapis');
 const fs         = require('fs');
 const cron       = require('node-cron');
-const { monitorarDeskrioRange } = require('./monitor-deskrio');
-const { syncLeads, syncAtendentes, syncTickets } = require('./supabase-leads-sync');
+const { monitorarDeskrioRange, fetchAgentesInstancias } = require('./monitor-deskrio');
+const { syncLeads, syncAtendentes, syncTickets, syncAgentes } = require('./supabase-leads-sync');
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -349,6 +349,10 @@ async function atualizarLinhaHoje() {
   await syncLeads(hISO, diasPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_diarios sync:', e.message));
   await syncAtendentes(hISO, atendentesPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_atendentes sync:', e.message));
   await syncTickets(hISO, ticketsList).catch(e => console.warn('  ⚠️  Supabase leads_tickets sync:', e.message));
+
+  // Sync lista de agentes válidos (usuários Deskrio)
+  const agentesInstancias = await fetchAgentesInstancias().catch(e => { console.warn('  ⚠️  fetchAgentesInstancias:', e.message); return {}; });
+  await syncAgentes(agentesInstancias).catch(e => console.warn('  ⚠️  Supabase leads_agentes sync:', e.message));
 }
 
 // ─── Remover aba "Hoje" se existir (criada por versão anterior) ───────────────
