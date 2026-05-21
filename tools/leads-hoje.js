@@ -128,13 +128,16 @@ function processarHoje(resultados) {
       if (temAte) {
         if (!atendentesPorLoja[loja]) atendentesPorLoja[loja] = {};
         if (!atendentesPorLoja[loja][nomeAte]) {
-          atendentesPorLoja[loja][nomeAte] = { tickets: 0, abertos: 0, pendentes: 0, fechados: 0 };
+          atendentesPorLoja[loja][nomeAte] = { tickets: 0, abertos: 0, pendentes: 0, fechados: 0, novos_contatos: 0 };
         }
         const a = atendentesPorLoja[loja][nomeAte];
         a.tickets++;
         if (s === 'open')    a.abertos++;
         else if (s === 'pending') a.pendentes++;
         else if (s === 'closed')  a.fechados++;
+        // Conta como lead se o contato foi criado hoje
+        const cDia = (t.contact?.createdAt || '').slice(0, 10);
+        if (cDia === hISO && t.contactId) a.novos_contatos++;
       }
 
       // Ticket individual para Supabase

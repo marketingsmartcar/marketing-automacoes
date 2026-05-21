@@ -59,7 +59,7 @@ async function syncLeads(dataISO, diasPorLoja) {
 }
 
 // Sincroniza por atendente → leads_atendentes
-// atendentesPorLoja: { [lojaLabel]: { [atendente]: { tickets, abertos, pendentes, fechados } } }
+// atendentesPorLoja: { [lojaLabel]: { [atendente]: { tickets, abertos, pendentes, fechados, novos_contatos } } }
 async function syncAtendentes(dataISO, atendentesPorLoja) {
   let cfg;
   try { cfg = getSupabaseConfig(); } catch (e) { console.warn('  ⚠️ ', e.message, '— sync atendentes ignorado'); return; }
@@ -68,14 +68,15 @@ async function syncAtendentes(dataISO, atendentesPorLoja) {
   for (const [lojaLabel, atendentes] of Object.entries(atendentesPorLoja)) {
     for (const [atendente, d] of Object.entries(atendentes)) {
       rows.push({
-        data:      dataISO,
-        loja_key:  LOJA_KEYS[lojaLabel] ?? lojaLabel.toUpperCase().replace(/\s/g, '_'),
-        loja_label: lojaLabel,
+        data:           dataISO,
+        loja_key:       LOJA_KEYS[lojaLabel] ?? lojaLabel.toUpperCase().replace(/\s/g, '_'),
+        loja_label:     lojaLabel,
         atendente,
-        tickets:   d.tickets  ?? 0,
-        abertos:   d.abertos  ?? 0,
-        pendentes: d.pendentes ?? 0,
-        fechados:  d.fechados  ?? 0,
+        tickets:        d.tickets        ?? 0,
+        abertos:        d.abertos        ?? 0,
+        pendentes:      d.pendentes      ?? 0,
+        fechados:       d.fechados       ?? 0,
+        novos_contatos: d.novos_contatos ?? 0,
       });
     }
   }
