@@ -30,12 +30,12 @@ const EMPRESAS = [
     nome:      'Peg Pneus',
     token:     process.env.DESKRIO_API_TOKEN_PEG,
     instancia: process.env.DESKRIO_INSTANCE_PEG || 'brpneusapi.deskrio.com.br',
-    // Nomes da screenshot do Deskrio (IDs: #67, #59, #63, #69)
+    // Nomes exatamente como aparecem nos tickets (t.user.name)
+    // Alexandre (#67) é supervisor e não aparece em tickets
     usuariosConhecidos: [
-      { nome: 'Alexandre', email: 'gerente.sorocaba@gmail.com',  agent_id: '67' },
-      { nome: 'Consultora', email: 'alana@gmail.com',            agent_id: '59' },
-      { nome: 'Fabio',      email: 'gerente.araraquara@gmail.com', agent_id: '63' },
-      { nome: 'Isabelli',   email: 'isabelli@gmail.com',         agent_id: '69' },
+      { nome: 'Consultora Alana - Peg Pneus', email: 'alana@gmail.com',             agent_id: '59' },
+      { nome: 'Fabio - Peg Pneus',            email: 'gerente.araraquara@gmail.com', agent_id: '63' },
+      { nome: 'Isabelli - Peg Pneus',         email: 'isabelli@gmail.com',           agent_id: '69' },
     ],
   },
 ].filter(e => e.token);

@@ -98,8 +98,8 @@ function calcTempoEspera(t) {
 
 // ─── Processar dados do dia ───────────────────────────────────────────────────
 
-function processarHoje(resultados) {
-  const hISO = hojeISO();
+function processarHoje(resultados, dataISO) {
+  const hISO = dataISO || hojeISO();
   const diasPorLoja = {};
   // { [loja]: { [atendente]: { tickets, abertos, pendentes, fechados } } }
   const atendentesPorLoja = {};
@@ -161,7 +161,7 @@ function processarHoje(resultados) {
     (emp.ativosRaw || []).forEach(t => {
       const orig = (t.origin || '').toLowerCase();
       if (!orig.includes('ativo') && orig !== 'active') return;
-      if ((t.createdAt || '').slice(0, 10) !== hISO) return;
+      if ((t.createdAt || '').slice(0, 10) !== hISO) return; // eslint-disable-line
       const loja = LOJA_MAP[t.whatsapp?.name];
       if (!loja) return;
       if (!diasPorLoja[loja]) diasPorLoja[loja] = { tickets: 0, ativos: 0, contatos: new Set() };
@@ -229,18 +229,36 @@ function fmtsLinha(sheetId, rowIdx) {
   return reqs;
 }
 
+// ─── Helpers de data ─────────────────────────────────────────────────────────
+
+function isoToDDMM(dataISO) {
+  const [, m, d] = dataISO.split('-');
+  return `${d}/${m}`;
+}
+
+function isoToNomeMes(dataISO) {
+  const [y, m] = dataISO.split('-');
+  return `${MESES[parseInt(m, 10) - 1]} ${y}`;
+}
+
+function isoToDiaNome(dataISO) {
+  return ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(dataISO + 'T12:00:00').getDay()];
+}
+
 // ─── Orquestrador ─────────────────────────────────────────────────────────────
 
-async function atualizarLinhaHoje() {
-  const hoje    = hojeDDMM();
-  const nomeMes = getNomeMesAtual();
+// dataAlvo: 'YYYY-MM-DD' (padrão: hoje em BRT)
+async function atualizarLinhaHoje(dataAlvo) {
+  const dataISO = dataAlvo || hojeISO();
+  const hoje    = isoToDDMM(dataISO);
+  const nomeMes = isoToNomeMes(dataISO);
   const agora   = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
   console.log(`\n📊 [${agora}] Atualizando linha ${hoje} em "${nomeMes}"...`);
 
-  // 1. Buscar dados de hoje no Deskrio
+  // 1. Buscar dados do Deskrio para o dia alvo
   const resultados = await monitorarDeskrioRange(hoje, hoje);
-  const { diasPorLoja, atendentesPorLoja, ticketsList } = processarHoje(resultados);
+  const { diasPorLoja, atendentesPorLoja, ticketsList } = processarHoje(resultados, dataISO);
 
   const totTk = LOJAS_ORDEM.reduce((s,l) => s + (diasPorLoja[l]?.tickets || 0), 0);
   const totAv = LOJAS_ORDEM.reduce((s,l) => s + (diasPorLoja[l]?.ativos  || 0), 0);
@@ -297,7 +315,7 @@ async function atualizarLinhaHoje() {
   }
 
   // 6. Montar valores da linha de hoje
-  const dayName = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][emBRT().getDay()];
+  const dayName = isoToDiaNome(dataISO);
   const rowVals = [hoje, dayName];
   LOJAS_ORDEM.forEach(loja => {
     const ld = diasPorLoja[loja] || { tickets: 0, ativos: 0, contatos: 0 };
@@ -345,10 +363,9 @@ async function atualizarLinhaHoje() {
   console.log(`✅ Linha ${hoje} + TOTAL atualizados na aba "${nomeMes}" (linhas ${rowNum}/${totalRowNum}).`);
 
   // Sync para Supabase/NexusZ
-  const hISO = hojeISO();
-  await syncLeads(hISO, diasPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_diarios sync:', e.message));
-  await syncAtendentes(hISO, atendentesPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_atendentes sync:', e.message));
-  await syncTickets(hISO, ticketsList).catch(e => console.warn('  ⚠️  Supabase leads_tickets sync:', e.message));
+  await syncLeads(dataISO, diasPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_diarios sync:', e.message));
+  await syncAtendentes(dataISO, atendentesPorLoja).catch(e => console.warn('  ⚠️  Supabase leads_atendentes sync:', e.message));
+  await syncTickets(dataISO, ticketsList).catch(e => console.warn('  ⚠️  Supabase leads_tickets sync:', e.message));
 
   // Sync lista de agentes válidos (usuários Deskrio)
   const agentesInstancias = await fetchAgentesInstancias().catch(e => { console.warn('  ⚠️  fetchAgentesInstancias:', e.message); return {}; });
@@ -383,9 +400,12 @@ function notificarLeads(status, detalhe) {
 }
 
 if (require.main === module) {
-  if (process.argv.includes('--agora')) {
+  const argDataIdx = process.argv.indexOf('--data');
+  const argDataVal = argDataIdx !== -1 ? process.argv[argDataIdx + 1] : null;
+
+  if (process.argv.includes('--agora') || argDataVal) {
     notificarLeads('inicio');
-    atualizarLinhaHoje()
+    atualizarLinhaHoje(argDataVal || null)
       .then(() => notificarLeads('fim'))
       .catch(e => { notificarLeads('erro', e.message.slice(0, 80)); console.error('❌ Fatal:', e.message); process.exit(1); });
   } else {
