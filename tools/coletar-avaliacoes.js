@@ -44,10 +44,35 @@ async function scrapeRating(browser, loja) {
     );
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
 
-    // Google Maps place page — mais estável que a URL de reviews
+    // Oculta que é headless para evitar page simplificada do Google
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    });
+
     const url = `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 40000 });
-    await new Promise(r => setTimeout(r, 5000));
+
+    // Aguarda o contador de avaliações (lyplG) ser preenchido — até 20s
+    // Tenta 3 estratégias em sequência se necessário
+    let lyplGLoaded = false;
+    try {
+      await page.waitForFunction(
+        () => { const el = document.querySelector('.lyplG'); return el && el.textContent.trim().length > 0; },
+        { timeout: 15000 }
+      );
+      lyplGLoaded = true;
+    } catch (_) {}
+
+    if (!lyplGLoaded) {
+      // Estratégia 2: scroll + aguardar aria-label com avaliações
+      await page.evaluate(() => window.scrollBy(0, 400));
+      try {
+        await page.waitForFunction(
+          () => [...document.querySelectorAll('[aria-label]')].some(e => /avalia/i.test(e.getAttribute('aria-label') || '')),
+          { timeout: 8000 }
+        );
+      } catch (_) {}
+    }
 
     const result = await page.evaluate(() => {
       let nota = null;
@@ -83,6 +108,14 @@ async function scrapeRating(browser, loja) {
       // Total de avaliações
       // Normaliza o texto substituindo nbsp e thin-space por espaço comum
       function normNum(s) { return s.replace(/[   ⁠]/g, '').replace(/\D/g, ''); }
+
+      // Padrão direto: div.lyplG contém '(6.031)' ou '6.031'
+      const lyplGText = (document.querySelector('.lyplG')?.textContent || '').trim();
+      if (!total && lyplGText) {
+        const v = parseInt(normNum(lyplGText));
+        if (v >= 10) total = v;
+      }
+
 
       // Padrão 0: aria-label em qualquer elemento (ex: "6.016 avaliações", "3,5 mil avaliações")
       for (const el of document.querySelectorAll('[aria-label]')) {
