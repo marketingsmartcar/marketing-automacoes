@@ -49,6 +49,19 @@ function ontemISO() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// ─── Calcular tempo de espera ────────────────────────────────────────────────
+
+function calcTempoEspera(t) {
+  // Preferência: waitTime oficial da API
+  if (t.waitTime != null && t.waitTime !== '') return parseInt(t.waitTime);
+  // Fallback: updatedAt - createdAt (usado para contas como Peg que não retornam waitTime)
+  if (t.createdAt && t.updatedAt) {
+    const diff = Math.round((new Date(t.updatedAt) - new Date(t.createdAt)) / 1000);
+    if (diff > 5) return diff; // ignora diferenças insignificantes (< 5s = só ruído da API)
+  }
+  return null;
+}
+
 // ─── Processar resultados do Deskrio para um dia específico ──────────────────
 
 function processarDia(resultados, dataISO) {
@@ -95,7 +108,7 @@ function processarDia(resultados, dataISO) {
         origem:       t.origin || null,
         criado_em:    t.createdAt  || null,
         fechado_em:   t.closedAt   || null,
-        tempo_espera: typeof t.waitTime === 'number' ? t.waitTime : null,
+        tempo_espera: calcTempoEspera(t),
       });
     }
   }

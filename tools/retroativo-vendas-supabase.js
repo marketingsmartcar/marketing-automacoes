@@ -60,8 +60,8 @@ async function main() {
   const auth   = await getAuth();
   const sheets = google.sheets({ version: 'v4', auth });
 
-  // Lê bloco maior que o necessário para garantir pegar todos os blocos do mês
-  const range = `'${SHEET_NAME}'!A1:P500`;
+  // Lê até 3000 linhas (~13 meses) para cobrir o histórico completo do ano
+  const range = `'${SHEET_NAME}'!A1:P3000`;
   const res   = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range,

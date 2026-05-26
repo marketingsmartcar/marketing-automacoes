@@ -726,25 +726,30 @@ async function main() {
   if (!process.env.OI_EMAIL || !process.env.OI_SENHA)
     throw new Error('OI_EMAIL e OI_SENHA não definidos no .env');
 
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    protocolTimeout: 300000,
-    args: [
-      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-      '--disable-blink-features=AutomationControlled',
-      '--window-size=1366,768',
-    ],
-  });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 768 });
-  await page.setUserAgent(
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-  );
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    Object.defineProperty(navigator, 'plugins',   { get: () => [1, 2, 3] });
-    Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'pt', 'en-US'] });
-  });
+  async function launchBrowser() {
+    const br = await puppeteer.launch({
+      headless: 'new',
+      protocolTimeout: 300000,
+      args: [
+        '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1366,768',
+      ],
+    });
+    const pg = await br.newPage();
+    await pg.setViewport({ width: 1366, height: 768 });
+    await pg.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    );
+    await pg.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      Object.defineProperty(navigator, 'plugins',   { get: () => [1, 2, 3] });
+      Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'pt', 'en-US'] });
+    });
+    return { br, pg };
+  }
+
+  let { br: browser, pg: page } = await launchBrowser();
 
   const resultadoGeral = {};
   let totalColabs = 0, totalGrupos = 0, totalOS = 0, falhas = [];
@@ -768,9 +773,18 @@ async function main() {
         if (i < LOJAS.length - 1) await sleep(3000);
       } catch (err) {
         console.error(`  ❌ ${loja.key} falhou:`, err.message);
-        await saveDebug(page, `erro-${loja.key}`);
+        await saveDebug(page, `erro-${loja.key}`).catch(() => {});
         falhas.push(loja.key);
         resultadoGeral[loja.key] = null;
+
+        // Se Chrome travou, reabrir para próximas lojas
+        if (err.message?.includes('detached Frame') || err.message?.includes('Target closed') || err.message?.includes('Protocol error')) {
+          console.log(`  🔄 Reabrindo Chrome para próxima loja...`);
+          await browser.close().catch(() => {});
+          await sleep(3000);
+          ({ br: browser, pg: page } = await launchBrowser());
+          await login(page);
+        }
       }
     }
 
@@ -779,11 +793,11 @@ async function main() {
 
   } catch (err) {
     await saveDebug(page, 'erro-geral').catch(() => {});
-    await browser.close();
+    await browser.close().catch(() => {});
     throw err;
   }
 
-  await browser.close();
+  await browser.close().catch(() => {});
   return resultadoGeral;
 }
 

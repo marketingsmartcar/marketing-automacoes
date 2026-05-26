@@ -13,6 +13,9 @@ require('dotenv').config();
 const { getOIDataBrowser } = require('./scraper-oi-browser');
 const { syncVendasOI }     = require('./supabase-vendas-sync');
 
+const DELAY_ENTRE_DIAS_MS = 60 * 1000; // 60s para GC liberar memória do Chrome
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function main() {
   const args   = process.argv.slice(2);
   const now    = new Date();
@@ -26,8 +29,9 @@ async function main() {
     : new Date(anoArg, mesArg + 1, 0).getDate();
 
   // Monta array de datas (pula Domingos — OI não tem movimento)
+  const diaInicio = args[2] ? parseInt(args[2], 10) : 1;
   const datas = [];
-  for (let d = 1; d <= ultimoDia; d++) {
+  for (let d = diaInicio; d <= ultimoDia; d++) {
     const dt = new Date(anoArg, mesArg, d);
     if (dt.getDay() === 0) continue; // domingo
     const iso = `${anoArg}-${String(mesArg + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -37,7 +41,7 @@ async function main() {
   console.log(`\n📅 Retroativo OI → Supabase`);
   console.log(`   Mês: ${mesArg + 1}/${anoArg}  |  ${datas.length} dias a coletar`);
   console.log(`   Datas: ${datas[0]} → ${datas[datas.length - 1]}`);
-  console.log(`   Estimativa: ~${Math.round(datas.length * 9)} min\n`);
+  console.log(`   Estimativa: ~${Math.round(datas.length * 10)} min\n`);
 
   const ok  = [];
   const err = [];
@@ -60,6 +64,13 @@ async function main() {
     } catch (e) {
       console.error(`  ❌ Falhou para ${dateISO}:`, e.message);
       err.push(dateISO);
+    }
+
+    // Aguarda 60s entre dias para o GC liberar memória do Chromium
+    if (i < datas.length - 1) {
+      const proxima = new Date(Date.now() + DELAY_ENTRE_DIAS_MS);
+      console.log(`  ⏳ Aguardando 60s... próximo às ${proxima.toLocaleTimeString('pt-BR')}`);
+      await sleep(DELAY_ENTRE_DIAS_MS);
     }
   }
 

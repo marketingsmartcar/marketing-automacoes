@@ -583,6 +583,44 @@ node tools/coletar-social-media.js
 
 ---
 
+## 12b. Coleta Social Video (TikTok + YouTube) → NexusZ
+
+**O que faz:** Coleta seguidores/inscritos de TikTok (via Apify — `clockworks/tiktok-profile-scraper`) e YouTube (via Google YouTube Data API v3) para BR e Peg. Salva na mesma tabela `social_account_snapshots` com `plataforma = 'tiktok'` e `plataforma = 'youtube'`. Os dados aparecem nos painéis TikTok e YouTube da tela Social Media do NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-social-video.js` |
+| Tabela | `social_account_snapshots` (NexusZ) |
+| Agendamento | **GitHub Actions** — **1x/dia às 08h BRT** (seg–sáb) |
+| Workflow | `.github/workflows/social-video.yml` |
+| Env vars necessárias | `YOUTUBE_API_KEY`, `YOUTUBE_CHANNEL_ID_BR` (opcional), `YOUTUBE_CHANNEL_ID_PEG` (opcional), `APIFY_TOKEN`, `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
+
+**Contas coletadas:**
+
+| Chave | TikTok | YouTube handle |
+|-------|--------|---------------|
+| BR | @brpneusoficina | @brpneusoficina |
+| PEG | @pegpneusatacarejooficial | @pegpneusatacarejooficial |
+
+**Como rodar manualmente:**
+```bash
+node tools/coletar-social-video.js
+```
+
+**Regras importantes:**
+- **TikTok usa créditos Apify** — NÃO chamar via botão "Atualizar agora" no NexusZ (apenas 1x/dia via GitHub Actions). O botão de refresh na UI só dispara IG/FB.
+- YouTube API tem cota de 10.000 unidades/dia; uma consulta = 1 unidade — sem risco de esgotar.
+- Apify usa run síncrono (`run-sync-get-dataset-items`) — aguarda até 120s.
+- Upsert por `(conta_key, plataforma, data)` — um snapshot por plataforma por dia.
+- Se `YOUTUBE_CHANNEL_ID_*` não estiver no `.env`, usa handle `@brpneusoficina` / `@pegpneusatacarejooficial` diretamente.
+
+**Setup inicial (fazer uma vez):**
+1. Google Cloud → Criar projeto → Ativar "YouTube Data API v3" → Criar API Key → salvar em `YOUTUBE_API_KEY`
+2. Criar conta em apify.com (plano free) → Settings → Integrations → API Token → salvar em `APIFY_TOKEN`
+3. Adicionar `YOUTUBE_API_KEY` e `APIFY_TOKEN` como GitHub Secrets no repositório
+
+---
+
 ## 13. Monitor ADS → NexusZ (Dashboard Horário)
 
 **O que faz:** Coleta saldo, spend e métricas de performance (CTR, CPC, impressões, cliques, conversões) de todas as contas Meta Ads e Google Ads e salva snapshots em `ads_snapshots` no Supabase. **Também detecta e registra recargas automaticamente** em `ads_recargas`, eliminando a necessidade de entrada manual.
@@ -720,4 +758,31 @@ node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
 
 ---
 
-*Última atualização: 15/05/2026 — Adicionado workflow de Relatório Mensal automático (dia 1 de cada mês); correção base64 no service account key do leads workflow.*
+---
+
+## 17. Geração de Artes de Colaboradores (sob demanda)
+
+**O que faz:** Gera arte PNG personalizada para um colaborador (aniversário, boas-vindas ou destaque), faz upload para o Google Drive e salva o registro no Supabase. Acionado pelo menu "Artes Colaboradores" no NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/gerar-arte-colaborador.js` |
+| Endpoint bot | `POST /gerar-arte` (body: `colaborador_id`, `tipo`, `marca`) |
+| Tabela Supabase | `artes_colaboradores` |
+| Migration | `supabase/migrations/create_artes_colaboradores.sql` |
+| Acionamento | Sob demanda via NexusZ → /admin/artes |
+| Tempo estimado | ~40s (Puppeteer render + Drive upload) |
+
+**Tipos disponíveis:** `aniversario` · `boasvinda` · `destaque`
+
+**Env vars necessárias:**
+- `GOOGLE_SERVICE_ACCOUNT_JSON` — JSON da Service Account (ou base64)
+- `GOOGLE_DRIVE_ARTES_FOLDER_ID` — ID da pasta no Drive onde as artes são salvas
+
+**Regra de marca:** Se `ARTE_MARCA` não for passado, detecta automaticamente pelo nome da unidade do colaborador (`peg` → PEG, caso contrário → BR).
+
+**Acesso público:** Cada arquivo enviado ao Drive recebe permissão pública de leitura automaticamente, para que o thumbnail apareça no NexusZ.
+
+---
+
+*Última atualização: 16/05/2026 — Geração de artes de colaboradores (NexusZ → Drive → Supabase); menus Avaliações Google e Artes Colaboradores adicionados ao NexusZ.*

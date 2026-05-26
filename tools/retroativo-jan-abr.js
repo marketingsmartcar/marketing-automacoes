@@ -2,17 +2,18 @@
 /**
  * retroativo-jan-abr.js
  *
- * Coleta dados DIÁRIOS do OI (Jan→Abr/2026) e sincroniza no Supabase.
- * Ordem: do dia mais recente ao mais antigo (Abril → Janeiro).
- * Delay de 5 min entre dias para não sobrecarregar o OI.
+ * Coleta dados DIÁRIOS do OI (Jan→Mai/2026) e sincroniza no Supabase.
+ * Ordem: do dia mais recente ao mais antigo (Maio → Janeiro).
+ * Delay de 2 min entre dias para não sobrecarregar o OI.
  */
 require('dotenv').config();
 const { getOIDataBrowser } = require('./scraper-oi-browser');
 const { syncVendasOI }     = require('./supabase-vendas-sync');
 
-const DELAY_ENTRE_DIAS_MS = 5 * 60 * 1000; // 5 minutos
+const DELAY_ENTRE_DIAS_MS = 2 * 60 * 1000; // 2 minutos
 
 const MESES = [
+  { mes: 5, ano: 2026 },
   { mes: 4, ano: 2026 },
   { mes: 3, ano: 2026 },
   { mes: 2, ano: 2026 },
@@ -44,8 +45,8 @@ async function main() {
 
   // Conta total de dias
   for (const { mes, ano } of MESES) totalDias += buildDatas(mes, ano).length;
-  console.log(`\n📅 Retroativo Jan–Abr 2026 (ordem: recente → antigo)`);
-  console.log(`   Total: ${totalDias} dias | Delay: 5 min entre dias`);
+  console.log(`\n📅 Retroativo Jan–Mai 2026 (ordem: recente → antigo)`);
+  console.log(`   Total: ${totalDias} dias | Delay: 2 min entre dias`);
   console.log(`   Estimativa: ~${Math.round(totalDias * 14 / 60)} horas\n`);
 
   let diaAtual = 0;
@@ -88,7 +89,7 @@ async function main() {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`✅ Concluído: ${totalOk} dias sincronizados`);
   if (totalErr) console.log(`❌ Falhas: ${totalErr} dias`);
-  console.log('Abril, Março, Fevereiro e Janeiro sincronizados com dados DIÁRIOS.');
+  console.log('Maio, Abril, Março, Fevereiro e Janeiro sincronizados com dados DIÁRIOS.');
 }
 
 main().catch(e => { console.error('❌ Fatal:', e.message || e); process.exit(1); });

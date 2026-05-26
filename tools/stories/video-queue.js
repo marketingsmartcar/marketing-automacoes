@@ -17,6 +17,11 @@ const PEG_EXTRA_EXCLUIR = [
   'Depoimento Claudinei Peg pneus',
 ];
 
+// Vídeos da pasta Conteudo das lojas (Peg) que devem ser ignorados permanentemente
+const PEG_LOJAS_EXCLUIR = [
+  'Peg 1 16-01',
+];
+
 // Cooldown personalizado por vídeo (dias mínimos entre postagens)
 // Padrão global: 2 dias. Vídeos listados aqui têm cooldown maior.
 const VIDEO_COOLDOWN_DIAS = {
@@ -80,9 +85,10 @@ function listarVideos(contaKey) {
   const pastas = PASTAS_POR_CONTA[contaKey] || [];
   const videos = [];
 
+  const excluirLojas = contaKey === 'peg_araraquara' ? PEG_LOJAS_EXCLUIR : [];
   for (const pasta of pastas) {
     const dir = path.join(PASTA_BASE, pasta);
-    videos.push(...listarVideosDir(dir));
+    videos.push(...listarVideosDir(dir, excluirLojas));
   }
 
   // Pasta extra da Peg Araraquara

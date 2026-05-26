@@ -4,6 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## REGRA OBRIGATÓRIA — CÉREBRO OBSIDIAN
+
+> **Sempre ler e atualizar as notas em `cerebro/` antes e depois de qualquer tarefa.**
+
+- **Antes de agir:** ler os arquivos relevantes em `cerebro/` para ter contexto atualizado
+- **Depois de agir:** atualizar a nota correspondente com o que foi feito
+- **Vaults:** `C:\Users\Nick\Downloads\Marketing\cerebro\` e `C:\Users\Nick\Downloads\NexusZ\cerebro\`
+- **Como funciona:** o Obsidian é uma pasta de arquivos `.md` — basta ler/escrever diretamente, sem API ou plugin
+- Notas principais: `🏠 INICIO.md`, `📌 Pendências.md`, `🤖 Automações.md`, `🔑 Credenciais e APIs.md`
+
+---
+
 ## REGRA OBRIGATÓRIA — DOCUMENTAÇÃO DE AUTOMAÇÕES
 
 > **Toda vez que uma automação for criada ou modificada, atualizar `AUTOMACOES.md` antes de encerrar a tarefa.**
@@ -28,7 +40,7 @@ Este repositório contém o sistema de automação de marketing do **Grupo BR Pn
 **BR Pneus & Oficina** é uma rede de franquias de pneus e serviços automotivos com origem na "Borracharia do Mazzaropi" em Araraquara-SP. Atende o público das classes B e C com foco em preço competitivo, variedade e serviços completos.
 
 ### Rede Atual
-**8 lojas em 7 cidades** (Araraquara possui 2 unidades)
+**6 lojas em 5 cidades** (Araraquara possui 2 unidades)
 
 | Estado | Cidade | Loja | Telefone |
 |--------|--------|------|----------|
@@ -36,9 +48,9 @@ Este repositório contém o sistema de automação de marketing do **Grupo BR Pn
 | SP | Araraquara | Loja 2 | (16) 3190-2380 |
 | SP | São Carlos | Loja 4 | (16) 3376-0011 |
 | SP | Americana | Loja 3 | (16) 3397-5424 |
-| SP | Jaú | Loja 6 | (14) 3149-0549 |
-| SP | Ibitinga | Loja 7 | (16) 3188-0547 |
 | PR | Maringá | Loja 5 | (44) 3170-0441 |
+
+> **Lojas encerradas (mai/2026):** Loja 6 — Jaú e Loja 7 — Ibitinga. Não citar essas cidades em nenhum conteúdo ou campanha.
 
 **SAC / 0800 central:** 0800 942 4402
 

@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "canva": {
+      "type": "http",
+      "url": "https://mcp.canva.com/mcp"
+    },
+    "kommo": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["tools/kommo-mcp-server.js"],
+      "env": {
+        "KOMMO_ACCESS_TOKEN": "${KOMMO_ACCESS_TOKEN}",
+        "KOMMO_API_DOMAIN": "${KOMMO_API_DOMAIN}",
+        "KOMMO_ACCOUNT_ID": "${KOMMO_ACCOUNT_ID}"
+      }
+    }
+  }
+}
