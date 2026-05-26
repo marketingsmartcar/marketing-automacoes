@@ -26,3 +26,19 @@ desktop.ini
 
 # Claude
 .claude/
+
+# Obsidian (notas internas — não publicar)
+cerebro/
+.obsidian/
+
+# Dados locais sensíveis
+data/
+assets/
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.bat
+*.code-workspace
+qr-whatsapp.png
+.wwebjs_auth/
