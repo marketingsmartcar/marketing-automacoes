@@ -1,0 +1,37 @@
+name: Contatos Deskrio — Sync Horário
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # todo início de hora (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "DESKRIO_API_TOKEN_BR=${{ secrets.DESKRIO_API_TOKEN_BR }}"                         >> .env
+          echo "DESKRIO_API_TOKEN_PEG=${{ secrets.DESKRIO_API_TOKEN_PEG }}"                       >> .env
+          echo "DESKRIO_INSTANCE_BR=${{ secrets.DESKRIO_INSTANCE_BR }}"                           >> .env
+          echo "DESKRIO_INSTANCE_PEG=${{ secrets.DESKRIO_INSTANCE_PEG }}"                         >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Sync contatos
+        run: node tools/sync-contatos-deskrio.js
