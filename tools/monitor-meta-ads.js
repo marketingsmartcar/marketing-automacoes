@@ -11,9 +11,9 @@ const TOKEN_PEG = process.env.META_ACCESS_TOKEN_PEG;
 const CONTAS_META = [
   { nome: 'BR PNEUS MARINGÁ',     id: process.env.META_ACCOUNT_BR_MARINGA,     recarga: 'saldo',  token: TOKEN_BR },
   { nome: 'BR PNEUS AMERICANA',   id: process.env.META_ACCOUNT_BR_AMERICANA,   recarga: 'saldo',  token: TOKEN_BR },
-  { nome: 'BR PNEUS SÃO CARLOS',  id: process.env.META_ACCOUNT_BR_SAO_CARLOS,  recarga: 'fundos', token: TOKEN_BR },
+  { nome: 'BR PNEUS SÃO CARLOS',  id: process.env.META_ACCOUNT_BR_SAO_CARLOS,  recarga: 'saldo',  token: TOKEN_BR },
   { nome: 'BR PNEUS ARARAQUARA',  id: process.env.META_ACCOUNT_BR_ARARAQUARA,  recarga: 'fundos', token: TOKEN_BR },
-  { nome: 'PEG PNEUS SOROCABA',   id: process.env.META_ACCOUNT_PEG_SOROCABA,   recarga: 'fundos', token: TOKEN_PEG },
+  { nome: 'PEG PNEUS SOROCABA',   id: process.env.META_ACCOUNT_PEG_SOROCABA,   recarga: 'saldo',  token: TOKEN_PEG },
   { nome: 'PEG PNEUS ARARAQUARA', id: process.env.META_ACCOUNT_PEG_ARARAQUARA, recarga: 'saldo',  token: TOKEN_PEG },
 ];
 
@@ -147,11 +147,26 @@ async function monitorarContaMeta(conta) {
     // Leads: formulários nativos (lead) ou pixel (offsite_conversion.fb_pixel_lead)
     const actions7d = insights.actions || [];
     const actions3d = insights3d.actions || [];
+    // Tipos de ação em ordem de prioridade:
+    // lead → formulário nativo FB/IG
+    // offsite_conversion.fb_pixel_lead → pixel de lead no site
+    // onsite_conversion.messaging_conversation_started_7d → conversa WhatsApp iniciada (click-to-WhatsApp)
+    // onsite_conversion.lead_grouped → agrupamento de leads
+    const LEAD_TYPES = [
+      'lead',
+      'offsite_conversion.fb_pixel_lead',
+      'offsite_conversion.lead',
+      'onsite_conversion.lead_grouped',
+      'onsite_conversion.messaging_conversation_started_7d',
+      'onsite_conversion.messaging_first_reply',
+    ];
     const extractLeads = (arr) => {
-      const a = arr.find(x => x.action_type === 'lead')
-              || arr.find(x => x.action_type === 'offsite_conversion.fb_pixel_lead')
-              || arr.find(x => x.action_type === 'offsite_conversion.lead');
-      return a ? parseInt(a.value) : 0;
+      let total = 0;
+      for (const t of LEAD_TYPES) {
+        const a = arr.find(x => x.action_type === t);
+        if (a) { total += parseInt(a.value) || 0; break; } // usa o primeiro tipo que encontrar
+      }
+      return total;
     };
     const leads7d = extractLeads(actions7d);
     const leads3d = extractLeads(actions3d);
