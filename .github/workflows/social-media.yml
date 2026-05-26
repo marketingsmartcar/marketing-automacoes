@@ -6,6 +6,9 @@ on:
     - cron: '0 11-22 * * 1-6'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   coletar:
     runs-on: ubuntu-latest
@@ -40,12 +43,18 @@ jobs:
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"             >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}" >> .env
+          echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}"                   >> .env
 
       - name: Registrar início (silencioso)
         run: node tools/notificar-automacao.js --nome "Social Media" --status inicio --silencioso
 
-      - name: Coletar dados Social Media
+      - name: Coletar dados Social Media (IG + FB)
         run: node tools/coletar-social-media.js
+
+      - name: Coletar YouTube
+        run: node tools/coletar-youtube.js
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
 
       - name: Registrar conclusão (silencioso)
         if: success()

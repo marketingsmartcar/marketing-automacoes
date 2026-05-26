@@ -6,6 +6,9 @@ on:
     - cron: '0 20 * * 1-6'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   coletar:
     runs-on: ubuntu-latest

@@ -7,6 +7,9 @@ on:
         description: 'Data inicial (YYYY-MM-DD). Vazio = 2026-01-01.'
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   retroativo:
     runs-on: ubuntu-latest

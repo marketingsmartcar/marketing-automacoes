@@ -12,6 +12,9 @@ on:
         required: true
         default: '2026'
 
+permissions:
+  contents: read
+
 jobs:
   retroativo:
     runs-on: self-hosted

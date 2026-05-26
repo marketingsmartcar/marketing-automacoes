@@ -1,0 +1,52 @@
+name: Social Video — YouTube + TikTok (1x/dia)
+
+on:
+  schedule:
+    # Todo dia às 08:00 BRT (11:00 UTC) — segunda a sábado
+    - cron: '0 11 * * 1-6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}"                           >> .env
+          echo "YOUTUBE_CHANNEL_ID_BR=${{ secrets.YOUTUBE_CHANNEL_ID_BR }}"               >> .env
+          echo "YOUTUBE_CHANNEL_ID_PEG=${{ secrets.YOUTUBE_CHANNEL_ID_PEG }}"             >> .env
+          echo "APIFY_TOKEN=${{ secrets.APIFY_TOKEN }}"                                   >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                   >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"   >> .env
+
+      - name: Registrar início (silencioso)
+        run: node tools/notificar-automacao.js --nome "Social Video" --status inicio --silencioso
+
+      - name: Coletar YouTube + TikTok
+        run: node tools/coletar-social-video.js
+
+      - name: Registrar conclusão
+        if: success()
+        run: node tools/notificar-automacao.js --nome "Social Video" --status fim --silencioso
+
+      - name: Notificar erro
+        if: failure()
+        run: node tools/notificar-automacao.js --nome "Social Video" --status erro
