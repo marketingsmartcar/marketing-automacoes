@@ -1,0 +1,44 @@
+name: Coletar Leads Agora
+
+on:
+  workflow_dispatch:       # acionado via botão no NexusZ
+  schedule:
+    - cron: '0 10,18 * * *'  # automático: 07h e 15h (BRT = UTC-3)
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "DESKRIO_API_TOKEN_BR=${{ secrets.DESKRIO_API_TOKEN_BR }}"                         >> .env
+          echo "DESKRIO_API_TOKEN_PEG=${{ secrets.DESKRIO_API_TOKEN_PEG }}"                       >> .env
+          echo "DESKRIO_INSTANCE_BR=${{ secrets.DESKRIO_INSTANCE_BR }}"                           >> .env
+          echo "DESKRIO_INSTANCE_PEG=${{ secrets.DESKRIO_INSTANCE_PEG }}"                         >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "OI_TOKEN_BR01=${{ secrets.OI_TOKEN_BR01 }}"                                       >> .env
+          echo "OI_TOKEN_BR02=${{ secrets.OI_TOKEN_BR02 }}"                                       >> .env
+          echo "OI_TOKEN_BR03=${{ secrets.OI_TOKEN_BR03 }}"                                       >> .env
+          echo "OI_TOKEN_BR04=${{ secrets.OI_TOKEN_BR04 }}"                                       >> .env
+          echo "OI_TOKEN_BR05=${{ secrets.OI_TOKEN_BR05 }}"                                       >> .env
+          echo "OI_TOKEN_PEG01=${{ secrets.OI_TOKEN_PEG01 }}"                                    >> .env
+          echo "OI_TOKEN_PEG02=${{ secrets.OI_TOKEN_PEG02 }}"                                    >> .env
+
+      - name: Coletar leads de hoje
+        run: node tools/leads-hoje.js
