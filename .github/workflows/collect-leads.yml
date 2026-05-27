@@ -39,6 +39,13 @@ jobs:
           echo "OI_TOKEN_BR05=${{ secrets.OI_TOKEN_BR05 }}"                                       >> .env
           echo "OI_TOKEN_PEG01=${{ secrets.OI_TOKEN_PEG01 }}"                                    >> .env
           echo "OI_TOKEN_PEG02=${{ secrets.OI_TOKEN_PEG02 }}"                                    >> .env
+          echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}"        >> .env
+          echo "GOOGLE_SERVICE_ACCOUNT_KEY=credentials/google-sheets-key.json"                    >> .env
+
+      - name: Criar credencial Google
+        run: |
+          mkdir -p credentials
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > credentials/google-sheets-key.json
 
       - name: Coletar leads de hoje
         run: node tools/leads-hoje.js --agora
