@@ -41,4 +41,4 @@ jobs:
           echo "OI_TOKEN_PEG02=${{ secrets.OI_TOKEN_PEG02 }}"                                    >> .env
 
       - name: Coletar leads de hoje
-        run: node tools/leads-hoje.js
+        run: node tools/leads-hoje.js --agora
