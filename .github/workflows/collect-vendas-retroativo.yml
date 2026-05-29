@@ -38,7 +38,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm ci
+      - name: Instalar dependências (somente dotenv)
+        run: npm install dotenv --no-save
 
       - name: Criar job de progresso no Supabase
         id: criar_job

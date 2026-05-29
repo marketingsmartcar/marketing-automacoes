@@ -21,8 +21,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Instalar dependências
-        run: npm ci
+      - name: Instalar dependências (somente dotenv)
+        run: npm install dotenv --no-save
 
       - name: Coletar vendas de pneus
         env:
