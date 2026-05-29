@@ -1,0 +1,132 @@
+name: Coletar Vendas Pneus — Retroativo
+
+on:
+  workflow_dispatch:
+    inputs:
+      data_inicio:
+        description: 'Data início (YYYY-MM-DD)'
+        required: true
+        default: '2026-05-01'
+      data_fim:
+        description: 'Data fim (YYYY-MM-DD)'
+        required: true
+        default: '2026-05-29'
+      delay_segundos:
+        description: 'Delay entre dias (segundos, mínimo 5)'
+        required: false
+        default: '8'
+
+jobs:
+  retroativo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      OI_TOKEN_BR01_CENTRO:        ${{ secrets.OI_TOKEN_BR01_CENTRO }}
+      OI_TOKEN_ALT_BR01_CENTRO:    ${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}
+      OI_TOKEN_BR02_VILA:          ${{ secrets.OI_TOKEN_BR02_VILA }}
+      OI_TOKEN_ALT_BR03_AMERICANA: ${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}
+      OI_TOKEN_BR04_SAO_CARLOS:    ${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}
+      OI_TOKEN_BR05_MARINGA:       ${{ secrets.OI_TOKEN_BR05_MARINGA }}
+      OI_TOKEN_PEG1_ARARAQUARA:    ${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}
+      OI_TOKEN_PEG2_SOROCABA:      ${{ secrets.OI_TOKEN_PEG2_SOROCABA }}
+      NEXUSZ_SUPABASE_URL:          ${{ secrets.NEXUSZ_SUPABASE_URL }}
+      NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+
+      - name: Criar job de progresso no Supabase
+        id: criar_job
+        run: |
+          JOB=$(curl -s -X POST "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs" \
+            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=representation" \
+            -d "{\"tipo\":\"vendas_pneus_retroativo\",\"status\":\"rodando\",\"progresso\":0,\"mensagem\":\"Iniciando retroativo ${{ github.event.inputs.data_inicio }} → ${{ github.event.inputs.data_fim }}...\"}" \
+            | jq -r '.[0].id')
+          echo "job_id=$JOB" >> $GITHUB_OUTPUT
+          echo "Job criado: $JOB"
+
+      - name: Coletar dias em loop com delay
+        run: |
+          JOB_ID="${{ steps.criar_job.outputs.job_id }}"
+          DELAY=${{ github.event.inputs.delay_segundos }}
+          [ "$DELAY" -lt 5 ] && DELAY=5
+
+          # Gerar lista de datas
+          INICIO="${{ github.event.inputs.data_inicio }}"
+          FIM="${{ github.event.inputs.data_fim }}"
+          DATAS=$(python3 -c "
+          from datetime import date, timedelta
+          d = date.fromisoformat('$INICIO')
+          fim = date.fromisoformat('$FIM')
+          datas = []
+          while d <= fim:
+            datas.append(str(d))
+            d += timedelta(days=1)
+          print(' '.join(datas))
+          ")
+
+          TOTAL=$(echo $DATAS | wc -w)
+          FEITOS=0
+          PNEUS_TOTAL=0
+
+          echo "📅 Total de dias a coletar: $TOTAL"
+          echo "⏱  Delay entre dias: ${DELAY}s"
+
+          for DATA in $DATAS; do
+            FEITOS=$((FEITOS + 1))
+            PROGRESSO=$(( (FEITOS * 100) / TOTAL ))
+
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📍 [$FEITOS/$TOTAL] Coletando $DATA..."
+
+            # Atualiza progresso no Supabase
+            curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.$JOB_ID" \
+              -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"progresso\":$PROGRESSO,\"mensagem\":\"[$FEITOS/$TOTAL] Coletando $DATA...\"}" > /dev/null
+
+            # Coleta o dia
+            node tools/coletar-vendas-pneus.js "$DATA" 2>&1
+
+            # Extrai pneus coletados do output
+            PNEUS=$(node tools/coletar-vendas-pneus.js "$DATA" --inspecionar 2>/dev/null | grep "unidades" | awk '{sum += $1} END {print sum+0}' || echo "0")
+
+            echo "✅ $DATA concluído"
+
+            # Delay entre dias (exceto no último)
+            if [ "$FEITOS" -lt "$TOTAL" ]; then
+              echo "⏳ Aguardando ${DELAY}s antes do próximo dia..."
+              sleep "$DELAY"
+            fi
+          done
+
+          # Marca como concluído
+          curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.$JOB_ID" \
+            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"progresso\":100,\"status\":\"concluido\",\"mensagem\":\"Retroativo concluído: $TOTAL dias coletados ($INICIO → $FIM)\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null
+
+          echo ""
+          echo "🎉 Retroativo concluído: $TOTAL dias ($INICIO → $FIM)"
+
+      - name: Marcar erro se falhou
+        if: failure()
+        run: |
+          JOB_ID="${{ steps.criar_job.outputs.job_id }}"
+          [ -z "$JOB_ID" ] && exit 0
+          curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.$JOB_ID" \
+            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"status\":\"erro\",\"mensagem\":\"Workflow falhou — verifique os logs do GitHub Actions\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null
