@@ -1,0 +1,44 @@
+name: Coletar Vendas Pneus (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: 'ID do sync_job no Supabase'
+        required: true
+      data:
+        description: 'Data YYYY-MM-DD (padrão: ontem)'
+        required: false
+        default: ''
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Coletar vendas de pneus
+        env:
+          OI_TOKEN_BR01_CENTRO:     ${{ secrets.OI_TOKEN_BR01_CENTRO }}
+          OI_TOKEN_ALT_BR01_CENTRO: ${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}
+          OI_TOKEN_BR02_VILA:       ${{ secrets.OI_TOKEN_BR02_VILA }}
+          OI_TOKEN_ALT_BR03_AMERICANA: ${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}
+          OI_TOKEN_BR04_SAO_CARLOS: ${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}
+          OI_TOKEN_BR05_MARINGA:    ${{ secrets.OI_TOKEN_BR05_MARINGA }}
+          OI_TOKEN_PEG1_ARARAQUARA: ${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}
+          OI_TOKEN_PEG2_SOROCABA:   ${{ secrets.OI_TOKEN_PEG2_SOROCABA }}
+          NEXUSZ_SUPABASE_URL:       ${{ secrets.NEXUSZ_SUPABASE_URL }}
+          NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.data }}" ]; then
+            node tools/coletar-vendas-pneus.js ${{ github.event.inputs.data }} --job-id=${{ github.event.inputs.job_id }}
+          else
+            node tools/coletar-vendas-pneus.js --job-id=${{ github.event.inputs.job_id }}
+          fi
