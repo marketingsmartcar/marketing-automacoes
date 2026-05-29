@@ -48,14 +48,14 @@ jobs:
           # .env como fallback (caso o script tente ler arquivo)
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           > .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
-          echo "OI_TOKEN_BR01_CENTRO=${{ secrets.OI_TOKEN_BR01_CENTRO }}"                         >> .env
-          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}"                >> .env
-          echo "OI_TOKEN_BR02_VILA=${{ secrets.OI_TOKEN_BR02_VILA }}"                             >> .env
-          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}"          >> .env
-          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}"                >> .env
-          echo "OI_TOKEN_BR05_MARINGA=${{ secrets.OI_TOKEN_BR05_MARINGA }}"                       >> .env
-          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}"                >> .env
-          echo "OI_TOKEN_PEG2_SOROCABA=${{ secrets.OI_TOKEN_PEG2_SOROCABA }}"                    >> .env
+          # BR01 e BR03 usam token ALT (alt=true no script)
+          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_BR01 }}"    >> .env
+          echo "OI_TOKEN_BR02_VILA=${{ secrets.OI_TOKEN_BR02 }}"          >> .env
+          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_BR03 }}" >> .env
+          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04 }}"    >> .env
+          echo "OI_TOKEN_BR05_MARINGA=${{ secrets.OI_TOKEN_BR05 }}"       >> .env
+          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG01 }}"   >> .env
+          echo "OI_TOKEN_PEG2_SOROCABA=${{ secrets.OI_TOKEN_PEG02 }}"     >> .env
           echo ".env criado e shim dotenv instalado"
 
       - name: Criar job de progresso no Supabase
