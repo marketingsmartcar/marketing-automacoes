@@ -38,8 +38,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Instalar dependências (somente dotenv)
-        run: npm install dotenv --no-save
+
+      - name: Criar shim dotenv + .env com credenciais
+        run: |
+          # Shim mínimo de dotenv (env vars já estão injetadas pelo GitHub Actions)
+          mkdir -p node_modules/dotenv
+          echo 'exports.config = function() {}; exports.default = {config: function() {}};' > node_modules/dotenv/index.js
+          echo 'exports.config = function() {};' > node_modules/dotenv/config.js
+          # .env como fallback (caso o script tente ler arquivo)
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           > .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "OI_TOKEN_BR01_CENTRO=${{ secrets.OI_TOKEN_BR01_CENTRO }}"                         >> .env
+          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}"                >> .env
+          echo "OI_TOKEN_BR02_VILA=${{ secrets.OI_TOKEN_BR02_VILA }}"                             >> .env
+          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}"          >> .env
+          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}"                >> .env
+          echo "OI_TOKEN_BR05_MARINGA=${{ secrets.OI_TOKEN_BR05_MARINGA }}"                       >> .env
+          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}"                >> .env
+          echo "OI_TOKEN_PEG2_SOROCABA=${{ secrets.OI_TOKEN_PEG2_SOROCABA }}"                    >> .env
+          echo ".env criado e shim dotenv instalado"
 
       - name: Criar job de progresso no Supabase
         id: criar_job

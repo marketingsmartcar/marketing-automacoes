@@ -21,8 +21,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Instalar dependências (somente dotenv)
-        run: npm install dotenv --no-save
+      - name: Criar shim dotenv
+        run: |
+          mkdir -p node_modules/dotenv
+          echo 'exports.config = function() {}; exports.default = {config: function() {}};' > node_modules/dotenv/index.js
+          echo 'exports.config = function() {};' > node_modules/dotenv/config.js
 
       - name: Coletar vendas de pneus
         env:
