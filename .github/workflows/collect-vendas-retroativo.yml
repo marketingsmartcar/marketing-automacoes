@@ -6,7 +6,7 @@ on:
       data_inicio:
         description: 'Data início (YYYY-MM-DD)'
         required: true
-        default: '2026-05-01'
+        default: '2026-05-09'
       data_fim:
         description: 'Data fim (YYYY-MM-DD)'
         required: true
@@ -21,134 +21,181 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
-    env:
-      OI_TOKEN_BR01_CENTRO:        ${{ secrets.OI_TOKEN_BR01_CENTRO }}
-      OI_TOKEN_ALT_BR01_CENTRO:    ${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}
-      OI_TOKEN_BR02_VILA:          ${{ secrets.OI_TOKEN_BR02_VILA }}
-      OI_TOKEN_ALT_BR03_AMERICANA: ${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}
-      OI_TOKEN_BR04_SAO_CARLOS:    ${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}
-      OI_TOKEN_BR05_MARINGA:       ${{ secrets.OI_TOKEN_BR05_MARINGA }}
-      OI_TOKEN_PEG1_ARARAQUARA:    ${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}
-      OI_TOKEN_PEG2_SOROCABA:      ${{ secrets.OI_TOKEN_PEG2_SOROCABA }}
-      NEXUSZ_SUPABASE_URL:          ${{ secrets.NEXUSZ_SUPABASE_URL }}
-      NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
-
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Criar shim dotenv + .env com credenciais
+      # ── Preparar ambiente ───────────────────────────────────────────────────
+      - name: Criar shim dotenv e .env com credenciais
         run: |
-          # Shim mínimo de dotenv (env vars já estão injetadas pelo GitHub Actions)
           mkdir -p node_modules/dotenv
-          echo 'exports.config = function() {}; exports.default = {config: function() {}};' > node_modules/dotenv/index.js
-          echo 'exports.config = function() {};' > node_modules/dotenv/config.js
-          # .env como fallback (caso o script tente ler arquivo)
-          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           > .env
-          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
-          # BR01 e BR03 usam token ALT (alt=true no script)
-          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_BR01 }}"    >> .env
-          echo "OI_TOKEN_BR02_VILA=${{ secrets.OI_TOKEN_BR02 }}"          >> .env
-          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_BR03 }}" >> .env
-          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04 }}"    >> .env
-          echo "OI_TOKEN_BR05_MARINGA=${{ secrets.OI_TOKEN_BR05 }}"       >> .env
-          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG01 }}"   >> .env
-          echo "OI_TOKEN_PEG2_SOROCABA=${{ secrets.OI_TOKEN_PEG02 }}"     >> .env
-          echo ".env criado e shim dotenv instalado"
+          printf 'exports.config = function() {};\n' > node_modules/dotenv/index.js
+          printf 'exports.config = function() {};\n' > node_modules/dotenv/config.js
 
-      - name: Criar job de progresso no Supabase
+          # Credenciais Supabase NexusZ
+          printf 'NEXUSZ_SUPABASE_URL=%s\n'                     "$NEXUSZ_URL"   > .env
+          printf 'NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=%s\n'        "$NEXUSZ_KEY"  >> .env
+
+          # Tokens OI — mapeados dos secrets existentes no repo
+          printf 'OI_TOKEN_ALT_BR01_CENTRO=%s\n'                "$OI_BR01"     >> .env
+          printf 'OI_TOKEN_BR02_VILA=%s\n'                      "$OI_BR02"     >> .env
+          printf 'OI_TOKEN_ALT_BR03_AMERICANA=%s\n'             "$OI_BR03"     >> .env
+          printf 'OI_TOKEN_BR04_SAO_CARLOS=%s\n'                "$OI_BR04"     >> .env
+          printf 'OI_TOKEN_BR05_MARINGA=%s\n'                   "$OI_BR05"     >> .env
+          printf 'OI_TOKEN_PEG1_ARARAQUARA=%s\n'                "$OI_PEG01"    >> .env
+          printf 'OI_TOKEN_PEG2_SOROCABA=%s\n'                  "$OI_PEG02"    >> .env
+
+          echo "Ambiente preparado."
+        env:
+          NEXUSZ_URL:  ${{ secrets.NEXUSZ_SUPABASE_URL }}
+          NEXUSZ_KEY:  ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+          OI_BR01:     ${{ secrets.OI_TOKEN_BR01 }}
+          OI_BR02:     ${{ secrets.OI_TOKEN_BR02 }}
+          OI_BR03:     ${{ secrets.OI_TOKEN_BR03 }}
+          OI_BR04:     ${{ secrets.OI_TOKEN_BR04 }}
+          OI_BR05:     ${{ secrets.OI_TOKEN_BR05 }}
+          OI_PEG01:    ${{ secrets.OI_TOKEN_PEG01 }}
+          OI_PEG02:    ${{ secrets.OI_TOKEN_PEG02 }}
+
+      # ── Criar sync_job no Supabase (via Node — sem curl) ───────────────────
+      - name: Criar job de progresso
         id: criar_job
+        continue-on-error: true
         run: |
-          RESP=$(curl -s -w "\n%{http_code}" -X POST "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs" \
-            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/json" \
-            -H "Prefer: return=representation" \
-            -d "{\"tipo\":\"vendas_pneus_retroativo\",\"status\":\"rodando\",\"progresso\":0,\"mensagem\":\"Iniciando retroativo ${{ github.event.inputs.data_inicio }} -> ${{ github.event.inputs.data_fim }}...\"}")
-          HTTP_CODE=$(echo "$RESP" | tail -1)
-          BODY=$(echo "$RESP" | sed '$d')
-          echo "HTTP: $HTTP_CODE | Body: ${BODY:0:200}"
-          JOB=$(echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['id'] if isinstance(d,list) else d.get('id',''))" 2>/dev/null || echo "")
-          echo "job_id=$JOB" >> $GITHUB_OUTPUT
-          echo "Job ID: $JOB"
+          JOB_ID=$(node -e "
+            const https = require('https');
+            const url = new URL(process.env.NEXUSZ_URL + '/rest/v1/sync_jobs');
+            const body = JSON.stringify({
+              tipo: 'vendas_pneus_retroativo',
+              status: 'rodando',
+              progresso: 0,
+              mensagem: 'Iniciando retroativo ${{ github.event.inputs.data_inicio }} -> ${{ github.event.inputs.data_fim }}...'
+            });
+            const opts = {
+              hostname: url.hostname,
+              path: url.pathname + url.search,
+              method: 'POST',
+              headers: {
+                'apikey': process.env.NEXUSZ_KEY,
+                'Authorization': 'Bearer ' + process.env.NEXUSZ_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              }
+            };
+            const req = https.request(opts, res => {
+              let d = '';
+              res.on('data', c => d += c);
+              res.on('end', () => {
+                try {
+                  const arr = JSON.parse(d);
+                  process.stdout.write((arr[0] || arr).id || '');
+                } catch(e) { process.stdout.write(''); }
+              });
+            });
+            req.on('error', () => process.stdout.write(''));
+            req.write(body);
+            req.end();
+          " 2>/dev/null || echo "")
+          echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+          echo "Job ID: $JOB_ID"
+        env:
+          NEXUSZ_URL: ${{ secrets.NEXUSZ_SUPABASE_URL }}
+          NEXUSZ_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
 
+      # ── Loop de coleta ─────────────────────────────────────────────────────
       - name: Coletar dias em loop com delay
         run: |
-          set +e  # Não abortar em erros individuais de dia
+          set +e
           JOB_ID="${{ steps.criar_job.outputs.job_id }}"
-          DELAY=${{ github.event.inputs.delay_segundos }}
-          [ "$DELAY" -lt 5 ] && DELAY=5
+          DELAY="${{ github.event.inputs.delay_segundos }}"
+          [ "${DELAY:-0}" -lt 5 ] && DELAY=5
 
-          # Gerar lista de datas
           INICIO="${{ github.event.inputs.data_inicio }}"
           FIM="${{ github.event.inputs.data_fim }}"
-          DATAS=$(python3 -c "
-          from datetime import date, timedelta
-          d = date.fromisoformat('$INICIO')
-          fim = date.fromisoformat('$FIM')
-          datas = []
-          while d <= fim:
-            datas.append(str(d))
-            d += timedelta(days=1)
-          print(' '.join(datas))
+
+          DATAS=$(node -e "
+            const start = new Date('$INICIO');
+            const end   = new Date('$FIM');
+            const out   = [];
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+              out.push(d.toISOString().slice(0,10));
+            }
+            process.stdout.write(out.join(' '));
           ")
 
-          TOTAL=$(echo $DATAS | wc -w)
+          TOTAL=$(echo $DATAS | wc -w | tr -d ' ')
           FEITOS=0
-          PNEUS_TOTAL=0
 
-          echo "📅 Total de dias a coletar: $TOTAL"
-          echo "⏱  Delay entre dias: ${DELAY}s"
+          echo "📅 Dias: $TOTAL | Delay: ${DELAY}s | Job: ${JOB_ID:-sem tracking}"
+
+          atualizar_supabase() {
+            local prog="$1" msg="$2" status="${3:-rodando}"
+            [ -z "$JOB_ID" ] && return
+            node -e "
+              const https = require('https');
+              const url = new URL(process.env.NEXUSZ_URL + '/rest/v1/sync_jobs?id=eq.$JOB_ID');
+              const body = JSON.stringify({ progresso: $prog, mensagem: '$msg', status: '$status' });
+              const opts = {
+                hostname: url.hostname,
+                path: url.pathname + url.search,
+                method: 'PATCH',
+                headers: {
+                  'apikey': process.env.NEXUSZ_KEY,
+                  'Authorization': 'Bearer ' + process.env.NEXUSZ_KEY,
+                  'Content-Type': 'application/json'
+                }
+              };
+              const req = https.request(opts, () => {});
+              req.on('error', () => {});
+              req.write(body);
+              req.end();
+            " 2>/dev/null || true
+          }
 
           for DATA in $DATAS; do
             FEITOS=$((FEITOS + 1))
-            PROGRESSO=$(( (FEITOS * 100) / TOTAL ))
+            PROGRESSO=$(( (FEITOS * 90) / TOTAL ))
 
-            echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "📍 [$FEITOS/$TOTAL] Coletando $DATA..."
+            echo "📍 [$FEITOS/$TOTAL] $DATA"
 
-            # Atualiza progresso no Supabase
-            curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.$JOB_ID" \
-              -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-              -H "Content-Type: application/json" \
-              -d "{\"progresso\":$PROGRESSO,\"mensagem\":\"[$FEITOS/$TOTAL] Coletando $DATA...\"}" > /dev/null
+            atualizar_supabase "$PROGRESSO" "[$FEITOS/$TOTAL] Coletando $DATA..."
 
-            # Coleta o dia
-            node tools/coletar-vendas-pneus.js "$DATA" 2>&1
+            node tools/coletar-vendas-pneus.js "$DATA"
+            EXIT=$?
+            [ $EXIT -ne 0 ] && echo "⚠️  $DATA saiu com código $EXIT (continuando)"
 
-            # Extrai pneus coletados do output
-            PNEUS=$(node tools/coletar-vendas-pneus.js "$DATA" --inspecionar 2>/dev/null | grep "unidades" | awk '{sum += $1} END {print sum+0}' || echo "0")
-
-            echo "✅ $DATA concluído"
-
-            # Delay entre dias (exceto no último)
             if [ "$FEITOS" -lt "$TOTAL" ]; then
-              echo "⏳ Aguardando ${DELAY}s antes do próximo dia..."
+              echo "⏳ Aguardando ${DELAY}s..."
               sleep "$DELAY"
             fi
           done
 
-          # Marca como concluído
-          curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.$JOB_ID" \
-            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"progresso\":100,\"status\":\"concluido\",\"mensagem\":\"Retroativo concluído: $TOTAL dias coletados ($INICIO → $FIM)\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null
+          atualizar_supabase "100" "Concluído: $TOTAL dias ($INICIO → $FIM)" "concluido"
+          node -e "
+            const https = require('https');
+            const url = new URL(process.env.NEXUSZ_URL + '/rest/v1/sync_jobs?id=eq.$JOB_ID');
+            const body = JSON.stringify({ concluido_em: new Date().toISOString() });
+            const opts = {
+              hostname: url.hostname,
+              path: url.pathname + url.search,
+              method: 'PATCH',
+              headers: {
+                'apikey': process.env.NEXUSZ_KEY,
+                'Authorization': 'Bearer ' + process.env.NEXUSZ_KEY,
+                'Content-Type': 'application/json'
+              }
+            };
+            const req = https.request(opts, () => {});
+            req.on('error', () => {});
+            req.write(body);
+            req.end();
+          " 2>/dev/null || true
 
-          echo ""
-          echo "🎉 Retroativo concluído: $TOTAL dias ($INICIO → $FIM)"
-
-      - name: Marcar erro se falhou
-        if: failure()
-        run: |
-          JOB_ID="${{ steps.criar_job.outputs.job_id }}"
-          [ -z "$JOB_ID" ] && exit 0
-          curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.$JOB_ID" \
-            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"status\":\"erro\",\"mensagem\":\"Workflow falhou — verifique os logs do GitHub Actions\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null
+          echo "🎉 Retroativo concluído: $TOTAL dias"
+        env:
+          NEXUSZ_URL: ${{ secrets.NEXUSZ_SUPABASE_URL }}
+          NEXUSZ_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
