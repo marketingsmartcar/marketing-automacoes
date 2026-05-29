@@ -5,6 +5,11 @@ on:
     # Todo dia às 08:00 BRT (11:00 UTC) — segunda a sábado
     - cron: '0 11 * * 1-6'
   workflow_dispatch:
+    inputs:
+      job_id:
+        description: 'sync_jobs ID para atualizar progresso no NexusZ'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -13,6 +18,9 @@ jobs:
   coletar:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      NEXUSZ_SUPABASE_URL: ${{ secrets.NEXUSZ_SUPABASE_URL }}
+      NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       - name: Checkout
@@ -50,3 +58,23 @@ jobs:
       - name: Notificar erro
         if: failure()
         run: node tools/notificar-automacao.js --nome "Social Video" --status erro
+
+      - name: Marcar conclusão no Supabase
+        if: always() && github.event.inputs.job_id != ''
+        env:
+          NEXUSZ_SUPABASE_URL: ${{ secrets.NEXUSZ_SUPABASE_URL }}
+          NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" = "success" ]; then
+            FINAL_STATUS="concluido"
+            MSG="Coleta concluída com sucesso"
+          else
+            FINAL_STATUS="erro"
+            MSG="Coleta falhou — verifique os logs do GitHub Actions"
+          fi
+          curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.${{ github.event.inputs.job_id }}" \
+            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"status\":\"$FINAL_STATUS\",\"progresso\":100,\"mensagem\":\"$MSG\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null

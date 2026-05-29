@@ -2,6 +2,11 @@ name: Coletar Leads Agora
 
 on:
   workflow_dispatch:       # acionado via botão no NexusZ
+    inputs:
+      job_id:
+        description: 'sync_jobs ID para atualizar progresso no NexusZ'
+        required: false
+        default: ''
   schedule:
     - cron: '0 10,18 * * *'  # automático: 07h e 15h (BRT = UTC-3)
 
@@ -12,6 +17,9 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      NEXUSZ_SUPABASE_URL: ${{ secrets.NEXUSZ_SUPABASE_URL }}
+      NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -49,3 +57,23 @@ jobs:
 
       - name: Coletar leads de hoje
         run: node tools/leads-hoje.js --agora
+
+      - name: Marcar conclusão no Supabase
+        if: always() && github.event.inputs.job_id != ''
+        env:
+          NEXUSZ_SUPABASE_URL: ${{ secrets.NEXUSZ_SUPABASE_URL }}
+          NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" = "success" ]; then
+            FINAL_STATUS="concluido"
+            MSG="Coleta concluída com sucesso"
+          else
+            FINAL_STATUS="erro"
+            MSG="Coleta falhou — verifique os logs do GitHub Actions"
+          fi
+          curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.${{ github.event.inputs.job_id }}" \
+            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"status\":\"$FINAL_STATUS\",\"progresso\":100,\"mensagem\":\"$MSG\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null
