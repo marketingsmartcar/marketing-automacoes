@@ -90,22 +90,27 @@ jobs:
           done
           echo "✅ Coleta automática concluída"
 
-      - name: Registrar timestamp no Supabase
+      - name: Registrar coleta no Supabase (sync_jobs)
         if: always()
         run: |
           node -e "
             const https = require('https');
-            const url = new URL(process.env.NEXUSZ_SUPABASE_URL + '/rest/v1/app_settings');
-            const body = JSON.stringify([{ key: 'vendas_pneus_last_update', value: new Date().toISOString() }]);
-            const opts = {
-              hostname: url.hostname, path: url.pathname + '?key=eq.vendas_pneus_last_update',
-              method: 'DELETE',
-              headers: { apikey: process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }
-            };
-            const del = https.request(opts, () => {
-              const ins = https.request({ ...opts, path: url.pathname, method: 'POST', headers: { ...opts.headers, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' } }, () => process.stdout.write('timestamp salvo\n'));
-              ins.on('error', () => {});
-              ins.write(body); ins.end();
+            const url = new URL(process.env.NEXUSZ_SUPABASE_URL + '/rest/v1/sync_jobs');
+            const body = JSON.stringify({
+              tipo: 'vendas_pneus',
+              status: 'concluido',
+              progresso: 100,
+              mensagem: 'Coleta automática concluída',
+              concluido_em: new Date().toISOString()
             });
-            del.on('error', () => {}); del.end();
+            const req = https.request({
+              hostname: url.hostname, path: url.pathname, method: 'POST',
+              headers: {
+                apikey: process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY,
+                Authorization: 'Bearer ' + process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY,
+                'Content-Type': 'application/json', Prefer: 'return=minimal'
+              }
+            }, () => process.stdout.write('sync_job registrado\n'));
+            req.on('error', () => {});
+            req.write(body); req.end();
           " 2>/dev/null || true
