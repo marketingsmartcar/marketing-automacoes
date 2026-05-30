@@ -81,6 +81,15 @@ jobs:
           fi
 
       - name: Coletar vendas
+        env:
+          # Tokens OI no env direto (shim dotenv não lê .env)
+          OI_TOKEN_ALT_BR01_CENTRO: ${{ secrets.OI_TOKEN_BR01 }}
+          OI_TOKEN_BR02_VILA:       ${{ secrets.OI_TOKEN_BR02 }}
+          OI_TOKEN_ALT_BR03_AMERICANA: ${{ secrets.OI_TOKEN_BR03 }}
+          OI_TOKEN_BR04_SAO_CARLOS: ${{ secrets.OI_TOKEN_BR04 }}
+          OI_TOKEN_BR05_MARINGA:    ${{ secrets.OI_TOKEN_BR05 }}
+          OI_TOKEN_PEG1_ARARAQUARA: ${{ secrets.OI_TOKEN_PEG01 }}
+          OI_TOKEN_PEG2_SOROCABA:   ${{ secrets.OI_TOKEN_PEG02 }}
         run: |
           set +e
           for DATA in ${{ steps.datas.outputs.datas }}; do
