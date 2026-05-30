@@ -1,0 +1,111 @@
+name: Atualizar Vendas de Pneus (automático)
+
+on:
+  schedule:
+    # De hora em hora, dias úteis 07h–19h BRT (10h–22h UTC), seg–sex
+    - cron: '0 10-22 * * 1-5'
+    # Sábado 08h BRT (11h UTC): coleta o sábado
+    - cron: '0 11 * * 6'
+    # Domingo 08h BRT (11h UTC): recoleta a semana toda para garantir dados corretos
+    - cron: '0 11 * * 0'
+  workflow_dispatch:
+    inputs:
+      data:
+        description: 'Data específica (YYYY-MM-DD, vazio = ontem)'
+        required: false
+        default: ''
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXUSZ_SUPABASE_URL:              ${{ secrets.NEXUSZ_SUPABASE_URL }}
+      NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Criar shim dotenv e .env
+        run: |
+          mkdir -p node_modules/dotenv
+          printf 'exports.config = function() {};\n' > node_modules/dotenv/index.js
+          printf 'exports.config = function() {};\n' > node_modules/dotenv/config.js
+          printf 'NEXUSZ_SUPABASE_URL=%s\n'                     "$NEXUSZ_SUPABASE_URL"   > .env
+          printf 'NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=%s\n'        "$NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" >> .env
+          printf 'OI_TOKEN_ALT_BR01_CENTRO=%s\n'                "$OI_BR01"     >> .env
+          printf 'OI_TOKEN_BR02_VILA=%s\n'                      "$OI_BR02"     >> .env
+          printf 'OI_TOKEN_ALT_BR03_AMERICANA=%s\n'             "$OI_BR03"     >> .env
+          printf 'OI_TOKEN_BR04_SAO_CARLOS=%s\n'                "$OI_BR04"     >> .env
+          printf 'OI_TOKEN_BR05_MARINGA=%s\n'                   "$OI_BR05"     >> .env
+          printf 'OI_TOKEN_PEG1_ARARAQUARA=%s\n'                "$OI_PEG01"    >> .env
+          printf 'OI_TOKEN_PEG2_SOROCABA=%s\n'                  "$OI_PEG02"    >> .env
+        env:
+          OI_BR01:  ${{ secrets.OI_TOKEN_BR01 }}
+          OI_BR02:  ${{ secrets.OI_TOKEN_BR02 }}
+          OI_BR03:  ${{ secrets.OI_TOKEN_BR03 }}
+          OI_BR04:  ${{ secrets.OI_TOKEN_BR04 }}
+          OI_BR05:  ${{ secrets.OI_TOKEN_BR05 }}
+          OI_PEG01: ${{ secrets.OI_TOKEN_PEG01 }}
+          OI_PEG02: ${{ secrets.OI_TOKEN_PEG02 }}
+
+      - name: Definir datas a coletar
+        id: datas
+        run: |
+          set +e
+          DOW=$(date +%u)  # 1=seg ... 7=dom
+
+          if [ -n "${{ github.event.inputs.data }}" ]; then
+            # Disparo manual com data específica
+            echo "datas=${{ github.event.inputs.data }}" >> $GITHUB_OUTPUT
+
+          elif [ "$DOW" = "7" ]; then
+            # Domingo: recoleta segunda a sábado da semana atual
+            MON=$(date -d "last monday" +%Y-%m-%d 2>/dev/null || date -v-mon +%Y-%m-%d)
+            SAT=$(date -d "last saturday" +%Y-%m-%d 2>/dev/null || date -v-sat +%Y-%m-%d)
+            DATAS=$(node -e "
+              const s=new Date('$MON'), e=new Date('$SAT'), out=[];
+              for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)) out.push(d.toISOString().slice(0,10));
+              process.stdout.write(out.join(' '));
+            ")
+            echo "datas=$DATAS" >> $GITHUB_OUTPUT
+            echo "Domingo: recoletando $MON → $SAT"
+
+          else
+            # Dias úteis: coleta apenas ontem
+            ONTEM=$(date -d "yesterday" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)
+            echo "datas=$ONTEM" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Coletar vendas
+        run: |
+          set +e
+          for DATA in ${{ steps.datas.outputs.datas }}; do
+            echo "▶ Coletando $DATA..."
+            node tools/coletar-vendas-pneus.js "$DATA"
+            [ "$DATA" != "$(echo ${{ steps.datas.outputs.datas }} | awk '{print $NF}')" ] && sleep 5
+          done
+          echo "✅ Coleta automática concluída"
+
+      - name: Registrar timestamp no Supabase
+        if: always()
+        run: |
+          node -e "
+            const https = require('https');
+            const url = new URL(process.env.NEXUSZ_SUPABASE_URL + '/rest/v1/app_settings');
+            const body = JSON.stringify([{ key: 'vendas_pneus_last_update', value: new Date().toISOString() }]);
+            const opts = {
+              hostname: url.hostname, path: url.pathname + '?key=eq.vendas_pneus_last_update',
+              method: 'DELETE',
+              headers: { apikey: process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }
+            };
+            const del = https.request(opts, () => {
+              const ins = https.request({ ...opts, path: url.pathname, method: 'POST', headers: { ...opts.headers, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' } }, () => process.stdout.write('timestamp salvo\n'));
+              ins.on('error', () => {});
+              ins.write(body); ins.end();
+            });
+            del.on('error', () => {}); del.end();
+          " 2>/dev/null || true
