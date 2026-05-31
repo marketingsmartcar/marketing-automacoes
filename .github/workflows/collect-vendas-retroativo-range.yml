@@ -1,0 +1,94 @@
+name: Retroativo Vendas Pneus (Intervalo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      data_inicio:
+        description: 'Data início YYYY-MM-DD'
+        required: true
+      data_fim:
+        description: 'Data fim YYYY-MM-DD'
+        required: true
+
+jobs:
+  retroativo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      NEXUSZ_SUPABASE_URL:              ${{ secrets.NEXUSZ_SUPABASE_URL }}
+      NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Criar shim dotenv
+        run: |
+          mkdir -p node_modules/dotenv
+          echo 'exports.config = function() {}; exports.default = {config: function() {}};' > node_modules/dotenv/index.js
+          echo 'exports.config = function() {};' > node_modules/dotenv/config.js
+
+      - name: Retroativo por data
+        env:
+          OI_TOKEN_ALT_BR01_CENTRO:    ${{ secrets.OI_TOKEN_BR01 }}
+          OI_TOKEN_BR02_VILA:          ${{ secrets.OI_TOKEN_BR02 }}
+          OI_TOKEN_ALT_BR03_AMERICANA: ${{ secrets.OI_TOKEN_BR03 }}
+          OI_TOKEN_BR04_SAO_CARLOS:    ${{ secrets.OI_TOKEN_BR04 }}
+          OI_TOKEN_BR05_MARINGA:       ${{ secrets.OI_TOKEN_BR05 }}
+          OI_TOKEN_PEG1_ARARAQUARA:    ${{ secrets.OI_TOKEN_PEG01 }}
+          OI_TOKEN_PEG2_SOROCABA:      ${{ secrets.OI_TOKEN_PEG02 }}
+        run: |
+          set +e
+          START="${{ github.event.inputs.data_inicio }}"
+          END="${{ github.event.inputs.data_fim }}"
+
+          # Gera lista de datas entre START e END
+          DATAS=$(node -e "
+            const s = new Date('$START'), e = new Date('$END'), out = [];
+            for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1))
+              out.push(d.toISOString().slice(0, 10));
+            process.stdout.write(out.join(' '));
+          ")
+
+          echo "Datas a coletar: $DATAS"
+          TOTAL=$(echo $DATAS | wc -w)
+          I=0
+
+          for DATA in $DATAS; do
+            I=$((I+1))
+            echo "▶ [$I/$TOTAL] Coletando $DATA..."
+            node tools/coletar-vendas-pneus.js "$DATA" && echo "  ✅ $DATA ok" || echo "  ⚠️  $DATA com erro (continuando)"
+            # Pausa curta para não sobrecarregar a API OI
+            [ $I -lt $TOTAL ] && sleep 8
+          done
+
+          echo "✅ Retroativo concluído: $START → $END ($TOTAL dias)"
+
+      - name: Registrar no Supabase
+        if: always()
+        run: |
+          node -e "
+            const https = require('https');
+            const url = new URL(process.env.NEXUSZ_SUPABASE_URL + '/rest/v1/sync_jobs');
+            const body = JSON.stringify({
+              tipo: 'vendas_pneus_retroativo',
+              status: 'concluido',
+              progresso: 100,
+              mensagem: 'Retroativo ${{ github.event.inputs.data_inicio }} → ${{ github.event.inputs.data_fim }} concluído',
+              concluido_em: new Date().toISOString()
+            });
+            const req = https.request({
+              hostname: url.hostname, path: url.pathname, method: 'POST',
+              headers: {
+                apikey: process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY,
+                Authorization: 'Bearer ' + process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY,
+                'Content-Type': 'application/json', Prefer: 'return=minimal'
+              }
+            }, () => process.stdout.write('sync_job registrado\n'));
+            req.on('error', () => {});
+            req.write(body); req.end();
+          " 2>/dev/null || true
