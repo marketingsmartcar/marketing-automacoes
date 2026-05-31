@@ -46,10 +46,10 @@ jobs:
           START="${{ github.event.inputs.data_inicio }}"
           END="${{ github.event.inputs.data_fim }}"
 
-          # Gera lista de datas entre START e END
+          # Gera lista de datas de END até START (mais recente → mais antigo)
           DATAS=$(node -e "
             const s = new Date('$START'), e = new Date('$END'), out = [];
-            for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1))
+            for (let d = new Date(e); d >= s; d.setDate(d.getDate() - 1))
               out.push(d.toISOString().slice(0, 10));
             process.stdout.write(out.join(' '));
           ")
