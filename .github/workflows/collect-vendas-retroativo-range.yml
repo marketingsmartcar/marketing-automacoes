@@ -63,7 +63,7 @@ jobs:
             echo "▶ [$I/$TOTAL] Coletando $DATA..."
             node tools/coletar-vendas-pneus.js "$DATA" && echo "  ✅ $DATA ok" || echo "  ⚠️  $DATA com erro (continuando)"
             # Pausa entre datas para não ser bloqueado pelo rate limit da API OI
-            [ $I -lt $TOTAL ] && sleep 45
+            [ $I -lt $TOTAL ] && sleep 90
           done
 
           echo "✅ Retroativo concluído: $START → $END ($TOTAL dias)"
