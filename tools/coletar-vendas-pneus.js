@@ -101,13 +101,17 @@ function apiGet(endpoint, params) {
  * Retorna { w, a, r } ou null se não encontrar.
  */
 function extrairDimensoes(desc) {
-  // Formato OI principal: "PNEU NNN NN RR" (ex: "PNEU 195 65 15")
-  const m = desc.match(/^PNEU\s+(\d{2,3})\s+(\d{2,3})\s+(\d{1,2})\b/i);
-  if (m) return { w: parseInt(m[1],10), a: parseInt(m[2],10), r: parseInt(m[3],10) };
+  // Formato OI com espaços: "PNEU 195 65 15" ou "PNEU 195 65 R15" (com ou sem R antes do aro)
+  const m = desc.match(/^PNEU\s+(\d{2,3})\s+(\d{2,3})\s+[Rr]?(\d{1,2}(?:\.\d)?)\b/i);
+  if (m) return { w: parseInt(m[1],10), a: parseInt(m[2],10), r: parseFloat(m[3]) };
 
-  // Formato com barras: "PNEU 195/65R15" ou "PNEU 195/65 R15"
-  const m2 = desc.match(/^PNEU\s+(\d{2,3})\/(\d{2,3})\s*[Rr-]\s*(\d{1,2})/i);
-  if (m2) return { w: parseInt(m2[1],10), a: parseInt(m2[2],10), r: parseInt(m2[3],10) };
+  // Formato com barras: "PNEU 195/65R15", "PNEU 195/65 R15" ou "PNEU 90/90-18"
+  const m2 = desc.match(/^PNEU\s+(\d{2,3})\/(\d{2,3})\s*[Rr-]\s*(\d{1,2}(?:\.\d)?)/i);
+  if (m2) return { w: parseInt(m2[1],10), a: parseInt(m2[2],10), r: parseFloat(m2[3]) };
+
+  // Formato com ponto: "PNEU 195.65R15" (variação menos comum)
+  const m3 = desc.match(/^PNEU\s+(\d{2,3})\.(\d{2,3})[Rr](\d{1,2}(?:\.\d)?)/i);
+  if (m3) return { w: parseInt(m3[1],10), a: parseInt(m3[2],10), r: parseFloat(m3[3]) };
 
   return null;
 }
