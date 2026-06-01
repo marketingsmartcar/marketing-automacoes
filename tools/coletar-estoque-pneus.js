@@ -95,7 +95,19 @@ async function loginAndSwitch(empresa) {
   let ck = r1.headers['set-cookie']?.map(c => c.split(';')[0]).join('; ') || '';
 
   const lb = new URLSearchParams({ '__VIEWSTATE': vs, '__VIEWSTATEGENERATOR': vsgen, '__EVENTVALIDATION': ev, 'Login1$UserName': process.env.OI_EMAIL, 'Login1$Password': process.env.OI_SENHA, 'Login1$btnEntrar': 'Entrar' }).toString();
-  const r2 = await httpReq('POST', '/Entrar.aspx', { Cookie: ck, 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(lb), Referer: 'https://' + HOST + '/Entrar.aspx' }, lb);
+  const r2 = await httpReq('POST', '/Entrar.aspx', {
+    Cookie: ck,
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Length': Buffer.byteLength(lb),
+    Referer: 'https://' + HOST + '/Entrar.aspx',
+    Origin: 'https://' + HOST,
+    'Cache-Control': 'max-age=0',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-User': '?1',
+  }, lb);
   const loginRedirect = r2.headers['location'] || '';
   console.log('  Login redirect:', loginRedirect);
   if (!loginRedirect.includes('Principal')) throw new Error('Login falhou — redirect: ' + loginRedirect + ' (status:' + r2.status + ')');
