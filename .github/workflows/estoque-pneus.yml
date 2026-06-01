@@ -54,7 +54,7 @@ jobs:
           echo 'exports.config = function() {};' > node_modules/dotenv/config.js
 
       - name: Instalar dependências
-        run: npm install puppeteer 2>/dev/null || true
+        run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth 2>/dev/null || true
 
       - name: Coletar estoque
         run: |

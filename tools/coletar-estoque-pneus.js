@@ -13,8 +13,10 @@
  */
 
 require('dotenv').config();
-const puppeteer = require('puppeteer');
-const https     = require('https');
+const puppeteer      = require('puppeteer-extra');
+const StealthPlugin  = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+const https          = require('https');
 
 const BASE_URL  = 'https://sistemaoficinainteligente.com.br';
 const LOGIN_URL = `${BASE_URL}/Entrar.aspx?sair=1`;
