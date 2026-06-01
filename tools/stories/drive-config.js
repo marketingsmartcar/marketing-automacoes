@@ -19,6 +19,7 @@ const PASTAS_BR = {
 const PASTAS_PEG = {
   'Peg Pneus Araraquara': '1eQSEOBFCtnvjJQiEROuc6DDLmbjFC9tZ',
   'Peg Pneus Sorocaba':   '1D8zvQM4jW_XywWE5IRlVa8HHLfAcvkQn',
+  'Sazonais Peg':         '11pfy9zvFioSDhuztqglpB50JqM16e-Ab',
 };
 
 // Campanha Arraia — Junho 2026
