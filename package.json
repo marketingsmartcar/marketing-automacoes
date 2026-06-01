@@ -47,13 +47,15 @@
     "social:media": "node tools/coletar-social-media.js",
     "ads:supabase": "node tools/coletar-ads-supabase.js",
     "ads:supabase:meta": "node tools/coletar-ads-supabase.js --meta",
-    "ads:supabase:google": "node tools/coletar-ads-supabase.js --google"
+    "ads:supabase:google": "node tools/coletar-ads-supabase.js --google",
+    "avaliacoes": "node tools/coletar-avaliacoes.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@napi-rs/canvas": "^0.1.99",
     "axios": "^1.15.1",
     "chartjs-node-canvas": "^5.0.0",
@@ -67,6 +69,7 @@
     "google-ads-api": "^23.0.0",
     "googleapis": "^171.4.0",
     "node-cron": "^4.2.1",
+    "open": "^11.0.0",
     "openai": "^6.34.0",
     "pdf-parse": "^1.1.1",
     "puppeteer": "^24.40.0",

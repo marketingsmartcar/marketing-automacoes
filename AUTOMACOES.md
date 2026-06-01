@@ -90,6 +90,35 @@ node tools/coletar-vendas-diarias.js 2026-05-06   # data específica
 
 ---
 
+## 2b. Coleta de Vendas de Pneus Detalhada → Supabase
+
+**O que faz:** Acessa a API OI (OrdemDeServicoJSON) para cada uma das 7 lojas, extrai os itens de pneu de cada OS do dia e grava na tabela `vendas_pneus` do Supabase com grupo/descricao/medida/marca/qtd/faturamento por produto. É a fonte de dados do menu "Vendas de Pneus" no NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-vendas-pneus.js` |
+| Agendamento | Manual por enquanto — rodar após `coletar-vendas-diarias.js` |
+
+**Como rodar:**
+```bash
+node tools/coletar-vendas-pneus.js                  # ontem (padrão)
+node tools/coletar-vendas-pneus.js 2026-05-28        # data específica
+node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
+```
+
+**Regras importantes:**
+- Usa a API REST OI diretamente (não Puppeteer) — muito mais rápido (~30s total)
+- Filtra itens com `DescricaoDoItem` começando com "PNEU" (exclui serviços, peças, etc.)
+- Exclui "PNEU USADO (RETIRADA PNEU)" — não é venda
+- Medida extraída com regex do formato OI: `"PNEU NNN NN RR MARCA MODELO"`
+- Marca = primeira palavra após as 3 dimensões da medida
+- Grupo determinado por keywords na descrição + aspect ratio + marca nacional/importada
+- Delete + insert por loja/dia — reexecução é segura
+- Tokens: mesmos `OI_TOKEN_*` do `.env` (BR01 e BR03 usam token ALT)
+- Lojas cobertas: BR01, BR02, BR03, BR04, BR05, PEG1 (Araraquara), SOR1 (Sorocaba)
+
+---
+
 ## 3. Monitor de Ads
 
 **O que faz:** Verifica saldo de todas as contas de Meta Ads e Google Ads. Se houver saldo baixo ou zerado, envia alerta automático no WhatsApp com instruções de recarga.
@@ -262,6 +291,42 @@ node tools/stories/completar-stories-hoje.js # completa posts faltantes (BR Pneu
 3. Deletar lock: `.stories-running.lock`
 4. Rodar `deletar-e-repostar.js`
 5. `pm2 start stories-scheduler`
+
+---
+
+## 5b. Stories Arraia — Campanha Junho 2026
+
+**O que faz:** Publica stories da campanha Arraia em sequência para BR Pneus e Peg Pneus. Só roda em Junho 2026 — encerra automaticamente em julho.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/stories/arraia-scheduler.js` |
+| PM2 | `arraia-scheduler` (ID 2) |
+| Horário | Todo dia às **8h30** (após o stories-scheduler das 8h) |
+| Estado | `data/arraia-state.json` |
+| Encerra | Automaticamente em 01/07/2026 |
+
+**Regras:**
+- **Todo dia:** 1 arte PNG em sequência (1.png, 2.png, …) → IG + FB para BR e Peg
+- **Seg/Qua/Sex:** 1 vídeo MP4 em sequência → IG + FB para BR e Peg
+- Artes são convertidas de PNG para MP4 (7s estático) via ffmpeg antes do upload
+- Índices salvos em `data/arraia-state.json` — reinicia do 1 ao esgotar
+
+**Pastas:**
+
+| Conta | Artes | Vídeos |
+|-------|-------|--------|
+| BR Pneus | `ARRAIA\Artes\BR Pneus 1080x1920\` (9 artes) | `ARRAIA\Videos\BR Pneus\` (3 vídeos) |
+| Peg Pneus | `ARRAIA\Artes\Peg Pneus 1080x1920\` (8 artes) | `ARRAIA\Videos\Peg Pneus\` (3 vídeos) |
+
+Base: `C:\Users\Nick\Desktop\Projetos\Artes\#1 Campanhas\Junho 2026\`
+
+**Como rodar manualmente:**
+```bash
+node tools/stories/arraia-scheduler.js --agora
+```
+
+> ⚠️ **BR Pneus** com token bloqueado (01/06/2026): login em facebook.com necessário + `node tools/renovar-tokens-paginas.js`
 
 ---
 
