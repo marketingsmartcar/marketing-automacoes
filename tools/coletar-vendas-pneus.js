@@ -362,14 +362,13 @@ async function main() {
   const dateArg     = args.find(a => /^\d{4}-\d{2}-\d{2}$/.test(a));
   const jobIdArg    = args.find(a => a.startsWith('--job-id='))?.split('=')[1];
 
-  // Data alvo: ontem por padrão
+  // Data alvo: hoje por padrão (coleta em tempo real)
   const hoje  = new Date();
   let alvo;
   if (dateArg) {
     alvo = new Date(dateArg + 'T12:00:00');
   } else {
-    alvo = new Date(hoje);
-    alvo.setDate(alvo.getDate() - 1);
+    alvo = new Date(hoje); // hoje — para atualização em tempo real
   }
 
   const dataISO = `${alvo.getFullYear()}-${String(alvo.getMonth()+1).padStart(2,'0')}-${String(alvo.getDate()).padStart(2,'0')}`;
