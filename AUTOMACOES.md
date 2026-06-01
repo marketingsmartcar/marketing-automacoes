@@ -850,4 +850,103 @@ node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
 
 ---
 
-*Última atualização: 16/05/2026 — Geração de artes de colaboradores (NexusZ → Drive → Supabase); menus Avaliações Google e Artes Colaboradores adicionados ao NexusZ.*
+---
+
+## 18. Vendas de Pneus — Coleta Horária
+
+**O que faz:** Coleta vendas de pneus por item (grupo/descrição/medida/marca) via API OI (`OrdemDeServicoJSON`) para todas as 7 lojas e grava na tabela `vendas_pneus` do Supabase.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-vendas-pneus.js` |
+| Tabela Supabase | `vendas_pneus` (NexusZ) |
+| Agendamento | **GitHub Actions** — toda hora das **07h–19h BRT** (seg–sáb) + coleta hoje+ontem |
+| Workflow | `.github/workflows/vendas-auto-update.yml` |
+| Retroativo | `.github/workflows/collect-vendas-retroativo-range.yml` |
+| Manual (botão NexusZ) | Edge Function `trigger-vendas-sync` → `collect-vendas-manual.yml` |
+
+**Lojas coletadas:** BR01, BR02, BR03, BR04, BR05, PEG1, SOR1
+
+**Como rodar retroativo:**
+```bash
+gh workflow run collect-vendas-retroativo-range.yml --field data_inicio=2026-06-01 --field data_fim=2026-06-30
+```
+
+**Visualização no NexusZ:** Menu "Vendas de Pneus" — tabelas Sintética/Intermediária/Analítica, gráficos, cards de metas/previsões por grupo.
+
+---
+
+## 5. Stories Automáticos — MIGRADO PARA GITHUB ACTIONS (01/06/2026)
+
+**⚠️ PM2 `stories-scheduler` e `arraia-scheduler` foram REMOVIDOS em 01/06/2026.**
+Ambos agora rodam via GitHub Actions sem precisar do PC ligado.
+
+| Campo | Valor |
+|-------|-------|
+| Script cloud | `tools/stories/cloud-scheduler.js` |
+| Workflow | `.github/workflows/stories-diarios.yml` |
+| Horário | Todo dia às **8h BRT** (seg–sáb) |
+| Estado/fila | `data/stories-cloud-state.json` (commitado no repo) |
+| Vídeos | Google Drive — Service Account `br-pneus-sheets@claude-code-493711.iam.gserviceaccount.com` |
+
+**O que posta por dia:**
+- **Todo dia:** 3 vídeos aleatórios das lojas (BR + Peg) — cooldown 2 dias
+- **Todo dia (junho):** Arte Arraia fixa (1.png) + arte rotativa (2→3→...) — IG + FB
+- **Seg/Qua/Sex (junho):** Vídeo Arraia em sequência — IG + FB
+- **Ter/Qui/Sáb (junho):** Vídeo Sazonal BR em sequência — IG + FB
+
+**Pastas no Google Drive** (ID raiz: `19Xou0JBmu_U6yjR1C7Lz8nO-mp5mkLeI`):
+
+| Conta | Pasta | Conteúdo |
+|-------|-------|----------|
+| BR Pneus | `Conteudo das lojas/` (5 sub-pastas) | Vídeos regulares das lojas |
+| Peg Pneus | `Conteudo das lojas/` (2 sub-pastas) + `Sazonais Peg/` | Vídeos regulares + sazonal |
+| BR Pneus | `ARRAIA/Artes/BR Pneus 1080x1920/` | 9 artes PNG campanha |
+| Peg Pneus | `ARRAIA/Artes/Peg Pneus 1080x1920/` | 8 artes PNG campanha |
+| BR Pneus | `ARRAIA/Videos/BR Pneus/` | 3 vídeos MP4 (ig_* = versão IG) |
+| Peg Pneus | `ARRAIA/Videos/Peg Pneus/` | 3 vídeos MP4 |
+| BR Pneus | `Videos Sazonais/BR Pneus/` | 3 vídeos sazonais |
+
+**Adicionar vídeo novo:** só colocar na pasta certa do Drive — detectado automaticamente na próxima execução.
+
+**Renovar tokens Meta:**
+```bash
+node tools/renovar-tokens-paginas.js   # renova BR + Peg usando app Claude Code Peg Pneus
+node tools/renovar-token-fb-br.js TOKEN  # renovar só BR (precisa token do app 973912085565078)
+```
+- **App BR Pneus:** `973912085565078` (usa app Peg `1702717160858852` para autenticar)
+- **App Peg Pneus:** `1702717160858852` (Claude Code Peg Pneus)
+- **Importante:** usuário da BR deve gerar token no Explorer usando o app **Claude Code Peg Pneus**
+
+**PC necessário:** ❌ Não (GitHub Actions)
+
+---
+
+## 19. Estoque de Pneus — Coleta Horária (EM DESENVOLVIMENTO)
+
+**O que faz:** Coleta estoque atual de pneus (descrição, grupo, quantidade, custo) via scraping HTTP do OI para todas as lojas e grava na tabela `estoque_pneus` do Supabase.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-estoque-pneus.js` |
+| Tabela Supabase | `estoque_pneus` (NexusZ) |
+| Agendamento | **GitHub Actions** — toda hora das **07h–19h BRT** (seg–sáb) |
+| Workflow | `.github/workflows/estoque-pneus.yml` |
+| Manual (botão NexusZ) | Edge Function `trigger-estoque-sync` |
+| PC necessário | ❌ Não (HTTP puro — sem Puppeteer) |
+
+**Estratégia técnica:**
+- Login via HTTP POST com cookies ASP.NET (sem browser — contorna bloqueio de IP do GitHub Actions)
+- Navega para `wfProdutoBusca.aspx` com filtros por grupo + "Com estoque"
+- Para cada produto: chama `ProdutoJSON` API para obter R$ Custo
+- Lojas: BR01, BR02, BR03, BR04, BR05, PEG1 (sem SOR1)
+
+**Dados coletados por produto:** descrição, grupo, quantidade em estoque, R$ Custo
+
+**Visualização no NexusZ:** Menu "Estoque de Pneus" — tabela por grupo, cards por loja, busca, barra de progresso em tempo real ao atualizar.
+
+> ⚠️ **Status em 01/06/2026:** Script em desenvolvimento — login HTTP confirmado (302 OK), navegação para página de produtos sendo finalizada.
+
+---
+
+*Última atualização: 01/06/2026 — Vendas Pneus (coleta horária GitHub Actions), Stories migrados para GitHub Actions (PM2 removido), Estoque Pneus em desenvolvimento.*
