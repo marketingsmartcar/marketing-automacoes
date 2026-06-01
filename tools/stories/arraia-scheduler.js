@@ -69,8 +69,9 @@ const CONTAS = [
     nome:      'BR Pneus',
     instagram: { igUserId: process.env.META_IG_ID_BR,        pageToken: process.env.META_PAGE_TOKEN_BR },
     facebook:  { pageId:   process.env.META_PAGE_ID_BR,      pageToken: process.env.META_PAGE_TOKEN_BR },
-    pastaArtes:  'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Artes\\BR Pneus 1080x1920',
-    pastaVideos: 'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Videos\\BR Pneus',
+    pastaArtes:        'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Artes\\BR Pneus 1080x1920',
+    pastaVideos:       'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Videos\\BR Pneus',
+    pastaVideosSazonais: 'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\Videos Sazonais\\BR Pneus',
   },
   {
     key:       'peg',
@@ -102,6 +103,10 @@ function isJunho2026() {
 
 function isSegQuaSex() {
   return [1, 3, 5].includes(brt().getDay());
+}
+
+function isTerQuiSab() {
+  return [2, 4, 6].includes(brt().getDay()); // 2=Ter 4=Qui 6=Sáb
 }
 
 // ─── Estado ───────────────────────────────────────────────────────────────────
@@ -212,10 +217,11 @@ async function publicarArraia() {
   try {
     const hoje = dataHoje();
     const postarVideo = isSegQuaSex();
+    const postarSazonal = isTerQuiSab();
     const estado = carregarEstado();
 
     console.log(`\n🎪 [${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}] Arraia Scheduler`);
-    console.log(`   Data: ${hoje} | Vídeo hoje: ${postarVideo ? 'Sim (Seg/Qua/Sex)' : 'Não'}`);
+    console.log(`   Data: ${hoje} | Arraia (Seg/Qua/Sex): ${postarVideo ? 'Sim' : 'Não'} | Sazonal BR (Ter/Qui/Sáb): ${postarSazonal ? 'Sim' : 'Não'}`);
 
     for (const conta of CONTAS) {
       console.log(`\n📂 ${conta.nome}`);
@@ -279,6 +285,31 @@ async function publicarArraia() {
             }
           } else {
             console.log(`  ⚠️  Nenhum vídeo encontrado.`);
+          }
+        }
+      }
+
+      // ── Vídeos Sazonais BR (Ter/Qui/Sáb — somente conta BR) ──────────────────
+      if (postarSazonal && conta.pastaVideosSazonais) {
+        if (st.ultimo_sazonal === hoje) {
+          console.log(`  ⏭️  Vídeo sazonal já postado hoje (${hoje}) — pulando.`);
+        } else {
+          const videosSaz = listarArquivos(conta.pastaVideosSazonais, ['.mp4', '.mov', '.avi']);
+          if (videosSaz.length > 0) {
+            // PROTEÇÃO: marca antes de postar
+            st.ultimo_sazonal = hoje;
+            salvarEstado(estado);
+
+            const sazIdx = (st.sazonal_index ?? 0) % videosSaz.length;
+            const videoSaz = videosSaz[sazIdx];
+            console.log(`  🎬 [Sazonal] ${sazIdx + 1}/${videosSaz.length}: ${path.basename(videoSaz)}`);
+            const ok = await postarArquivo(conta, videoSaz, 'Vídeo Sazonal');
+            if (ok) {
+              st.sazonal_index = (sazIdx + 1) % videosSaz.length;
+              salvarEstado(estado);
+            }
+          } else {
+            console.log(`  ⚠️  Nenhum vídeo sazonal encontrado em: ${conta.pastaVideosSazonais}`);
           }
         }
       }
