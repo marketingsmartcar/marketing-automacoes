@@ -69,11 +69,12 @@ async function login(page) {
     if (el) { selUsuario = sel; break; }
   }
   if (!selUsuario) {
-    // Imprime HTML para diagnóstico
     const html = await page.content();
-    console.error('  ❌ Seletor de login não encontrado. HTML (primeiros 1000):');
-    console.error(html.slice(0, 1000).replace(/\s+/g, ' '));
-    throw new Error('Seletor de login não encontrado');
+    // Extrai só o texto visível para diagnóstico
+    const texto = await page.evaluate(() => document.body?.innerText?.slice(0, 500) || '');
+    console.error('  ❌ Seletor de login não encontrado.');
+    console.error('  Texto da página:', texto.replace(/\s+/g, ' '));
+    throw new Error('Seletor de login não encontrado — IP bloqueado?');
   }
   console.log(`  Usando seletor: ${selUsuario}`);
 
@@ -316,6 +317,9 @@ async function main() {
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
+  // User-Agent de Chrome real para evitar bloqueio por bot detection
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+  await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8' });
 
   let totalGravados = 0, totalErros = 0;
   const total = lojas.length;
