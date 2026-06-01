@@ -276,8 +276,12 @@ async function coletarGruposLoja(ck, lojaKey) {
       const venda = parseFloat(vendaStr.replace(/\./g, '').replace(',', '.')) || null;
 
       // Extrai medida da descrição
-      const dimM = descricao.match(/(\d{2,3}[\s\/]\d{2,3}[\sRr\/-]\d{1,2}(?:\.\d)?)/);
-      const medida = dimM ? dimM[1].replace(/\s+/g, '/').replace(/\//g, '/').trim() : null;
+      // Formatos: carro/SUV "185 65 15" | "185/65R15" | moto "250 17" | "90 90 21"
+      const stripped = descricao.replace(/^PNEU\s+/i, '');
+      const dimM =
+        stripped.match(/^(\d{2,3}[\s\/]\d{2,3}[\sRr\/-]\d{1,2}(?:\.\d)?)/) || // 3 números (carro)
+        stripped.match(/^(\d{2,3}[\s\/]\d{1,2})(?=\s[A-Z])/);                  // 2 números (moto)
+      const medida = dimM ? dimM[1].replace(/\s+/g, '/').trim() : null;
 
       resultados.push({
         loja: lojaKey, grupo, descricao, medida, estoque, custo, venda,
