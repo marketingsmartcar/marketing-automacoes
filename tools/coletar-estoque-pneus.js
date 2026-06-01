@@ -32,7 +32,7 @@ const LOJAS = [
   { key: 'BR04', nome: 'BR Pneus São Carlos',        tokenKey: 'OI_TOKEN_BR04_SAO_CARLOS' },
   { key: 'BR05', nome: 'BR Pneus Maringá',           tokenKey: 'OI_TOKEN_BR05_MARINGA'    },
   { key: 'PEG1', nome: 'Peg Pneus Araraquara',       tokenKey: 'OI_TOKEN_PEG1_ARARAQUARA' },
-  { key: 'SOR1', nome: 'Peg Pneus Sorocaba',         tokenKey: 'OI_TOKEN_PEG2_SOROCABA'   },
+  // SOR1 removida a pedido — não coleta estoque de Peg Sorocaba
 ];
 
 const GRUPOS_PNEU = [
