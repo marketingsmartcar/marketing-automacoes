@@ -75,6 +75,18 @@ function notificar(status, detalhe) {
 
 async function publicarStoriesDoDia() {
   notificar('inicio');
+
+  // Verifica se o arraia-scheduler está rodando (evita conflito)
+  const LOCK_ARRAIA = path.join(__dirname, '..', '..', '.arraia-running.lock');
+  if (fs.existsSync(LOCK_ARRAIA)) {
+    const ageMin = (Date.now() - fs.statSync(LOCK_ARRAIA).mtimeMs) / 60000;
+    if (ageMin < 30) {
+      console.log(`⚠️  arraia-scheduler está rodando (lock há ${Math.round(ageMin)}min) — aguardando...`);
+      setTimeout(() => publicarStoriesDoDia(), 60_000);
+      return;
+    }
+  }
+
   // Impede execuções concorrentes — usa escrita atômica (flag 'wx') para evitar race condition
   try {
     fs.writeFileSync(LOCK_FILE, new Date().toISOString(), { flag: 'wx' });

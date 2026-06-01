@@ -22,6 +22,45 @@ ffmpeg.setFfmpegPath(require('@ffmpeg-installer/ffmpeg').path);
 
 const { postarInstagramStory, postarFacebookStory } = require('./story-poster');
 
+// ─── Lock files ───────────────────────────────────────────────────────────────
+const ROOT         = path.join(__dirname, '..', '..');
+const LOCK_ARRAIA  = path.join(ROOT, '.arraia-running.lock');
+const LOCK_STORIES = path.join(ROOT, '.stories-running.lock');
+const LOCK_MAX_MIN = 30; // lock velho após 30 min → stale, ignorar
+
+function adquirirLock() {
+  // Verifica se o stories-scheduler está rodando (aguarda até liberar)
+  if (fs.existsSync(LOCK_STORIES)) {
+    const ageMin = (Date.now() - fs.statSync(LOCK_STORIES).mtimeMs) / 60000;
+    if (ageMin < LOCK_MAX_MIN) {
+      console.log(`⏳ stories-scheduler ainda rodando (lock há ${Math.round(ageMin)}min) — aguardando 60s...`);
+      return false; // chamador deve tentar de novo
+    }
+  }
+  // Tenta adquirir lock próprio (flag 'wx' = falha se já existe)
+  try {
+    fs.writeFileSync(LOCK_ARRAIA, new Date().toISOString(), { flag: 'wx' });
+    return true;
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      const ageMin = (Date.now() - fs.statSync(LOCK_ARRAIA).mtimeMs) / 60000;
+      if (ageMin < LOCK_MAX_MIN) {
+        console.log(`⚠️  Arraia já está rodando (lock há ${Math.round(ageMin)}min) — abortando para evitar duplicata.`);
+        return null; // null = abortar sem retry
+      }
+      // Lock stale — remove e tenta de novo
+      fs.unlinkSync(LOCK_ARRAIA);
+      fs.writeFileSync(LOCK_ARRAIA, new Date().toISOString(), { flag: 'wx' });
+      return true;
+    }
+    throw err;
+  }
+}
+
+function liberarLock() {
+  try { if (fs.existsSync(LOCK_ARRAIA)) fs.unlinkSync(LOCK_ARRAIA); } catch {}
+}
+
 // ─── Configuração das contas ──────────────────────────────────────────────────
 
 const CONTAS = [
@@ -162,79 +201,96 @@ async function publicarArraia() {
     return;
   }
 
-  const hoje = dataHoje();
-  const postarVideo = isSegQuaSex();
-  const estado = carregarEstado();
-
-  console.log(`\n🎪 [${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}] Arraia Scheduler`);
-  console.log(`   Data: ${hoje} | Vídeo hoje: ${postarVideo ? 'Sim (Seg/Qua/Sex)' : 'Não'}`);
-
-  for (const conta of CONTAS) {
-    console.log(`\n📂 ${conta.nome}`);
-
-    if (!estado[conta.key]) {
-      estado[conta.key] = { arte_rotativa_index: 1, ultima_arte: null, ultimo_video: null };
-    }
-    const st = estado[conta.key];
-
-    const artes = listarArquivos(conta.pastaArtes, ['.png', '.jpg', '.jpeg']);
-    const arte1 = artes[0] ?? null;          // 1.png — fixa todo dia
-    const artesRotativas = artes.slice(1);   // 2.png, 3.png, ... — uma por dia
-
-    // ── Arte 1 (fixa, todo dia) ───────────────────────────────────────────────
-    if (st.ultima_arte === hoje) {
-      console.log(`  ⏭️  Artes já postadas hoje — pulando.`);
-    } else {
-      if (arte1) {
-        console.log(`  🎨 Arte fixa: ${path.basename(arte1)}`);
-        await postarArquivo(conta, arte1, 'Arte 1 fixa');
-      }
-
-      // ── Arte rotativa (2.png → 3.png → ...) ──────────────────────────────
-      if (artesRotativas.length > 0) {
-        const idx = (st.arte_rotativa_index ?? 1) % artes.length;
-        // Garante que idx aponta para uma arte rotativa (índice >= 1)
-        const idxRotativo = idx === 0 ? 1 : idx;
-        const arteRot = artes[idxRotativo] ?? artesRotativas[0];
-        console.log(`  🎨 Arte rotativa ${idxRotativo+1}/${artes.length}: ${path.basename(arteRot)}`);
-        const ok = await postarArquivo(conta, arteRot, `Arte ${idxRotativo+1}`);
-        if (ok) {
-          // Próxima arte rotativa: avança, pulando índice 0 (arte 1 fixa)
-          let proximo = idxRotativo + 1;
-          if (proximo >= artes.length) proximo = 1; // volta para 2.png
-          st.arte_rotativa_index = proximo;
-        }
-      }
-
-      st.ultima_arte = hoje;
-    }
-
-    // ── Vídeo Arraia (Seg/Qua/Sex) ────────────────────────────────────────────
-    if (postarVideo) {
-      if (st.ultimo_video === hoje) {
-        console.log(`  ⏭️  Vídeo já postado hoje — pulando.`);
-      } else {
-        const videos = listarArquivos(conta.pastaVideos, ['.mp4', '.mov', '.avi']);
-        if (videos.length > 0) {
-          const vidIdx = (st.video_index ?? 0) % videos.length;
-          const video = videos[vidIdx];
-          console.log(`  🎬 Vídeo ${vidIdx+1}/${videos.length}: ${path.basename(video)}`);
-          const ok = await postarArquivo(conta, video, 'Vídeo');
-          if (ok) {
-            st.video_index = (vidIdx + 1) % videos.length;
-            st.ultimo_video = hoje;
-          }
-        } else {
-          console.log(`  ⚠️  Nenhum vídeo encontrado.`);
-        }
-      }
-    }
-
-    estado[conta.key] = st;
+  // ── Proteção anti-duplicata: lock ─────────────────────────────────────────
+  const lockResult = adquirirLock();
+  if (lockResult === null) return;         // outro processo já rodando hoje
+  if (lockResult === false) {              // stories-scheduler ainda rodando
+    setTimeout(() => publicarArraia(), 60_000); // tenta de novo em 60s
+    return;
   }
 
-  salvarEstado(estado);
-  console.log('\n✅ Arraia Scheduler concluído.');
+  try {
+    const hoje = dataHoje();
+    const postarVideo = isSegQuaSex();
+    const estado = carregarEstado();
+
+    console.log(`\n🎪 [${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}] Arraia Scheduler`);
+    console.log(`   Data: ${hoje} | Vídeo hoje: ${postarVideo ? 'Sim (Seg/Qua/Sex)' : 'Não'}`);
+
+    for (const conta of CONTAS) {
+      console.log(`\n📂 ${conta.nome}`);
+
+      if (!estado[conta.key]) {
+        estado[conta.key] = { arte_rotativa_index: 1, ultima_arte: null, ultimo_video: null };
+      }
+      const st = estado[conta.key];
+
+      const artes = listarArquivos(conta.pastaArtes, ['.png', '.jpg', '.jpeg']);
+      const arte1 = artes[0] ?? null;        // 1.png — fixa todo dia
+      const artesRotativas = artes.slice(1); // 2.png, 3.png, ... — uma por dia
+
+      // ── Arte 1 fixa + arte rotativa ─────────────────────────────────────────
+      if (st.ultima_arte === hoje) {
+        console.log(`  ⏭️  Artes já postadas hoje (${hoje}) — pulando para evitar duplicata.`);
+      } else {
+        // PROTEÇÃO: marca como "iniciado hoje" ANTES de postar
+        // Se travar no meio, na próxima execução sabe que já começou e pula
+        st.ultima_arte = hoje;
+        salvarEstado(estado);
+
+        if (arte1) {
+          console.log(`  🎨 Arte fixa: ${path.basename(arte1)}`);
+          await postarArquivo(conta, arte1, 'Arte 1 fixa');
+        }
+
+        if (artesRotativas.length > 0) {
+          const idx = (st.arte_rotativa_index ?? 1) % artes.length;
+          const idxRotativo = idx === 0 ? 1 : idx;
+          const arteRot = artes[idxRotativo] ?? artesRotativas[0];
+          console.log(`  🎨 Arte rotativa ${idxRotativo + 1}/${artes.length}: ${path.basename(arteRot)}`);
+          const ok = await postarArquivo(conta, arteRot, `Arte ${idxRotativo + 1}`);
+          if (ok) {
+            let proximo = idxRotativo + 1;
+            if (proximo >= artes.length) proximo = 1;
+            st.arte_rotativa_index = proximo;
+            salvarEstado(estado); // salva índice avançado imediatamente
+          }
+        }
+      }
+
+      // ── Vídeo Arraia (Seg/Qua/Sex) ───────────────────────────────────────────
+      if (postarVideo) {
+        if (st.ultimo_video === hoje) {
+          console.log(`  ⏭️  Vídeo já postado hoje (${hoje}) — pulando para evitar duplicata.`);
+        } else {
+          const videos = listarArquivos(conta.pastaVideos, ['.mp4', '.mov', '.avi']);
+          if (videos.length > 0) {
+            // PROTEÇÃO: marca como "iniciado hoje" ANTES de postar
+            st.ultimo_video = hoje;
+            salvarEstado(estado);
+
+            const vidIdx = (st.video_index ?? 0) % videos.length;
+            const video = videos[vidIdx];
+            console.log(`  🎬 Vídeo ${vidIdx + 1}/${videos.length}: ${path.basename(video)}`);
+            const ok = await postarArquivo(conta, video, 'Vídeo');
+            if (ok) {
+              st.video_index = (vidIdx + 1) % videos.length;
+              salvarEstado(estado);
+            }
+          } else {
+            console.log(`  ⚠️  Nenhum vídeo encontrado.`);
+          }
+        }
+      }
+
+      estado[conta.key] = st;
+    }
+
+    salvarEstado(estado);
+    console.log('\n✅ Arraia Scheduler concluído.');
+  } finally {
+    liberarLock(); // sempre libera o lock, mesmo em caso de erro
+  }
 }
 
 // ─── Agendamento: 8h30 todo dia ───────────────────────────────────────────────
