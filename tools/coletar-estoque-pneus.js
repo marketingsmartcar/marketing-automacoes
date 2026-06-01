@@ -53,18 +53,50 @@ const GRUPOS_PNEU = [
 
 async function login(page) {
   console.log('🔑 Login...');
-  await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
-  await page.waitForSelector('#Login1_UserName', { timeout: 30000 });
-  await page.click('#Login1_UserName', { clickCount: 3 });
-  await page.type('#Login1_UserName', process.env.OI_EMAIL, { delay: 30 });
-  await page.click('#Login1_Password', { clickCount: 3 });
-  await page.type('#Login1_Password', process.env.OI_SENHA, { delay: 30 });
+  await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await sleep(2000); // aguarda JS carregar
+
+  // Diagnóstico
+  const url   = page.url();
+  const title = await page.title().catch(() => '?');
+  console.log(`  URL: ${url} | Título: ${title}`);
+
+  // Tenta múltiplos seletores possíveis de login
+  const seletores = ['#Login1_UserName', 'input[name*="UserName"]', 'input[type="text"]', '#ctl00_UserName'];
+  let selUsuario = null;
+  for (const sel of seletores) {
+    const el = await page.$(sel);
+    if (el) { selUsuario = sel; break; }
+  }
+  if (!selUsuario) {
+    // Imprime HTML para diagnóstico
+    const html = await page.content();
+    console.error('  ❌ Seletor de login não encontrado. HTML (primeiros 1000):');
+    console.error(html.slice(0, 1000).replace(/\s+/g, ' '));
+    throw new Error('Seletor de login não encontrado');
+  }
+  console.log(`  Usando seletor: ${selUsuario}`);
+
+  const selSenha = selUsuario.replace('UserName','Password').replace('text','password');
+  await page.click(selUsuario, { clickCount: 3 });
+  await page.type(selUsuario, process.env.OI_EMAIL, { delay: 20 });
+
+  const senhaEl = await page.$(selSenha) || await page.$('input[type="password"]');
+  if (senhaEl) {
+    await senhaEl.click({ clickCount: 3 });
+    await senhaEl.type(process.env.OI_SENHA, { delay: 20 });
+  }
+
+  const btnLogin = await page.$('#Login1_btnEntrar') || await page.$('input[type="submit"]') || await page.$('button[type="submit"]');
+  if (!btnLogin) throw new Error('Botão de login não encontrado');
+
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }),
-    page.click('#Login1_btnEntrar'),
+    btnLogin.click(),
   ]);
-  if (page.url().toLowerCase().includes('entrar')) throw new Error('Login falhou');
-  console.log('✅ Logado');
+
+  if (page.url().toLowerCase().includes('entrar')) throw new Error('Login falhou — credenciais incorretas ou bloqueio');
+  console.log('✅ Logado em:', page.url());
 }
 
 // ── Troca de loja ─────────────────────────────────────────────────────────────
