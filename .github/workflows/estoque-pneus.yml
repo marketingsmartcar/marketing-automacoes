@@ -1,0 +1,66 @@
+name: Estoque de Pneus — Coleta Horária
+
+on:
+  schedule:
+    # Toda hora, seg–sáb 07h–19h BRT (10h–22h UTC)
+    - cron: '0 10-22 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      loja:
+        description: 'Loja específica (BR01, BR02, etc.) — vazio = todas'
+        required: false
+        default: ''
+      job_id:
+        description: 'ID do sync_job no Supabase'
+        required: false
+        default: ''
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NEXUSZ_SUPABASE_URL:              ${{ secrets.NEXUSZ_SUPABASE_URL }}
+      NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+      OI_EMAIL:                         ${{ secrets.OI_EMAIL }}
+      OI_SENHA:                         ${{ secrets.OI_SENHA }}
+      OI_TOKEN_ALT_BR01_CENTRO:         ${{ secrets.OI_TOKEN_BR01 }}
+      OI_TOKEN_BR02_VILA:               ${{ secrets.OI_TOKEN_BR02 }}
+      OI_TOKEN_ALT_BR03_AMERICANA:      ${{ secrets.OI_TOKEN_BR03 }}
+      OI_TOKEN_BR04_SAO_CARLOS:         ${{ secrets.OI_TOKEN_BR04 }}
+      OI_TOKEN_BR05_MARINGA:            ${{ secrets.OI_TOKEN_BR05 }}
+      OI_TOKEN_PEG1_ARARAQUARA:         ${{ secrets.OI_TOKEN_PEG01 }}
+      OI_TOKEN_PEG2_SOROCABA:           ${{ secrets.OI_TOKEN_PEG02 }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Chromium para Puppeteer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y chromium-browser
+          echo "PUPPETEER_EXECUTABLE_PATH=$(which chromium-browser)" >> $GITHUB_ENV
+          echo "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true" >> $GITHUB_ENV
+
+      - name: Criar shim dotenv
+        run: |
+          mkdir -p node_modules/dotenv
+          echo 'exports.config = function() {};' > node_modules/dotenv/index.js
+          echo 'exports.config = function() {};' > node_modules/dotenv/config.js
+
+      - name: Instalar dependências
+        run: npm install puppeteer 2>/dev/null || true
+
+      - name: Coletar estoque
+        run: |
+          LOJA="${{ github.event.inputs.loja }}"
+          JOB="${{ github.event.inputs.job_id }}"
+          ARGS=""
+          [ -n "$LOJA" ] && ARGS="$ARGS $LOJA"
+          [ -n "$JOB"  ] && ARGS="$ARGS --job-id=$JOB"
+          node tools/coletar-estoque-pneus.js $ARGS
