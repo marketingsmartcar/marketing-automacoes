@@ -268,5 +268,4 @@ async function publicarStories() {
 
 // ─── Execução ─────────────────────────────────────────────────────────────────
 
-publicarArraia = publicarStories; // alias para compatibilidade
 publicarStories().catch(e => { console.error('ERRO FATAL:', e); process.exit(1); });

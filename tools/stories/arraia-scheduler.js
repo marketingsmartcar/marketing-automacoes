@@ -69,8 +69,9 @@ const CONTAS = [
     nome:      'BR Pneus',
     instagram: { igUserId: process.env.META_IG_ID_BR,        pageToken: process.env.META_PAGE_TOKEN_BR },
     facebook:  { pageId:   process.env.META_PAGE_ID_BR,      pageToken: process.env.META_PAGE_TOKEN_BR },
-    pastaArtes:        'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Artes\\BR Pneus 1080x1920',
-    pastaVideos:       'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Videos\\BR Pneus',
+    pastaArtes:          'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Artes\\BR Pneus 1080x1920',
+    pastaVideos:         'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Videos\\BR Pneus',
+    videosFiltro:        (f) => f.startsWith('ig_'), // só versões convertidas para IG
     pastaVideosSazonais: 'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\Videos Sazonais\\BR Pneus',
   },
   {
@@ -80,6 +81,7 @@ const CONTAS = [
     facebook:  { pageId:   process.env.META_PAGE_ID_PEG_ARQ, pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ },
     pastaArtes:  'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Artes\\Peg Pneus 1080x1920',
     pastaVideos: 'C:\\Users\\Nick\\Desktop\\Projetos\\Artes\\#1 Campanhas\\Junho 2026\\ARRAIA\\Videos\\Peg Pneus',
+    videosFiltro: (f) => f.startsWith('ig_'),
   },
 ];
 
@@ -171,13 +173,15 @@ async function postarArquivo(conta, arquivoPath, tipo) {
 
   let igOk = false, fbOk = false;
 
-  if (conta.instagram?.igUserId && conta.instagram?.pageToken) {
+  if (!conta.igBloqueado && conta.instagram?.igUserId && conta.instagram?.pageToken) {
     try {
       await postarInstagramStory(conta.instagram.igUserId, conta.instagram.pageToken, fileToPost);
       igOk = true;
     } catch (err) {
       console.error(`  ❌ [IG] ${err.message}`);
     }
+  } else if (conta.igBloqueado) {
+    console.log(`  ⏭️  [IG] Bloqueado (app sem permissão) — postando só no FB.`);
   }
 
   if (conta.facebook?.pageId && conta.facebook?.pageToken) {
@@ -269,7 +273,8 @@ async function publicarArraia() {
         if (st.ultimo_video === hoje) {
           console.log(`  ⏭️  Vídeo já postado hoje (${hoje}) — pulando para evitar duplicata.`);
         } else {
-          const videos = listarArquivos(conta.pastaVideos, ['.mp4', '.mov', '.avi']);
+          const todosVids = listarArquivos(conta.pastaVideos, ['.mp4', '.mov', '.avi']);
+          const videos = conta.videosFiltro ? todosVids.filter(v => conta.videosFiltro(require('path').basename(v))) : todosVids;
           if (videos.length > 0) {
             // PROTEÇÃO: marca como "iniciado hoje" ANTES de postar
             st.ultimo_video = hoje;
