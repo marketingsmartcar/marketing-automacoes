@@ -222,6 +222,29 @@ function apiProduto(token, produtoID) {
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 
+function sbReq(method, path, body) {
+  return new Promise((res) => {
+    const url = new URL(NEXUSZ_URL + path);
+    const data = body ? JSON.stringify(body) : null;
+    const req = https.request({
+      hostname: url.hostname, path: url.pathname + url.search, method,
+      headers: {
+        apikey: NEXUSZ_KEY, Authorization: `Bearer ${NEXUSZ_KEY}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+        ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {}),
+      }
+    }, r => { let d=''; r.on('data',c=>d+=c); r.on('end',()=>res({status:r.statusCode,body:d})); });
+    req.on('error', () => res({status:0,body:''}));
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+function atualizarJob(jobId, campos) {
+  if (!jobId) return Promise.resolve();
+  return sbReq('PATCH', `/rest/v1/sync_jobs?id=eq.${jobId}`, campos);
+}
+
 function supabaseUpsert(rows) {
   return new Promise((res, rej) => {
     const body = JSON.stringify(rows);
@@ -263,12 +286,23 @@ async function main() {
   await page.setViewport({ width: 1280, height: 900 });
 
   let totalGravados = 0, totalErros = 0;
+  const total = lojas.length;
+
+  // Marca job como rodando
+  await atualizarJob(jobId, { status: 'rodando', progresso: 0, mensagem: 'Iniciando coleta...' });
 
   try {
     await login(page);
 
-    for (const loja of lojas) {
+    for (let li = 0; li < lojas.length; li++) {
+      const loja = lojas[li];
+      const progInicio = Math.round((li / total) * 95);
       console.log(`\n📦 ${loja.nome}`);
+      await atualizarJob(jobId, {
+        progresso: progInicio,
+        mensagem: `Coletando ${loja.nome}...`,
+      });
+
       const token = process.env[loja.tokenKey];
 
       try {
@@ -281,12 +315,10 @@ async function main() {
           totalErros++; continue;
         }
 
-        // Salva URL da página para reusar entre grupos
         const prodPageUrl = page.url();
         const todasLinhas = [];
 
         for (const grupo of GRUPOS_PNEU) {
-          // Volta para a página de produtos antes de cada grupo
           if (page.url() !== prodPageUrl) {
             await page.goto(prodPageUrl, { waitUntil: 'networkidle2', timeout: 20000 });
           }
@@ -296,7 +328,6 @@ async function main() {
 
           console.log(`  ${grupo}: ${prods.length} produto(s)`);
 
-          // Pega custo via API para cada produto
           for (const prod of prods) {
             let custo = null;
             if (token && prod.codigo) {
@@ -304,7 +335,6 @@ async function main() {
               if (apiData) custo = apiData.PrecoDeCusto ?? null;
               await sleep(100);
             }
-
             todasLinhas.push({
               loja:      loja.key,
               grupo,
@@ -333,9 +363,21 @@ async function main() {
 
         console.log(`  ✅ ${todasLinhas.length} produtos gravados`);
 
+        // Atualiza progresso após esta loja concluir
+        await atualizarJob(jobId, {
+          status: 'rodando',
+          progresso: Math.round(((li + 1) / total) * 95),
+          mensagem: `✅ ${loja.nome}: ${todasLinhas.length} pneus | Total: ${totalGravados}`,
+          pneus_coletados: totalGravados,
+        });
+
       } catch (e) {
         console.error(`  ❌ Erro na loja ${loja.key}:`, e.message);
         totalErros++;
+        await atualizarJob(jobId, {
+          progresso: Math.round(((li + 1) / total) * 95),
+          mensagem: `❌ Erro em ${loja.nome}: ${e.message}`,
+        });
       }
     }
   } finally {
@@ -344,16 +386,13 @@ async function main() {
 
   console.log(`\n✅ Concluído: ${totalGravados} registros | ${totalErros} erros`);
 
-  if (jobId) {
-    const b = JSON.stringify({ status:'concluido', progresso:100,
-      mensagem:`${totalGravados} pneus`, concluido_em: new Date().toISOString() });
-    const url = new URL(NEXUSZ_URL + `/rest/v1/sync_jobs?id=eq.${jobId}`);
-    const req = https.request({ hostname:url.hostname, path:url.pathname+url.search, method:'PATCH',
-      headers:{ apikey:NEXUSZ_KEY, Authorization:`Bearer ${NEXUSZ_KEY}`,
-        'Content-Type':'application/json', 'Content-Length':Buffer.byteLength(b), Prefer:'return=minimal' }
-    }, ()=>{});
-    req.write(b); req.end();
-  }
+  await atualizarJob(jobId, {
+    status: 'concluido',
+    progresso: 100,
+    mensagem: `Concluído: ${totalGravados} pneus de ${total} lojas`,
+    pneus_coletados: totalGravados,
+    concluido_em: new Date().toISOString(),
+  });
 }
 
 main().catch(e => { console.error('ERRO FATAL:', e); process.exit(1); });
