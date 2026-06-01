@@ -66,6 +66,22 @@ function httpReq(method, path, headers = {}, body = null) {
 
 function gf(html, id) { return html.match(new RegExp('id="' + id + '" value="([^"]*)"'))?.[1] || ''; }
 
+// Mescla novos Set-Cookie no cookie string existente (preserva todas as chaves)
+function mergeCookies(existing, setCookieArr) {
+  if (!setCookieArr || !setCookieArr.length) return existing;
+  const map = {};
+  for (const pair of existing.split('; ')) {
+    const eq = pair.indexOf('=');
+    if (eq > 0) map[pair.slice(0, eq).trim()] = pair.slice(eq + 1);
+  }
+  for (const raw of setCookieArr) {
+    const pair = raw.split(';')[0].trim();
+    const eq = pair.indexOf('=');
+    if (eq > 0) map[pair.slice(0, eq).trim()] = pair.slice(eq + 1);
+  }
+  return Object.entries(map).map(([k, v]) => `${k}=${v}`).join('; ');
+}
+
 function af(html) {
   const f = {};
   for (const m of html.matchAll(/<input([^>]*)>/gi)) {
@@ -103,25 +119,51 @@ async function loginAndSwitch(empresa) {
     Origin: 'https://' + HOST,
     'Cache-Control': 'max-age=0',
     'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
-    'Sec-Fetch-User': '?1',
   }, lb);
   const loginRedirect = r2.headers['location'] || '';
   console.log('  Login redirect:', loginRedirect);
   if (!loginRedirect.includes('Principal')) throw new Error('Login falhou — redirect: ' + loginRedirect + ' (status:' + r2.status + ')');
-  ck = r2.headers['set-cookie']?.map(c => c.split(';')[0]).join('; ') || ck;
+  ck = mergeCookies(ck, r2.headers['set-cookie']);
 
   const rP = await httpReq('GET', r2.headers['location'], { Cookie: ck });
+  ck = mergeCookies(ck, rP.headers['set-cookie']);
+
   const ddl = rP.body.match(/id="ddlTrocarEmpresa"[\s\S]*?<\/select>/i)?.[0] || '';
   const emp = [...ddl.matchAll(/<option[^>]*value="([^"]+)">([^<]+)/gi)].map(m => ({ v: m[1], t: m[2].trim() })).find(e => e.t.toUpperCase().includes(empresa.toUpperCase()));
   if (!emp) throw new Error('Empresa ' + empresa + ' não encontrada. Disponíveis: ' + [...ddl.matchAll(/<option[^>]*value="[^"]+"[^>]*>([^<]+)/gi)].map(m=>m[1].trim()).join(' | '));
 
-  const vs2 = gf(rP.body, '__VIEWSTATE'), vsgen2 = gf(rP.body, '__VIEWSTATEGENERATOR'), ev2 = gf(rP.body, '__EVENTVALIDATION');
-  const fd = new URLSearchParams({ '__VIEWSTATE': vs2, '__VIEWSTATEGENERATOR': vsgen2, '__EVENTVALIDATION': ev2, 'ddlTrocarEmpresa': emp.v, 'ctl00$btnTrocarEmpresa': 'Trocar' }).toString();
-  const rT = await httpReq('POST', '/wfPrincipal.aspx', { Cookie: ck, 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(fd), Referer: 'https://' + HOST + '/wfPrincipal.aspx' }, fd);
-  if (rT.headers['location']) await httpReq('GET', rT.headers['location'], { Cookie: ck });
+  // Verifica se já está na empresa certa (selected option)
+  const selectedEmp = ddl.match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i)?.[1]?.trim() || '';
+  if (selectedEmp.toUpperCase().includes(empresa.toUpperCase())) {
+    console.log('  Já na empresa:', selectedEmp);
+    return ck;
+  }
+
+  const principalUrl = r2.headers['location'];
+  const fields2 = af(rP.body);
+  fields2['ctl00$ddlTrocarEmpresa'] = emp.v; // sobrescreve com empresa-alvo
+  fields2['ctl00$btnTrocarEmpresa'] = 'Trocar';
+  const fd = new URLSearchParams(fields2).toString();
+  const rT = await httpReq('POST', principalUrl, {
+    Cookie: ck, 'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Length': Buffer.byteLength(fd),
+    Referer: 'https://' + HOST + principalUrl,
+  }, fd);
+  ck = mergeCookies(ck, rT.headers['set-cookie']);
+
+  if (rT.headers['location']) {
+    const rF = await httpReq('GET', rT.headers['location'], { Cookie: ck, Referer: 'https://' + HOST + principalUrl });
+    ck = mergeCookies(ck, rF.headers['set-cookie']);
+
+    // Verifica empresa após o switch
+    const ddl2 = rF.body.match(/id="ddlTrocarEmpresa"[\s\S]*?<\/select>/i)?.[0] || '';
+    const afterSwitch = ddl2.match(/<option[^>]*selected[^>]*>([^<]+)<\/option>/i)?.[1]?.trim() || '?';
+    console.log('  Empresa após switch:', afterSwitch);
+    if (!afterSwitch.toUpperCase().includes(empresa.toUpperCase())) {
+      throw new Error('Switch falhou — empresa atual: ' + afterSwitch + ' (esperado: ' + empresa + ')');
+    }
+  }
+
   return ck;
 }
 
@@ -183,8 +225,14 @@ async function coletarGruposLoja(ck, lojaKey) {
       continue;
     }
 
-    // Extrai as linhas de dados
-    // Colunas: #, Código, Referência(s), Cod.Barra, Endereço, Descrição, Aplicação, Marca, Estoque, Consumo, Ideal, R$ Compra, R$ Custo, R$ Venda, Margem%
+    // Extrai cabeçalhos para localizar colunas Estoque, R$Custo, R$Venda
+    // Colunas fixas: #, Código, Referência(s), Cod.Barra, Endereço, Descrição, Aplicação, Marca, Estoque, Consumo, Ideal, R$Compra, R$Custo, R$Venda, Margem%
+    const thHeaders = [...r2.body.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)]
+      .map(m => m[1].replace(/<[^>]+>/g, '').trim().toLowerCase());
+    const hEstoque = thHeaders.findIndex(h => h === 'estoque' || h === 'qtd' || h === 'quantidade');
+    const hCusto   = thHeaders.findIndex(h => h.includes('custo') && h.includes('r$'));
+    const hVenda   = thHeaders.findIndex(h => h.includes('venda') && h.includes('r$'));
+
     const allRows = [...r2.body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
     const dataRows = allRows.filter(r => {
       const text = r[1].replace(/<[^>]+>/g, ' ');
@@ -193,28 +241,35 @@ async function coletarGruposLoja(ck, lojaKey) {
 
     let count = 0;
     for (const row of dataRows) {
-      const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
-        .map(c => c[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').replace(/&nbsp;/g, ' ').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).trim())
-        .filter(Boolean);
+      // Mantém células sem filter(Boolean) para preservar índices alinhados com cabeçalhos
+      const rawCells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
+        .map(c => c[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').replace(/&nbsp;/g, ' ').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).trim());
 
-      if (cells.length < 8) continue;
+      if (rawCells.length < 8) continue;
 
-      // Colunas: 0=#, 1=Código, 2=Ref, 3=Cod.Barra?, 4=Endereço?, 5=Descrição, 6=Aplicação, 7=Marca?, 8=Estoque, 9=Consumo, 10=Ideal, 11=R$Compra, 12=R$Custo, 13=R$Venda
-      // A ordem pode variar — usa a descrição (começa com PNEU) para encontrar a coluna certa
-      const descIdx = cells.findIndex(c => c.toUpperCase().startsWith('PNEU'));
+      const descIdx = rawCells.findIndex(c => c.toUpperCase().startsWith('PNEU'));
       if (descIdx < 0) continue;
 
-      const descricao = cells[descIdx];
-      // Estoque está logo após Marca (ou Aplicação) — geralmente descIdx + 2 ou +3
-      const estoqueIdx = descIdx + 2; // aproximação
-      const custoIdx   = cells.length - 3; // R$ Custo = antepenúltima coluna antes de Margem
-      const vendaIdx   = cells.length - 2; // R$ Venda = penúltima antes de Margem
+      const descricao = rawCells[descIdx];
 
-      const estoqueStr = cells[estoqueIdx] || '0';
-      const custoStr   = cells[custoIdx]   || '0';
-      const vendaStr   = cells[vendaIdx]   || '0';
+      // Prioriza índice pelo cabeçalho; fallback por posição relativa à descrição
+      let estoqueStr, custoStr, vendaStr;
+      if (hEstoque >= 0 && hEstoque < rawCells.length) {
+        estoqueStr = rawCells[hEstoque] || '0';
+        custoStr   = hCusto >= 0 ? rawCells[hCusto] || '0'  : rawCells[rawCells.length - 3] || '0';
+        vendaStr   = hVenda >= 0 ? rawCells[hVenda] || '0'  : rawCells[rawCells.length - 2] || '0';
+      } else {
+        // Fallback: acha a primeira célula após a descrição que seja inteiro pequeno (qty, não barcode)
+        estoqueStr = '0';
+        for (let i = descIdx + 1; i < Math.min(descIdx + 5, rawCells.length); i++) {
+          const v = parseInt(rawCells[i].replace(/\D/g, ''), 10);
+          if (!isNaN(v) && rawCells[i].replace(/\D/g, '').length <= 6) { estoqueStr = rawCells[i]; break; }
+        }
+        custoStr = rawCells[rawCells.length - 3] || '0';
+        vendaStr = rawCells[rawCells.length - 2] || '0';
+      }
 
-      const estoque = parseInt(estoqueStr.replace(/\D/g, '')) || 0;
+      const estoque = parseInt(estoqueStr.replace(/\D/g, ''), 10) || 0;
       if (estoque <= 0) continue; // só com estoque
 
       const custo = parseFloat(custoStr.replace(/\./g, '').replace(',', '.')) || null;
@@ -240,13 +295,25 @@ async function coletarGruposLoja(ck, lojaKey) {
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 
-function sbUpsert(rows) {
+function sbDelete(lojaKey) {
+  return new Promise((res) => {
+    const url = new URL(NEXUSZ_URL + '/rest/v1/estoque_pneus?loja=eq.' + lojaKey);
+    const req = https.request({
+      hostname: url.hostname, path: url.pathname + url.search, method: 'DELETE',
+      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, Prefer: 'return=minimal' },
+    }, r => { r.on('data', () => {}); r.on('end', () => res({ status: r.statusCode })); });
+    req.on('error', () => res({ status: 0 }));
+    req.end();
+  });
+}
+
+function sbInsert(rows) {
   return new Promise((res) => {
     const body = JSON.stringify(rows);
     const url  = new URL(NEXUSZ_URL + '/rest/v1/estoque_pneus');
     const req  = https.request({
       hostname: url.hostname, path: url.pathname, method: 'POST',
-      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Prefer: 'resolution=merge-duplicates,return=minimal' },
+      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Prefer: 'return=minimal' },
     }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => res({ status: r.statusCode, body: d })); });
     req.on('error', () => res({ status: 0, body: '' }));
     req.write(body); req.end();
@@ -278,11 +345,6 @@ async function main() {
   console.log(`🚀 Estoque de pneus — ${lojas.length} loja(s) | Análise de Estoque HTTP`);
   await sbJob(jobId, { status: 'rodando', progresso: 0, mensagem: 'Iniciando...' });
 
-  // Login único
-  console.log('🔑 Login...');
-  const ck = await loginAndSwitch('BR01');
-  console.log('✅ Logado');
-
   let totalGravados = 0, totalErros = 0;
 
   for (let li = 0; li < lojas.length; li++) {
@@ -291,32 +353,27 @@ async function main() {
     await sbJob(jobId, { progresso: Math.round((li / lojas.length) * 95), mensagem: `Coletando ${loja.key}...` });
 
     try {
-      // Troca empresa se não for a primeira
-      if (li > 0) {
-        const rP = await httpReq('GET', '/wfPrincipal.aspx', { Cookie: ck });
-        const ddl = rP.body.match(/id="ddlTrocarEmpresa"[\s\S]*?<\/select>/i)?.[0] || '';
-        const emp = [...ddl.matchAll(/<option[^>]*value="([^"]+)">([^<]+)/gi)].map(m => ({ v: m[1], t: m[2].trim() })).find(e => e.t.toUpperCase().includes(loja.empresa.toUpperCase()));
-        if (emp) {
-          const vs = gf(rP.body, '__VIEWSTATE'), vsgen = gf(rP.body, '__VIEWSTATEGENERATOR'), ev = gf(rP.body, '__EVENTVALIDATION');
-          const fd = new URLSearchParams({ '__VIEWSTATE': vs, '__VIEWSTATEGENERATOR': vsgen, '__EVENTVALIDATION': ev, 'ddlTrocarEmpresa': emp.v, 'ctl00$btnTrocarEmpresa': 'Trocar' }).toString();
-          const rT = await httpReq('POST', '/wfPrincipal.aspx', { Cookie: ck, 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(fd), Referer: 'https://' + HOST + '/wfPrincipal.aspx' }, fd);
-          if (rT.headers['location']) await httpReq('GET', rT.headers['location'], { Cookie: ck });
-        }
-      }
+      // Login separado por loja — garante que a sessão está na empresa correta
+      console.log(`  🔑 Login ${loja.key}...`);
+      const ck = await loginAndSwitch(loja.empresa);
 
       const rows = await coletarGruposLoja(ck, loja.key);
       console.log(`  Total: ${rows.length} pneus com estoque`);
 
       if (!inspecionar && rows.length > 0) {
+        // Limpa dados antigos da loja e insere os novos
+        await sbDelete(loja.key);
+        let lojaErros = 0;
         for (let i = 0; i < rows.length; i += 100) {
-          const r = await sbUpsert(rows.slice(i, i + 100));
-          if (r.status !== 201 && r.status !== 204) {
+          const r = await sbInsert(rows.slice(i, i + 100));
+          if (r.status !== 201) {
             console.error('  ❌ Supabase:', r.status, r.body?.slice(0, 100));
-            totalErros++;
+            lojaErros++;
           } else {
             totalGravados += Math.min(100, rows.length - i);
           }
         }
+        if (lojaErros) totalErros += lojaErros;
         console.log(`  ✅ ${rows.length} gravados`);
       } else if (inspecionar) {
         console.log('  Preview:', JSON.stringify(rows.slice(0, 2), null, 2));
