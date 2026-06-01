@@ -42,3 +42,5 @@ assets/
 *.code-workspace
 qr-whatsapp.png
 .wwebjs_auth/
+
+!data/stories-cloud-state.json
