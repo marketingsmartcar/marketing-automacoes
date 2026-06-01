@@ -1,0 +1,66 @@
+name: Stories Diários — BR Pneus & Peg Pneus
+
+on:
+  schedule:
+    # 8h00 BRT = 11h00 UTC (seg-sab)
+    - cron: '0 11 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Forçar execução mesmo se já rodou hoje'
+        required: false
+        default: 'false'
+
+jobs:
+  stories:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repo (com estado)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar ffmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Criar shim dotenv
+        run: |
+          mkdir -p node_modules/dotenv
+          echo 'exports.config = function() {};' > node_modules/dotenv/index.js
+          echo 'exports.config = function() {};' > node_modules/dotenv/config.js
+
+      - name: Instalar dependências do projeto
+        run: npm install --omit=dev 2>/dev/null || npm install
+
+      - name: Instalar ffmpeg-installer (fallback)
+        run: npm install @ffmpeg-installer/ffmpeg fluent-ffmpeg 2>/dev/null || true
+
+      - name: Publicar stories
+        env:
+          # Meta — BR Pneus
+          META_PAGE_TOKEN_BR:   ${{ secrets.META_PAGE_TOKEN_BR }}
+          META_PAGE_ID_BR:      ${{ secrets.META_PAGE_ID_BR }}
+          META_IG_ID_BR:        ${{ secrets.META_IG_ID_BR }}
+          # Meta — Peg Pneus
+          META_PAGE_TOKEN_PEG_ARQ: ${{ secrets.META_PAGE_TOKEN_PEG_ARQ }}
+          META_PAGE_ID_PEG_ARQ:    ${{ secrets.META_PAGE_ID_PEG_ARQ }}
+          META_IG_ID_PEG_ARQ:      ${{ secrets.META_IG_ID_PEG_ARQ }}
+          # Google Drive (Service Account como JSON comprimido)
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: node tools/stories/cloud-scheduler.js
+
+      - name: Commit estado atualizado
+        run: |
+          git config user.email "stories-bot@brpneus.com.br"
+          git config user.name "Stories Bot"
+          git add data/stories-cloud-state.json || true
+          git diff --staged --quiet || git commit -m "chore: atualizar estado stories $(date -u +%Y-%m-%d)"
+          git push || true
