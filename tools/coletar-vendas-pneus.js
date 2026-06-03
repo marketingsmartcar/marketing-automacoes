@@ -137,68 +137,72 @@ function extrairMarca(desc) {
 
 /**
  * Determina o grupo do pneu baseado na descrição e dimensões.
+ * Para CURVA A vs PROMO usa o mapa carregado do estoque_pneus (fonte de verdade).
  */
+// Mapa carregado do Supabase: descricao_upper → grupo
+let GRUPOS_POR_DESC = null;
+
+async function carregarGruposEstoque() {
+  if (GRUPOS_POR_DESC) return;
+  GRUPOS_POR_DESC = new Map();
+  try {
+    const r = await supabaseRequest(
+      'GET',
+      '/rest/v1/estoque_pneus?select=descricao,grupo&grupo=in.(PNEU%20IMPORTADO%20(CURVA%20A),PNEU%20IMPORTADO%20(PROMOCIONAL))&limit=5000',
+      null
+    );
+    if (r.status === 200) {
+      const rows = JSON.parse(r.body);
+      // Prioridade: CURVA A sobrescreve PROMO quando há conflito
+      for (const row of rows) {
+        const key = row.descricao.trim().toUpperCase();
+        if (!GRUPOS_POR_DESC.has(key) || row.grupo === 'PNEU IMPORTADO (CURVA A)') {
+          GRUPOS_POR_DESC.set(key, row.grupo);
+        }
+      }
+      console.log(`  📋 ${GRUPOS_POR_DESC.size} produtos CURVA A/PROMO carregados do estoque`);
+    }
+  } catch (e) {
+    console.warn('  ⚠️  Não foi possível carregar grupos do estoque:', e.message);
+  }
+}
+
 function determinarGrupo(desc) {
   const d  = desc.toUpperCase();
   const dim = extrairDimensoes(desc);
 
-  // Marca (4ª palavra após PNEU NNN NN RR)
   const marcaToken = extrairMarca(desc);
   const isNacional = MARCAS_NACIONAIS.has(marcaToken);
   const prefixo = isNacional ? 'PNEU NACIONAL' : 'PNEU IMPORTADO';
 
-  // Moto: largura ≤ 130 mm ou palavra "MOTO" na descrição
   if (d.includes('MOTO') || (dim && dim.w <= 130)) return `${prefixo} MOTO`;
-
-  // Agrícola
   if (d.includes('AGRICOLA') || d.includes('AGRÍCOLA') || d.includes('TRATOR'))
     return `${prefixo} AGRICOLA`;
-
-  // Carga pesada (caminhão)
   if (d.includes('CARGA PESADA') || d.includes('CAMINHAO') || d.includes('CAMINHÃO') ||
       /\bTBR\b/.test(d) || d.includes(' 22.5') || d.includes('22 5'))
     return `${prefixo} CARGA PESADA`;
-
-  // Carga leve (van/utilitário) — lonas/PR indicam carga
   if (d.includes('CARGA LEVE') || d.includes(' VAN ') || d.includes('UTILITARIO') ||
-      /\b(6|8|10|12)\s*(LONAS|PR|PLY)\b/.test(d) ||
-      d.includes('LT ') || /\bC\b/.test(d))
+      /\b(6|8|10|12)\s*(LONAS|PR|PLY)\b/.test(d) || d.includes('LT '))
     return `${prefixo} CARGA LEVE`;
-
-  // All Terrain
-  if (d.includes('ALL TERRAIN') || /\bA\/T\b/.test(d) || d.includes(' ATR ') ||
-      d.includes(' AT ') || d.includes('(MISTO)'))
+  if (d.includes('ALL TERRAIN') || /\bA\/T\b/.test(d) || d.includes('(MISTO)'))
     return `${prefixo} ALL TERRAIN`;
-
-  // Camionete/SUV off-road
   if (d.includes('CAMIONETE') || d.includes('PICKUP') || /\bH\/T\b/.test(d) ||
-      d.includes(' HT ') || d.includes('(LISO)') || d.includes('M/T') || d.includes(' MT '))
+      d.includes('(LISO)') || d.includes('M/T'))
     return `${prefixo} CAMIONETE`;
-
-  // Runflat
   if (d.includes('RUNFLAT') || d.includes('RUN FLAT') || /\bROF\b/.test(d) || /\bSSR\b/.test(d))
     return `${prefixo} RUNFLAT`;
-
-  // Perfil baixo: aspect ≤ 45
   if (d.includes('PERFIL BAIXO') || d.includes('UHP') || (dim && dim.a <= 45))
     return `${prefixo} PERFIL BAIXO`;
-
-  // Industrial
   if (d.includes('INDUSTRIAL') || d.includes('EMPILHADEIRA') || d.includes('RETRO'))
     return `${prefixo} INDUSTRIAL`;
-
-  // Fallback
   if (isNacional) return 'PNEU NACIONAL PASSEIO/SUV';
 
-  // Importado: CURVA A se marca premium, PROMOCIONAL senão
-  const MARCAS_CURVA_A = new Set([
-    'CONTINENTAL','DUNLOP','HANKOOK','YOKOHAMA','KUMHO',
-    'NANKANG','NEXEN','TOYO','FALKEN','COOPER','GENERAL','UNIROYAL',
-    'BARUM','SAVA','KLEBER','SEMPERIT','MATADOR',
-  ]);
-  return MARCAS_CURVA_A.has(marcaToken)
-    ? 'PNEU IMPORTADO (CURVA A)'
-    : 'PNEU IMPORTADO (PROMOCIONAL)';
+  // CURVA A vs PROMO — usa estoque_pneus como fonte de verdade
+  if (GRUPOS_POR_DESC && GRUPOS_POR_DESC.has(d.trim())) {
+    return GRUPOS_POR_DESC.get(d.trim());
+  }
+  // Fallback: CURVA A (importados passeio sem classificação específica)
+  return 'PNEU IMPORTADO (CURVA A)';
 }
 
 // ── Coleta de OS ──────────────────────────────────────────────────────────────
@@ -378,6 +382,9 @@ async function main() {
     console.error('❌ NEXUSZ_SUPABASE_URL ou NEXUSZ_SUPABASE_SERVICE_ROLE_KEY não encontrados no .env');
     process.exit(1);
   }
+
+  // Carrega mapa de grupos do estoque antes de processar vendas
+  await carregarGruposEstoque();
 
   console.log(`\n🛞  Coleta de Vendas de Pneus — ${dataISO}`);
   if (inspecionar) console.log('🔍 Modo inspeção — nada será gravado no Supabase\n');
