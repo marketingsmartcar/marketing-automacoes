@@ -183,13 +183,22 @@ async function coletarGruposLoja(ck, lojaKey) {
     const re = r0.body.indexOf('</tr>', idx);
     if (rs > 0 && re > 0) {
       const row = r0.body.slice(rs, re);
-      const nome = row.match(/<td[^>]*>([^<]{3,100})<\/td>/i)?.[1]?.replace(/&[^;]+;/g, ' ').trim() || '';
+      // Extrai TODOS os textos das <td> da linha
+      const tds = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
+        .map(m => m[1].replace(/<[^>]+>/g, '').replace(/&[^;]+;/g, ' ').replace(/\s+/g, ' ').trim());
+      // Prioridade 1: td que seja exatamente um grupo conhecido
+      // Prioridade 2: td que comece com "PNEU " com pelo menos 10 chars
+      const nome = tds.find(t => GRUPOS_PNEU.includes(t))
+                || tds.find(t => t.length >= 10 && t.toUpperCase().startsWith('PNEU '))
+                || '';
       if (nome) gruposMap[nome] = lid.replace('ctl00_cph_grd_', 'ctl00$cph$grd$').replace('_lkbQuantidadeDeProduto', '$lkbQuantidadeDeProduto');
     }
   }
 
   const pneuGrupos = GRUPOS_PNEU.filter(g => gruposMap[g]);
-  console.log(`  Grupos de pneu encontrados: ${pneuGrupos.length}`);
+  // Log detalhado: todos os grupos encontrados no OI (inclusive os não-pneu)
+  console.log(`  Todos os grupos no OI (${lojaKey}):`, Object.keys(gruposMap).join(' | '));
+  console.log(`  Grupos de pneu mapeados: ${pneuGrupos.join(' | ') || '(nenhum)'}`);
 
   const resultados = [];
 
@@ -291,6 +300,11 @@ async function coletarGruposLoja(ck, lojaKey) {
     }
 
     console.log(`    ${grupo}: ${count} pneus`);
+    // Debug extra para PROMO — lista todos os produtos coletados nesse grupo
+    if (grupo.includes('PROMOCIONAL') && count > 0) {
+      const promoItens = resultados.filter(r => r.grupo === grupo && r.loja === lojaKey);
+      console.log(`      [PROMO DEBUG] ${lojaKey}:`, promoItens.map(r => `${r.medida} ${r.descricao.replace('PNEU ','').slice(0,30)}`).join(' | '));
+    }
     await sleep(200);
   }
 
