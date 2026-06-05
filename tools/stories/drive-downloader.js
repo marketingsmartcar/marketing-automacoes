@@ -13,8 +13,10 @@ const os   = require('os');
 function getAuth() {
   let creds;
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    // GitHub Actions: variável de ambiente com JSON
-    creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    // GitHub Actions: pode ser base64 ou JSON direto
+    const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON.trim();
+    const decoded = raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8');
+    creds = JSON.parse(decoded);
   } else {
     // Local: arquivo de credenciais
     const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || 'credentials/google-sheets-key.json';

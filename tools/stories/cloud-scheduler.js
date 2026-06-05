@@ -27,7 +27,13 @@ const { postarInstagramStory, postarFacebookStory } = require('./story-poster');
 const { listarPastas, listarPasta, baixarArquivo }   = require('./drive-downloader');
 const { PASTAS_BR, PASTAS_PEG, ARRAIA, SAZONAIS }   = require('./drive-config');
 
-const STATE_FILE = path.join(__dirname, '..', '..', 'data', 'stories-cloud-state.json');
+const STATE_FILE    = path.join(__dirname, '..', '..', 'data', 'stories-cloud-state.json');
+const SCHEDULE_FILE = path.join(__dirname, '..', '..', 'data', 'stories-schedule.json');
+
+function carregarSchedule() {
+  if (!fs.existsSync(SCHEDULE_FILE)) return null;
+  try { return JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf8')); } catch { return null; }
+}
 
 // ─── Configuração das contas ──────────────────────────────────────────────────
 
@@ -155,9 +161,12 @@ async function publicarStories() {
   const postarArr   = isSegQuaSex() && isJunho2026();
   const postarSaz   = isTerQuiSab() && isJunho2026();
   const estado      = carregarEstado();
+  const schedule    = carregarSchedule();
+  const diaPlano    = schedule?.[hoje] ?? null;
 
   console.log(`\n📱 [${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}] Cloud Stories Scheduler`);
-  console.log(`   Data: ${hoje} | Arraia Seg/Qua/Sex: ${postarArr?'Sim':'Não'} | Sazonal Ter/Qui/Sáb: ${postarSaz?'Sim':'Não'}`);
+  console.log(`   Data: ${hoje} | Plano mensal: ${diaPlano ? 'Sim ✅' : 'Não (modo aleatório)'}`);
+  if (!diaPlano) console.log(`   Arraia Seg/Qua/Sex: ${postarArr?'Sim':'Não'} | Sazonal Ter/Qui/Sáb: ${postarSaz?'Sim':'Não'}`);
 
   for (const conta of CONTAS) {
     console.log(`\n📂 ${conta.nome}`);
@@ -166,14 +175,21 @@ async function publicarStories() {
     const st = estado[conta.key];
     if (!st.historico) st.historico = {};
 
-    // ── 3 vídeos aleatórios das lojas ─────────────────────────────────────────
+    // Plano do dia para esta conta (br ou peg)
+    const plano = diaPlano?.[conta.key] ?? null;
+
+    // ── 3 vídeos das lojas (plano ou aleatório) ───────────────────────────────
     if (st.ultima_regular === hoje) {
       console.log(`  ⏭️  Vídeos regulares já postados hoje — pulando.`);
     } else {
       st.ultima_regular = hoje;
       salvarEstado(estado);
 
-      const videos = await proxVideosLojas(conta, st, conta.videosPorDia);
+      // Se há plano para hoje: usa vídeos pré-definidos; senão: sorteia
+      const videos = plano
+        ? plano.lojas  // já tem {id, name}
+        : await proxVideosLojas(conta, st, conta.videosPorDia);
+
       for (const v of videos) {
         const local = await baixarArquivo(v.id, v.name);
         const ok = await postarArquivo(conta, local, v.name, 'Regular');
@@ -185,77 +201,101 @@ async function publicarStories() {
     }
 
     // ── Arte Arraia fixa (1.png) + arte rotativa ──────────────────────────────
-    if (isJunho2026() && conta.pastaArraia) {
+    if (isJunho2026() && (conta.pastaArraia || plano?.arte)) {
       if (st.ultima_arte === hoje) {
         console.log(`  ⏭️  Artes Arraia já postadas hoje — pulando.`);
       } else {
         st.ultima_arte = hoje;
         salvarEstado(estado);
 
-        const artes = await listarPasta(conta.pastaArraia, ['.png','.jpg']);
-        artes.sort((a,b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
-
-        // Arte 1 fixa
-        if (artes[0]) {
-          const local = await baixarArquivo(artes[0].id, artes[0].name);
-          await postarArquivo(conta, local, artes[0].name, 'Arte fixa');
-          try { fs.unlinkSync(local); } catch {}
-        }
-
-        // Arte rotativa (2, 3, 4, ...)
-        if (artes.length > 1) {
-          const idx = Math.max(1, (st.arraia_arte_index ?? 1)) % artes.length || 1;
-          const arteRot = artes[idx];
-          const local = await baixarArquivo(arteRot.id, arteRot.name);
-          const ok = await postarArquivo(conta, local, arteRot.name, `Arte ${idx+1}`);
-          if (ok) {
-            let next = idx + 1;
-            if (next >= artes.length) next = 1;
-            st.arraia_arte_index = next;
+        if (plano?.arte) {
+          // Modo plano: usa as artes pré-definidas
+          const { fixa, rotativa } = plano.arte;
+          if (fixa) {
+            const local = await baixarArquivo(fixa.id, fixa.name);
+            await postarArquivo(conta, local, fixa.name, 'Arte fixa');
+            try { fs.unlinkSync(local); } catch {}
           }
-          try { fs.unlinkSync(local); } catch {}
+          if (rotativa) {
+            const local = await baixarArquivo(rotativa.id, rotativa.name);
+            await postarArquivo(conta, local, rotativa.name, 'Arte rotativa');
+            try { fs.unlinkSync(local); } catch {}
+          }
+        } else {
+          // Modo aleatório (fallback)
+          const artes = await listarPasta(conta.pastaArraia, ['.png','.jpg']);
+          artes.sort((a,b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
+          if (artes[0]) {
+            const local = await baixarArquivo(artes[0].id, artes[0].name);
+            await postarArquivo(conta, local, artes[0].name, 'Arte fixa');
+            try { fs.unlinkSync(local); } catch {}
+          }
+          if (artes.length > 1) {
+            const idx = Math.max(1, (st.arraia_arte_index ?? 1)) % artes.length || 1;
+            const arteRot = artes[idx];
+            const local = await baixarArquivo(arteRot.id, arteRot.name);
+            const ok = await postarArquivo(conta, local, arteRot.name, `Arte ${idx+1}`);
+            if (ok) { let next = idx + 1; if (next >= artes.length) next = 1; st.arraia_arte_index = next; }
+            try { fs.unlinkSync(local); } catch {}
+          }
         }
         salvarEstado(estado);
       }
     }
 
     // ── Vídeo Arraia (Seg/Qua/Sex) ────────────────────────────────────────────
-    if (postarArr && conta.pastaVideosArr) {
+    const temArraiaDia = plano?.arraia_video || (postarArr && conta.pastaVideosArr);
+    if (temArraiaDia) {
       if (st.ultimo_video_arr === hoje) {
         console.log(`  ⏭️  Vídeo Arraia já postado hoje — pulando.`);
       } else {
         st.ultimo_video_arr = hoje;
         salvarEstado(estado);
-        const videos = await listarPasta(conta.pastaVideosArr, ['.mp4','.mov']);
-        if (videos.length > 0) {
-          const idx = (st.arraia_video_index ?? 0) % videos.length;
-          const v = videos[idx];
+        if (plano?.arraia_video) {
+          const v = plano.arraia_video;
           const local = await baixarArquivo(v.id, v.name);
-          const ok = await postarArquivo(conta, local, v.name, 'Vídeo Arraia');
-          if (ok) st.arraia_video_index = (idx+1) % videos.length;
+          await postarArquivo(conta, local, v.name, 'Vídeo Arraia');
           try { fs.unlinkSync(local); } catch {}
-          salvarEstado(estado);
+        } else {
+          const videos = await listarPasta(conta.pastaVideosArr, ['.mp4','.mov']);
+          if (videos.length > 0) {
+            const idx = (st.arraia_video_index ?? 0) % videos.length;
+            const v = videos[idx];
+            const local = await baixarArquivo(v.id, v.name);
+            const ok = await postarArquivo(conta, local, v.name, 'Vídeo Arraia');
+            if (ok) st.arraia_video_index = (idx+1) % videos.length;
+            try { fs.unlinkSync(local); } catch {}
+          }
         }
+        salvarEstado(estado);
       }
     }
 
     // ── Vídeo Sazonal BR (Ter/Qui/Sáb) ───────────────────────────────────────
-    if (postarSaz && conta.pastaSazonal) {
+    const temSazonal = plano?.sazonal || (postarSaz && conta.pastaSazonal);
+    if (temSazonal) {
       if (st.ultimo_sazonal === hoje) {
         console.log(`  ⏭️  Vídeo sazonal já postado hoje — pulando.`);
       } else {
         st.ultimo_sazonal = hoje;
         salvarEstado(estado);
-        const videos = await listarPasta(conta.pastaSazonal, ['.mp4','.mov']);
-        if (videos.length > 0) {
-          const idx = (st.sazonal_index ?? 0) % videos.length;
-          const v = videos[idx];
+        if (plano?.sazonal) {
+          const v = plano.sazonal;
           const local = await baixarArquivo(v.id, v.name);
-          const ok = await postarArquivo(conta, local, v.name, 'Vídeo Sazonal');
-          if (ok) st.sazonal_index = (idx+1) % videos.length;
+          await postarArquivo(conta, local, v.name, 'Vídeo Sazonal');
           try { fs.unlinkSync(local); } catch {}
-          salvarEstado(estado);
+        } else {
+          const videos = await listarPasta(conta.pastaSazonal, ['.mp4','.mov']);
+          if (videos.length > 0) {
+            const idx = (st.sazonal_index ?? 0) % videos.length;
+            const v = videos[idx];
+            const local = await baixarArquivo(v.id, v.name);
+            const ok = await postarArquivo(conta, local, v.name, 'Vídeo Sazonal');
+            if (ok) st.sazonal_index = (idx+1) % videos.length;
+            try { fs.unlinkSync(local); } catch {}
+          }
         }
+        salvarEstado(estado);
       }
     }
 

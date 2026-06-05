@@ -26,9 +26,8 @@ const PASTAS_PEG = {
 const ARRAIA = {
   artes_br:  '1esrrmqnGK0bjZD6TAjxhe6N8bKnA3xTQ', // pasta BR Pneus 1080x1920
   artes_peg: '1OnCLs5CzcbHcdkOw-UbM57h7UPuSpF_e', // pasta Peg Pneus 1080x1920
-  // ARRAIA/Videos ainda não mapeado — adicionar quando subir os vídeos
-  videos_br:  null,
-  videos_peg: null,
+  videos_br:  '1DCT88iiD692PDXVaB966nLvUCfkHRXbn', // ARRAIA/Videos/BR Pneus
+  videos_peg: '1Ej_Hl0Wg3zSHB3V1U_joA-SsOnAhfZVQ', // ARRAIA/Videos/Peg Pneus
 };
 
 // Vídeos Sazonais — Junho 2026
