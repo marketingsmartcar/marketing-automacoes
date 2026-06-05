@@ -2,8 +2,8 @@ name: Stories Diários — BR Pneus & Peg Pneus
 
 on:
   schedule:
-    # 8h00 BRT = 11h00 UTC (seg-sab)
-    - cron: '0 11 * * 1-6'
+    # 6h00 BRT = 9h00 UTC (seg-sab) — margem de até 6h para atraso do GitHub Actions
+    - cron: '0 9 * * 1-6'
   workflow_dispatch:
     inputs:
       force:
