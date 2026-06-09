@@ -9,14 +9,17 @@
       "1febN4XRGyj-FwsOACxrBxQ75iJWIb3X0": "2026-06-06",
       "1_eHsO8HvMTYyo8m_P8JEtmIl8phr-W-g": "2026-06-08",
       "15cEUq4QB7H_cY7SUc8FSZBJ2VtC05M9z": "2026-06-08",
-      "1btofWfoMNEpB2PuKSuboul08aGvQTGer": "2026-06-08"
+      "1btofWfoMNEpB2PuKSuboul08aGvQTGer": "2026-06-08",
+      "1dXzW8qddWnFJ0v0okjGysSNa776l-vmA": "2026-06-09",
+      "19N3ZgW7w4jCfq2_fAhlS5uWYTr5Ga2qY": "2026-06-09",
+      "1POBSdy5YQ25m4h2IGwNVpTXP8jFwDH7T": "2026-06-09"
     },
     "arraia_arte_index": 3,
     "arraia_video_index": 0,
     "sazonal_index": 1,
-    "ultima_regular": "2026-06-08",
-    "ultima_arte": "2026-06-08",
-    "ultimo_sazonal": "2026-06-06",
+    "ultima_regular": "2026-06-09",
+    "ultima_arte": "2026-06-09",
+    "ultimo_sazonal": "2026-06-09",
     "ultimo_video_arr": "2026-06-08"
   },
   "peg": {
@@ -28,13 +31,16 @@
       "1oZ1LvKbwsKLA9NU26XmgV6wgMguBQoj8": "2026-06-06",
       "1UpsWnKrw_57cUj7cgi1GRH-TyaxZYgcv": "2026-06-06",
       "1l60E5JRvn28cvC-PijPa9u8ogTTgZy08": "2026-06-08",
-      "1e6MS8PG_88gI3vDudyyIIm0cpI4svuCl": "2026-06-08"
+      "1e6MS8PG_88gI3vDudyyIIm0cpI4svuCl": "2026-06-08",
+      "1XAeQgd2VMhLxBOV-935RgFH8dDQvDEdT": "2026-06-09",
+      "1Cd-0Wm7ItVev3bdlrz4IRY7D-XxYr45I": "2026-06-09",
+      "1u3RslBH1hu5Vc0xRt8GuiEepsXb0K1vq": "2026-06-09"
     },
     "arraia_arte_index": 3,
     "arraia_video_index": 0,
     "sazonal_index": 0,
-    "ultima_regular": "2026-06-08",
-    "ultima_arte": "2026-06-08",
+    "ultima_regular": "2026-06-09",
+    "ultima_arte": "2026-06-09",
     "ultimo_video_arr": "2026-06-08"
   }
 }
