@@ -278,19 +278,293 @@
     "br": {
       "lojas": [
         {
-          "id": "1OouY9icl3Sk_kD6EUVQfdBcVfNluHan9",
-          "name": "Araraquara Loja 1 13-02.mp4",
-          "pasta": "Araraquara Loja 1"
+          "id": "1VUXKhIDlqdblALt5P6pnxgb-0ghtgXxa",
+          "name": "Americana 23-01.mp4",
+          "pasta": "Americana"
         },
         {
-          "id": "11N4ypqM8LsYDxj4Y-nUKrIfo2ZsLpxvA",
-          "name": "São carlos 19-01.mp4",
+          "id": "1BuR4_nElHRrgDu5WlVdO5PI3FYZGI5H7",
+          "name": "São carlos 10-01 2.mp4",
           "pasta": "São Carlos"
         },
         {
-          "id": "1KvDe3V4j5X7RoIRqWfT4WOFVWg6EHxSt",
-          "name": "Araraquara Loja 1 02-01.mp4",
+          "id": "1QBmNK2es97jPSOFaHutL1Br0K3_hj_Kh",
+          "name": "Sao carlos 13-02.mp4",
+          "pasta": "São Carlos"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "1WaVdArx2pdATQ_Zp01W1BEknxilxmtEP",
+          "name": "2.png"
+        }
+      },
+      "arraia_video": null,
+      "sazonal": {
+        "id": "1TWd3gIKMR0yy8Dza6JozcNNZU_c44eIt",
+        "name": "Consultor de vendas_OK.mp4"
+      }
+    },
+    "peg": {
+      "lojas": [
+        {
+          "id": "1u3RslBH1hu5Vc0xRt8GuiEepsXb0K1vq",
+          "name": "Montagem e balanceamento.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        },
+        {
+          "id": "1YrtXtpHXzXp6LNh5RlDmCmpSEnRj1Jk0",
+          "name": "Peg 1 10-01.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        },
+        {
+          "id": "1AK924UFvAi-q4QYHKYiqw_SvWXJVhrP6",
+          "name": "Peg 1 14-03.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "1NO6awK3iXbWPI1j0ztAG-NpvWS0g_Dbt",
+          "name": "2.png"
+        }
+      },
+      "arraia_video": null
+    }
+  },
+  "2026-06-12": {
+    "dia_semana": "Sex",
+    "br": {
+      "lojas": [
+        {
+          "id": "1J9HBQuX4UmLJxX-6SYJCILpeVkblVChm",
+          "name": "Americana 2 23-01.mp4",
+          "pasta": "Americana"
+        },
+        {
+          "id": "1FTzoa-3M-Bb4AZevvlD1TJCMMDcoaXfK",
+          "name": "São carlos 23-01.mp4",
+          "pasta": "São Carlos"
+        },
+        {
+          "id": "15cEUq4QB7H_cY7SUc8FSZBJ2VtC05M9z",
+          "name": "Loja 2 Araraquara 02-01.mp4",
+          "pasta": "Araraquara Loja 2"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "1jHOeakN7x_ZSHBCQd4SvWFmISg31uGZP",
+          "name": "3.png"
+        }
+      },
+      "arraia_video": {
+        "id": "1nsgDvJbrNay42RBBFRyOK4e2IUt5QYNC",
+        "name": "V1 - UTILITÁRIOS.mp4"
+      },
+      "sazonal": null
+    },
+    "peg": {
+      "lojas": [
+        {
+          "id": "1XYf9VgRJOgLT9Wz8MW2Nt2sD79NGOEV8",
+          "name": "chegou pneus_OK.mp4",
+          "pasta": "Sazonais Peg"
+        },
+        {
+          "id": "1nZS4jaqnGgr--VuWAwJE4W2jH8rE_-LS",
+          "name": "175 70 14 Pirelli.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        },
+        {
+          "id": "1HhRcfcT3RJEVD_aC8acM1C2X9WZdYdiS",
+          "name": "Review Pneu Delinte.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "1p1rW_7NnS1Kqp3XBn9QOCgTfTqH5Qzfk",
+          "name": "3.png"
+        }
+      },
+      "arraia_video": {
+        "id": "1ir-3UbLSN6EMD7uNOkBiIPEmKSJw7diI",
+        "name": "v1 utilitários v2.mp4"
+      }
+    }
+  },
+  "2026-06-13": {
+    "dia_semana": "Sáb",
+    "br": {
+      "lojas": [
+        {
+          "id": "1o4_VBpal2aYTT8wD7_ec7VvJ-wG2SYYK",
+          "name": "Americana 02-01.mp4",
+          "pasta": "Americana"
+        },
+        {
+          "id": "1bYY7wAQ97okbR3sKeBEd489Ep0n4zlOw",
+          "name": "Maringa 23-02.mp4",
+          "pasta": "Maringá"
+        },
+        {
+          "id": "1rtAs0TY00QjZaB-B91V2ehJizaxkMw56",
+          "name": "Loja 2 20-03.mp4",
+          "pasta": "Araraquara Loja 2"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "1-Yv4MdhavZQQsBYLofNqJK1M-OVZgS8a",
+          "name": "4.png"
+        }
+      },
+      "arraia_video": null,
+      "sazonal": {
+        "id": "16VmW08XKDjvNze3wkt09oMFzlG_j356O",
+        "name": "TRABALHE GERAL_OK.mp4"
+      }
+    },
+    "peg": {
+      "lojas": [
+        {
+          "id": "1uMtbie8Jr0rZ3IH2v8ULeabGh0a_oT_x",
+          "name": "Peg 2 06-02.mp4",
+          "pasta": "Peg Pneus Sorocaba"
+        },
+        {
+          "id": "1e6MS8PG_88gI3vDudyyIIm0cpI4svuCl",
+          "name": "Peg 2 16-01.mp4",
+          "pasta": "Peg Pneus Sorocaba"
+        },
+        {
+          "id": "1uY5tMgvSxB2ev2zZ93yCMkCUirI0YRvz",
+          "name": "Peg 1 06-02.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "12BHkEAAeRDeSBJ9G1tyJhh2S1N1d71_N",
+          "name": "4.png"
+        }
+      },
+      "arraia_video": null
+    }
+  },
+  "2026-06-15": {
+    "dia_semana": "Seg",
+    "br": {
+      "lojas": [
+        {
+          "id": "12WIWVzbJm9UgwH6T0cd89kk8gAxP6WkF",
+          "name": "São carlos 09-03.mp4",
+          "pasta": "São Carlos"
+        },
+        {
+          "id": "1eusU8-SIPq0lR618EU5ErFsvcUSQvc0v",
+          "name": "São Carlos 31-01.mp4",
+          "pasta": "São Carlos"
+        },
+        {
+          "id": "1ineJ8yZ3cGveaHPh7jptaj0FIDDDCSRs",
+          "name": "São carlos 20-03.mp4",
+          "pasta": "São Carlos"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "16b1tAz-4_lhfIAYhMpMvkVorJvqB6OiC",
+          "name": "5.png"
+        }
+      },
+      "arraia_video": {
+        "id": "13d6oDA0E9bsVQ379LW8AIwhLk4zz8WYV",
+        "name": "v2 br.mp4"
+      },
+      "sazonal": null
+    },
+    "peg": {
+      "lojas": [
+        {
+          "id": "1mEtGb1ADdIfJrskLH09dbZ26u0wWBSU4",
+          "name": "Peg 2 13-02.mp4",
+          "pasta": "Peg Pneus Sorocaba"
+        },
+        {
+          "id": "1Tydppasz6YtFSvdunpMDJoKAyDkexMMb",
+          "name": "Peg 1 13-02.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        },
+        {
+          "id": "1Uhkl93Go1dUxP-B07KdWNMP19AJ9pLB5",
+          "name": "Xbri Forza MT.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        }
+      ],
+      "arte": {
+        "fixa": {
+          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
+          "name": "1.png"
+        },
+        "rotativa": {
+          "id": "1HMz5A9jRUUywD9ajfsGXO_31uwKFLUJ6",
+          "name": "5.png"
+        }
+      },
+      "arraia_video": {
+        "id": "1scTFda6z8ksWCp_K1n14tQVXcU3jePqL",
+        "name": "v2 - outros tipos.mp4"
+      }
+    }
+  },
+  "2026-06-16": {
+    "dia_semana": "Ter",
+    "br": {
+      "lojas": [
+        {
+          "id": "1N3jmFxqWM5K0VEbCKbrH5psT0Pau7gjP",
+          "name": "DIA A DIA BR.mp4",
           "pasta": "Araraquara Loja 1"
+        },
+        {
+          "id": "1DmUdeYDZ14U1IPdq0CrtAG9gjx0XGvSZ",
+          "name": "São Carlos 10-01.mp4",
+          "pasta": "São Carlos"
+        },
+        {
+          "id": "1yEpwIn73P7t5GemauIdx-kgSiPg_Yj33",
+          "name": "Loja 2 23-01.mp4",
+          "pasta": "Araraquara Loja 2"
         }
       ],
       "arte": {
@@ -312,18 +586,18 @@
     "peg": {
       "lojas": [
         {
-          "id": "1Tydppasz6YtFSvdunpMDJoKAyDkexMMb",
-          "name": "Peg 1 13-02.mp4",
+          "id": "17qKiGk8S3a8nWtnbFkn55r29qZamGEwr",
+          "name": "Peg Fiat Toro.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "17lfBXa3LitJ7Dr5DLfycC97VV7UegxJ5",
-          "name": "225 45 17 Firestone.mp4",
+          "id": "1Cd-0Wm7ItVev3bdlrz4IRY7D-XxYr45I",
+          "name": "Pneu Michelin.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "17bneeNAZh-5q4po6lj-BwlJLjcAd_Ef7",
-          "name": "Peg 2 10-01.mp4",
+          "id": "17kxqLpe80F-_1MAcB8wt01cEo4w3skkL",
+          "name": "Peg Sorocaba 23-01.mp4",
           "pasta": "Peg Pneus Sorocaba"
         }
       ],
@@ -340,24 +614,24 @@
       "arraia_video": null
     }
   },
-  "2026-06-12": {
-    "dia_semana": "Sex",
+  "2026-06-17": {
+    "dia_semana": "Qua",
     "br": {
       "lojas": [
         {
-          "id": "1J9HBQuX4UmLJxX-6SYJCILpeVkblVChm",
-          "name": "Americana 2 23-01.mp4",
-          "pasta": "Americana"
+          "id": "11N4ypqM8LsYDxj4Y-nUKrIfo2ZsLpxvA",
+          "name": "São carlos 19-01.mp4",
+          "pasta": "São Carlos"
         },
         {
-          "id": "1RfXM8Qk3456OXJNqNx2zuJ7ozF0jw7lY",
-          "name": "Loja 2 19-01(1).mp4",
+          "id": "1febN4XRGyj-FwsOACxrBxQ75iJWIb3X0",
+          "name": "Loja 2 06-02.mp4",
           "pasta": "Araraquara Loja 2"
         },
         {
-          "id": "1AvSjjQMlSQSvbjZDj_pY1FDE70_PqLmp",
-          "name": "Depoimento Cliente Americana 02-01.mp4",
-          "pasta": "Americana"
+          "id": "1r9oGfEMls5GHvJzwKz4uVkeQKy4U_k_4",
+          "name": "São carlos 02-01.mp4",
+          "pasta": "São Carlos"
         }
       ],
       "arte": {
@@ -379,19 +653,19 @@
     "peg": {
       "lojas": [
         {
-          "id": "1kVr85faE1viPJQ76dVHfKJr910UZ3zXB",
-          "name": "Westlake 165 35 18.mp4",
+          "id": "1rqUQP2pNtaUjrVpQ8W9KnN7KSNHjC73y",
+          "name": "Peg BYD.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1AK924UFvAi-q4QYHKYiqw_SvWXJVhrP6",
-          "name": "Peg 1 14-03.mp4",
+          "id": "1UpsWnKrw_57cUj7cgi1GRH-TyaxZYgcv",
+          "name": "Peg 1 31-01.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1zr4Jx7taDU8oKme1-w_FjNOxDqRBz3rJ",
-          "name": "Renagade Peg Pneus Araraquara.mp4",
-          "pasta": "Peg Pneus Araraquara"
+          "id": "1Mzhja7CoGOZvdnaUehPbg_mehJvjrur_",
+          "name": "Peg Pneus Sorocaba 02-01.mp4",
+          "pasta": "Peg Pneus Sorocaba"
         }
       ],
       "arte": {
@@ -410,23 +684,23 @@
       }
     }
   },
-  "2026-06-13": {
-    "dia_semana": "Sáb",
+  "2026-06-18": {
+    "dia_semana": "Qui",
     "br": {
       "lojas": [
         {
-          "id": "1yEpwIn73P7t5GemauIdx-kgSiPg_Yj33",
-          "name": "Loja 2 23-01.mp4",
-          "pasta": "Araraquara Loja 2"
-        },
-        {
-          "id": "172IklMIMhL0-77oQXjuqMLtfBeqaRQlV",
-          "name": "Loja 1 23-01.mp4",
+          "id": "1fUPr0h23k4ADTAky6IBIjY9-0pFfcn2G",
+          "name": "Araraquara loja 1 10-01.mp4",
           "pasta": "Araraquara Loja 1"
         },
         {
-          "id": "1mfUgtKC7Tu9BpWFGItpkJwj_zWwrr1PQ",
-          "name": "São Carlos.mp4",
+          "id": "1RfXM8Qk3456OXJNqNx2zuJ7ozF0jw7lY",
+          "name": "Loja 2 19-01(1).mp4",
+          "pasta": "Araraquara Loja 2"
+        },
+        {
+          "id": "1btofWfoMNEpB2PuKSuboul08aGvQTGer",
+          "name": "São Carlos 06-02.mp4",
           "pasta": "São Carlos"
         }
       ],
@@ -449,18 +723,18 @@
     "peg": {
       "lojas": [
         {
-          "id": "1QpCcmOdA_MSV6Iy08lEWvzzIv-dNwtu7",
-          "name": "Peg 1 23-02.mp4",
+          "id": "1zr4Jx7taDU8oKme1-w_FjNOxDqRBz3rJ",
+          "name": "Renagade Peg Pneus Araraquara.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1uMtbie8Jr0rZ3IH2v8ULeabGh0a_oT_x",
-          "name": "Peg 2 06-02.mp4",
+          "id": "1bbMhgaiKQGkVPk0ChONMW09zAGPdc69I",
+          "name": "Peg 2 23-02.mp4",
           "pasta": "Peg Pneus Sorocaba"
         },
         {
-          "id": "1-yNyPzOGEnQnt3K-seuZ_HOkxel3Hbdi",
-          "name": "215 60 17 Pirelli.mp4",
+          "id": "17lfBXa3LitJ7Dr5DLfycC97VV7UegxJ5",
+          "name": "225 45 17 Firestone.mp4",
           "pasta": "Peg Pneus Araraquara"
         }
       ],
@@ -477,24 +751,24 @@
       "arraia_video": null
     }
   },
-  "2026-06-15": {
-    "dia_semana": "Seg",
+  "2026-06-19": {
+    "dia_semana": "Sex",
     "br": {
       "lojas": [
         {
-          "id": "1O0D4ocW7wR_DDgVj8cxeWkhWm_jMKOzK",
-          "name": "São Carlos 06-01.mp4",
+          "id": "1mfUgtKC7Tu9BpWFGItpkJwj_zWwrr1PQ",
+          "name": "São Carlos.mp4",
           "pasta": "São Carlos"
         },
         {
-          "id": "1zid0OdhmC7tShxqgaD-kQA9NACWlk1Ix",
-          "name": "Loja 5 19-01.mp4",
-          "pasta": "Maringá"
+          "id": "1sUFeHzqopeT95688jIWv1sv-8mpP8tQ8",
+          "name": "Americana 31-01.mp4",
+          "pasta": "Americana"
         },
         {
-          "id": "1VbLheX_8e4SYy35Ezgy-k_xIRe2kzFBr",
-          "name": "Americana 13-02.mp4",
-          "pasta": "Americana"
+          "id": "172IklMIMhL0-77oQXjuqMLtfBeqaRQlV",
+          "name": "Loja 1 23-01.mp4",
+          "pasta": "Araraquara Loja 1"
         }
       ],
       "arte": {
@@ -516,9 +790,9 @@
     "peg": {
       "lojas": [
         {
-          "id": "1mEtGb1ADdIfJrskLH09dbZ26u0wWBSU4",
-          "name": "Peg 2 13-02.mp4",
-          "pasta": "Peg Pneus Sorocaba"
+          "id": "1XAeQgd2VMhLxBOV-935RgFH8dDQvDEdT",
+          "name": "Amarock Peg Pneus.mp4",
+          "pasta": "Peg Pneus Araraquara"
         },
         {
           "id": "1ifwglcVCF5UG96-MWDjjaNYXlnGGLWN3",
@@ -526,8 +800,8 @@
           "pasta": "Peg Pneus Sorocaba"
         },
         {
-          "id": "17kxqLpe80F-_1MAcB8wt01cEo4w3skkL",
-          "name": "Peg Sorocaba 23-01.mp4",
+          "id": "17bneeNAZh-5q4po6lj-BwlJLjcAd_Ef7",
+          "name": "Peg 2 10-01.mp4",
           "pasta": "Peg Pneus Sorocaba"
         }
       ],
@@ -547,23 +821,23 @@
       }
     }
   },
-  "2026-06-16": {
-    "dia_semana": "Ter",
+  "2026-06-20": {
+    "dia_semana": "Sáb",
     "br": {
       "lojas": [
         {
-          "id": "1eVlUcGadvIDjryYSHjfwl1gOnIRAXelE",
-          "name": "Loja 1 20-03.mp4",
-          "pasta": "Araraquara Loja 1"
-        },
-        {
-          "id": "1qiKNypo-m2obGcP1O7DbevDaCnAqAxym",
-          "name": "São carlos 2 23-01.mp4",
+          "id": "13jXfLivevOJ_74AiYAkIYqCi3xc4MN1y",
+          "name": "São Carlos 13-03.mp4",
           "pasta": "São Carlos"
         },
         {
-          "id": "114xATvVYIxite1L2PCZxkpAyeeBN4cig",
-          "name": "Loja 1 31-01.mp4",
+          "id": "1koGFSwbdscZLBP0v2LAU1W6lZUAxW2Io",
+          "name": "DEPOIMENTO BR.mp4",
+          "pasta": "Araraquara Loja 2"
+        },
+        {
+          "id": "1KvDe3V4j5X7RoIRqWfT4WOFVWg6EHxSt",
+          "name": "Araraquara Loja 1 02-01.mp4",
           "pasta": "Araraquara Loja 1"
         }
       ],
@@ -586,19 +860,19 @@
     "peg": {
       "lojas": [
         {
-          "id": "1rqUQP2pNtaUjrVpQ8W9KnN7KSNHjC73y",
-          "name": "Peg BYD.mp4",
+          "id": "1wb0UGQTNPrth_ohgztvz2s0q6nGCrlOh",
+          "name": "Peg Onix.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1YrtXtpHXzXp6LNh5RlDmCmpSEnRj1Jk0",
-          "name": "Peg 1 10-01.mp4",
+          "id": "1-yNyPzOGEnQnt3K-seuZ_HOkxel3Hbdi",
+          "name": "215 60 17 Pirelli.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1Mzhja7CoGOZvdnaUehPbg_mehJvjrur_",
-          "name": "Peg Pneus Sorocaba 02-01.mp4",
-          "pasta": "Peg Pneus Sorocaba"
+          "id": "1QpCcmOdA_MSV6Iy08lEWvzzIv-dNwtu7",
+          "name": "Peg 1 23-02.mp4",
+          "pasta": "Peg Pneus Araraquara"
         }
       ],
       "arte": {
@@ -614,19 +888,19 @@
       "arraia_video": null
     }
   },
-  "2026-06-17": {
-    "dia_semana": "Qua",
+  "2026-06-22": {
+    "dia_semana": "Seg",
     "br": {
       "lojas": [
         {
-          "id": "1B5waodmjNtjBlwk518MIxv5Db0G6al2d",
-          "name": "Loja 1 19-01.mp4",
-          "pasta": "Araraquara Loja 1"
+          "id": "1_eHsO8HvMTYyo8m_P8JEtmIl8phr-W-g",
+          "name": "Loja 2.mp4",
+          "pasta": "Araraquara Loja 2"
         },
         {
-          "id": "1VUXKhIDlqdblALt5P6pnxgb-0ghtgXxa",
-          "name": "Americana 23-01.mp4",
-          "pasta": "Americana"
+          "id": "1qiKNypo-m2obGcP1O7DbevDaCnAqAxym",
+          "name": "São carlos 2 23-01.mp4",
+          "pasta": "São Carlos"
         },
         {
           "id": "1V3XCC_S9nVT_ws2Ya41sHNpbPGg9G_TD",
@@ -653,19 +927,19 @@
     "peg": {
       "lojas": [
         {
-          "id": "1nZS4jaqnGgr--VuWAwJE4W2jH8rE_-LS",
-          "name": "175 70 14 Pirelli.mp4",
+          "id": "1l60E5JRvn28cvC-PijPa9u8ogTTgZy08",
+          "name": "Video Institucional Peg Pneus.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1XYf9VgRJOgLT9Wz8MW2Nt2sD79NGOEV8",
-          "name": "chegou pneus_OK.mp4",
-          "pasta": "Sazonais Peg"
+          "id": "1kVr85faE1viPJQ76dVHfKJr910UZ3zXB",
+          "name": "Westlake 165 35 18.mp4",
+          "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1bbMhgaiKQGkVPk0ChONMW09zAGPdc69I",
-          "name": "Peg 2 23-02.mp4",
-          "pasta": "Peg Pneus Sorocaba"
+          "id": "1u3RslBH1hu5Vc0xRt8GuiEepsXb0K1vq",
+          "name": "Montagem e balanceamento.mp4",
+          "pasta": "Peg Pneus Araraquara"
         }
       ],
       "arte": {
@@ -684,24 +958,24 @@
       }
     }
   },
-  "2026-06-18": {
-    "dia_semana": "Qui",
+  "2026-06-23": {
+    "dia_semana": "Ter",
     "br": {
       "lojas": [
         {
-          "id": "12WIWVzbJm9UgwH6T0cd89kk8gAxP6WkF",
-          "name": "São carlos 09-03.mp4",
-          "pasta": "São Carlos"
+          "id": "1eVlUcGadvIDjryYSHjfwl1gOnIRAXelE",
+          "name": "Loja 1 20-03.mp4",
+          "pasta": "Araraquara Loja 1"
         },
         {
-          "id": "1eusU8-SIPq0lR618EU5ErFsvcUSQvc0v",
-          "name": "São Carlos 31-01.mp4",
-          "pasta": "São Carlos"
+          "id": "1OouY9icl3Sk_kD6EUVQfdBcVfNluHan9",
+          "name": "Araraquara Loja 1 13-02.mp4",
+          "pasta": "Araraquara Loja 1"
         },
         {
-          "id": "1dc-G73kUdHXlwKL5_CxX-w7RuDfHfoWX",
-          "name": "Maringá 06-02.mp4",
-          "pasta": "Maringá"
+          "id": "19j-muv3XlraFaigXyTkLC8LxDMiLAFsK",
+          "name": "Loja 1.mp4",
+          "pasta": "Araraquara Loja 1"
         }
       ],
       "arte": {
@@ -723,19 +997,19 @@
     "peg": {
       "lojas": [
         {
-          "id": "1Uhkl93Go1dUxP-B07KdWNMP19AJ9pLB5",
-          "name": "Xbri Forza MT.mp4",
+          "id": "1YrtXtpHXzXp6LNh5RlDmCmpSEnRj1Jk0",
+          "name": "Peg 1 10-01.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1oZ1LvKbwsKLA9NU26XmgV6wgMguBQoj8",
-          "name": "Peg araraquara 22-01.mp4",
+          "id": "1AK924UFvAi-q4QYHKYiqw_SvWXJVhrP6",
+          "name": "Peg 1 14-03.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1UpsWnKrw_57cUj7cgi1GRH-TyaxZYgcv",
-          "name": "Peg 1 31-01.mp4",
-          "pasta": "Peg Pneus Araraquara"
+          "id": "1XYf9VgRJOgLT9Wz8MW2Nt2sD79NGOEV8",
+          "name": "chegou pneus_OK.mp4",
+          "pasta": "Sazonais Peg"
         }
       ],
       "arte": {
@@ -751,24 +1025,24 @@
       "arraia_video": null
     }
   },
-  "2026-06-19": {
-    "dia_semana": "Sex",
+  "2026-06-24": {
+    "dia_semana": "Qua",
     "br": {
       "lojas": [
         {
-          "id": "1HbzrfUw0kEH8XWIsfsqcXQtDpr7kw0Nu",
-          "name": "Loja 2 13-02.mp4",
-          "pasta": "Araraquara Loja 2"
+          "id": "1POBSdy5YQ25m4h2IGwNVpTXP8jFwDH7T",
+          "name": "Loja 1 06-02.mp4",
+          "pasta": "Araraquara Loja 1"
         },
         {
-          "id": "1QBmNK2es97jPSOFaHutL1Br0K3_hj_Kh",
-          "name": "Sao carlos 13-02.mp4",
-          "pasta": "São Carlos"
+          "id": "14u2kH7NUibaZiXniKqcwOJOxdCNctbS_",
+          "name": "Americana 10-01.mp4",
+          "pasta": "Americana"
         },
         {
-          "id": "1r9oGfEMls5GHvJzwKz4uVkeQKy4U_k_4",
-          "name": "São carlos 02-01.mp4",
-          "pasta": "São Carlos"
+          "id": "1VUXKhIDlqdblALt5P6pnxgb-0ghtgXxa",
+          "name": "Americana 23-01.mp4",
+          "pasta": "Americana"
         }
       ],
       "arte": {
@@ -790,18 +1064,18 @@
     "peg": {
       "lojas": [
         {
-          "id": "1uY5tMgvSxB2ev2zZ93yCMkCUirI0YRvz",
-          "name": "Peg 1 06-02.mp4",
+          "id": "1nZS4jaqnGgr--VuWAwJE4W2jH8rE_-LS",
+          "name": "175 70 14 Pirelli.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1l60E5JRvn28cvC-PijPa9u8ogTTgZy08",
-          "name": "Video Institucional Peg Pneus.mp4",
+          "id": "1HhRcfcT3RJEVD_aC8acM1C2X9WZdYdiS",
+          "name": "Review Pneu Delinte.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1e6MS8PG_88gI3vDudyyIIm0cpI4svuCl",
-          "name": "Peg 2 16-01.mp4",
+          "id": "1uMtbie8Jr0rZ3IH2v8ULeabGh0a_oT_x",
+          "name": "Peg 2 06-02.mp4",
           "pasta": "Peg Pneus Sorocaba"
         }
       ],
@@ -821,24 +1095,24 @@
       }
     }
   },
-  "2026-06-20": {
-    "dia_semana": "Sáb",
+  "2026-06-25": {
+    "dia_semana": "Qui",
     "br": {
       "lojas": [
         {
-          "id": "13jXfLivevOJ_74AiYAkIYqCi3xc4MN1y",
-          "name": "São Carlos 13-03.mp4",
+          "id": "1BuR4_nElHRrgDu5WlVdO5PI3FYZGI5H7",
+          "name": "São carlos 10-01 2.mp4",
           "pasta": "São Carlos"
         },
         {
-          "id": "1N3jmFxqWM5K0VEbCKbrH5psT0Pau7gjP",
-          "name": "DIA A DIA BR.mp4",
-          "pasta": "Araraquara Loja 1"
+          "id": "1QBmNK2es97jPSOFaHutL1Br0K3_hj_Kh",
+          "name": "Sao carlos 13-02.mp4",
+          "pasta": "São Carlos"
         },
         {
-          "id": "19j-muv3XlraFaigXyTkLC8LxDMiLAFsK",
-          "name": "Loja 1.mp4",
-          "pasta": "Araraquara Loja 1"
+          "id": "1J9HBQuX4UmLJxX-6SYJCILpeVkblVChm",
+          "name": "Americana 2 23-01.mp4",
+          "pasta": "Americana"
         }
       ],
       "arte": {
@@ -860,19 +1134,19 @@
     "peg": {
       "lojas": [
         {
-          "id": "1XAeQgd2VMhLxBOV-935RgFH8dDQvDEdT",
-          "name": "Amarock Peg Pneus.mp4",
+          "id": "1e6MS8PG_88gI3vDudyyIIm0cpI4svuCl",
+          "name": "Peg 2 16-01.mp4",
+          "pasta": "Peg Pneus Sorocaba"
+        },
+        {
+          "id": "1uY5tMgvSxB2ev2zZ93yCMkCUirI0YRvz",
+          "name": "Peg 1 06-02.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1Cd-0Wm7ItVev3bdlrz4IRY7D-XxYr45I",
-          "name": "Pneu Michelin.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1u3RslBH1hu5Vc0xRt8GuiEepsXb0K1vq",
-          "name": "Montagem e balanceamento.mp4",
-          "pasta": "Peg Pneus Araraquara"
+          "id": "1mEtGb1ADdIfJrskLH09dbZ26u0wWBSU4",
+          "name": "Peg 2 13-02.mp4",
+          "pasta": "Peg Pneus Sorocaba"
         }
       ],
       "arte": {
@@ -888,23 +1162,23 @@
       "arraia_video": null
     }
   },
-  "2026-06-22": {
-    "dia_semana": "Seg",
+  "2026-06-26": {
+    "dia_semana": "Sex",
     "br": {
       "lojas": [
         {
-          "id": "1rtAs0TY00QjZaB-B91V2ehJizaxkMw56",
-          "name": "Loja 2 20-03.mp4",
+          "id": "1FTzoa-3M-Bb4AZevvlD1TJCMMDcoaXfK",
+          "name": "São carlos 23-01.mp4",
+          "pasta": "São Carlos"
+        },
+        {
+          "id": "15cEUq4QB7H_cY7SUc8FSZBJ2VtC05M9z",
+          "name": "Loja 2 Araraquara 02-01.mp4",
           "pasta": "Araraquara Loja 2"
         },
         {
-          "id": "1sUFeHzqopeT95688jIWv1sv-8mpP8tQ8",
-          "name": "Americana 31-01.mp4",
-          "pasta": "Americana"
-        },
-        {
-          "id": "10ovW6_cj_GKlw6q0eDN2P6EqXOJaA3ZG",
-          "name": "Americana 23-02.mp4",
+          "id": "1o4_VBpal2aYTT8wD7_ec7VvJ-wG2SYYK",
+          "name": "Americana 02-01.mp4",
           "pasta": "Americana"
         }
       ],
@@ -927,18 +1201,18 @@
     "peg": {
       "lojas": [
         {
-          "id": "1wb0UGQTNPrth_ohgztvz2s0q6nGCrlOh",
-          "name": "Peg Onix.mp4",
+          "id": "1Tydppasz6YtFSvdunpMDJoKAyDkexMMb",
+          "name": "Peg 1 13-02.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        },
+        {
+          "id": "1Uhkl93Go1dUxP-B07KdWNMP19AJ9pLB5",
+          "name": "Xbri Forza MT.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
           "id": "17qKiGk8S3a8nWtnbFkn55r29qZamGEwr",
           "name": "Peg Fiat Toro.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1HhRcfcT3RJEVD_aC8acM1C2X9WZdYdiS",
-          "name": "Review Pneu Delinte.mp4",
           "pasta": "Peg Pneus Araraquara"
         }
       ],
@@ -958,24 +1232,24 @@
       }
     }
   },
-  "2026-06-23": {
-    "dia_semana": "Ter",
+  "2026-06-27": {
+    "dia_semana": "Sáb",
     "br": {
       "lojas": [
         {
-          "id": "1FTzoa-3M-Bb4AZevvlD1TJCMMDcoaXfK",
-          "name": "São carlos 23-01.mp4",
-          "pasta": "São Carlos"
+          "id": "1bYY7wAQ97okbR3sKeBEd489Ep0n4zlOw",
+          "name": "Maringa 23-02.mp4",
+          "pasta": "Maringá"
         },
         {
-          "id": "1BuR4_nElHRrgDu5WlVdO5PI3FYZGI5H7",
-          "name": "São carlos 10-01 2.mp4",
-          "pasta": "São Carlos"
-        },
-        {
-          "id": "1zoiJO1fJbTet13segUlaMkEEV9IvnmFK",
-          "name": "Loja 2 31-01.mp4",
+          "id": "1rtAs0TY00QjZaB-B91V2ehJizaxkMw56",
+          "name": "Loja 2 20-03.mp4",
           "pasta": "Araraquara Loja 2"
+        },
+        {
+          "id": "12WIWVzbJm9UgwH6T0cd89kk8gAxP6WkF",
+          "name": "São carlos 09-03.mp4",
+          "pasta": "São Carlos"
         }
       ],
       "arte": {
@@ -997,19 +1271,19 @@
     "peg": {
       "lojas": [
         {
-          "id": "1Tydppasz6YtFSvdunpMDJoKAyDkexMMb",
-          "name": "Peg 1 13-02.mp4",
+          "id": "1Cd-0Wm7ItVev3bdlrz4IRY7D-XxYr45I",
+          "name": "Pneu Michelin.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "17lfBXa3LitJ7Dr5DLfycC97VV7UegxJ5",
-          "name": "225 45 17 Firestone.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "17bneeNAZh-5q4po6lj-BwlJLjcAd_Ef7",
-          "name": "Peg 2 10-01.mp4",
+          "id": "17kxqLpe80F-_1MAcB8wt01cEo4w3skkL",
+          "name": "Peg Sorocaba 23-01.mp4",
           "pasta": "Peg Pneus Sorocaba"
+        },
+        {
+          "id": "1rqUQP2pNtaUjrVpQ8W9KnN7KSNHjC73y",
+          "name": "Peg BYD.mp4",
+          "pasta": "Peg Pneus Araraquara"
         }
       ],
       "arte": {
@@ -1025,23 +1299,23 @@
       "arraia_video": null
     }
   },
-  "2026-06-24": {
-    "dia_semana": "Qua",
+  "2026-06-29": {
+    "dia_semana": "Seg",
     "br": {
       "lojas": [
         {
-          "id": "156DTzqvSY-3msxxKq6uriT779260MS9i",
-          "name": "Americana 06-02.mp4",
-          "pasta": "Americana"
+          "id": "1eusU8-SIPq0lR618EU5ErFsvcUSQvc0v",
+          "name": "São Carlos 31-01.mp4",
+          "pasta": "São Carlos"
         },
         {
-          "id": "1o4_VBpal2aYTT8wD7_ec7VvJ-wG2SYYK",
-          "name": "Americana 02-01.mp4",
-          "pasta": "Americana"
+          "id": "1ineJ8yZ3cGveaHPh7jptaj0FIDDDCSRs",
+          "name": "São carlos 20-03.mp4",
+          "pasta": "São Carlos"
         },
         {
-          "id": "1fUPr0h23k4ADTAky6IBIjY9-0pFfcn2G",
-          "name": "Araraquara loja 1 10-01.mp4",
+          "id": "1N3jmFxqWM5K0VEbCKbrH5psT0Pau7gjP",
+          "name": "DIA A DIA BR.mp4",
           "pasta": "Araraquara Loja 1"
         }
       ],
@@ -1064,14 +1338,14 @@
     "peg": {
       "lojas": [
         {
-          "id": "1kVr85faE1viPJQ76dVHfKJr910UZ3zXB",
-          "name": "Westlake 165 35 18.mp4",
+          "id": "1UpsWnKrw_57cUj7cgi1GRH-TyaxZYgcv",
+          "name": "Peg 1 31-01.mp4",
           "pasta": "Peg Pneus Araraquara"
         },
         {
-          "id": "1AK924UFvAi-q4QYHKYiqw_SvWXJVhrP6",
-          "name": "Peg 1 14-03.mp4",
-          "pasta": "Peg Pneus Araraquara"
+          "id": "1Mzhja7CoGOZvdnaUehPbg_mehJvjrur_",
+          "name": "Peg Pneus Sorocaba 02-01.mp4",
+          "pasta": "Peg Pneus Sorocaba"
         },
         {
           "id": "1zr4Jx7taDU8oKme1-w_FjNOxDqRBz3rJ",
@@ -1095,23 +1369,23 @@
       }
     }
   },
-  "2026-06-25": {
-    "dia_semana": "Qui",
+  "2026-06-30": {
+    "dia_semana": "Ter",
     "br": {
       "lojas": [
         {
-          "id": "1KtHu0N7vTV6C52URbMObODCshsd7i_JS",
-          "name": "Americana 19-01.mp4",
-          "pasta": "Americana"
+          "id": "1DmUdeYDZ14U1IPdq0CrtAG9gjx0XGvSZ",
+          "name": "São Carlos 10-01.mp4",
+          "pasta": "São Carlos"
         },
         {
-          "id": "1koGFSwbdscZLBP0v2LAU1W6lZUAxW2Io",
-          "name": "DEPOIMENTO BR.mp4",
+          "id": "1yEpwIn73P7t5GemauIdx-kgSiPg_Yj33",
+          "name": "Loja 2 23-01.mp4",
           "pasta": "Araraquara Loja 2"
         },
         {
-          "id": "1ineJ8yZ3cGveaHPh7jptaj0FIDDDCSRs",
-          "name": "São carlos 20-03.mp4",
+          "id": "11N4ypqM8LsYDxj4Y-nUKrIfo2ZsLpxvA",
+          "name": "São carlos 19-01.mp4",
           "pasta": "São Carlos"
         }
       ],
@@ -1134,18 +1408,18 @@
     "peg": {
       "lojas": [
         {
-          "id": "1QpCcmOdA_MSV6Iy08lEWvzzIv-dNwtu7",
-          "name": "Peg 1 23-02.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1uMtbie8Jr0rZ3IH2v8ULeabGh0a_oT_x",
-          "name": "Peg 2 06-02.mp4",
+          "id": "1bbMhgaiKQGkVPk0ChONMW09zAGPdc69I",
+          "name": "Peg 2 23-02.mp4",
           "pasta": "Peg Pneus Sorocaba"
         },
         {
-          "id": "1-yNyPzOGEnQnt3K-seuZ_HOkxel3Hbdi",
-          "name": "215 60 17 Pirelli.mp4",
+          "id": "17lfBXa3LitJ7Dr5DLfycC97VV7UegxJ5",
+          "name": "225 45 17 Firestone.mp4",
+          "pasta": "Peg Pneus Araraquara"
+        },
+        {
+          "id": "1XAeQgd2VMhLxBOV-935RgFH8dDQvDEdT",
+          "name": "Amarock Peg Pneus.mp4",
           "pasta": "Peg Pneus Araraquara"
         }
       ],
@@ -1157,280 +1431,6 @@
         "rotativa": {
           "id": "12BHkEAAeRDeSBJ9G1tyJhh2S1N1d71_N",
           "name": "4.png"
-        }
-      },
-      "arraia_video": null
-    }
-  },
-  "2026-06-26": {
-    "dia_semana": "Sex",
-    "br": {
-      "lojas": [
-        {
-          "id": "1jx0W7m35QhqNV2hpxdn9azl69WpiL51x",
-          "name": "Araraquara Loja 2 10-01.mp4",
-          "pasta": "Araraquara Loja 2"
-        },
-        {
-          "id": "1febN4XRGyj-FwsOACxrBxQ75iJWIb3X0",
-          "name": "Loja 2 06-02.mp4",
-          "pasta": "Araraquara Loja 2"
-        },
-        {
-          "id": "1_eHsO8HvMTYyo8m_P8JEtmIl8phr-W-g",
-          "name": "Loja 2.mp4",
-          "pasta": "Araraquara Loja 2"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "1jHOeakN7x_ZSHBCQd4SvWFmISg31uGZP",
-          "name": "3.png"
-        }
-      },
-      "arraia_video": {
-        "id": "1oY73JbbYt2mvhyLpw9XJJc8AU0Dp2BnE",
-        "name": "V3 - SERVIÇOS.mp4"
-      },
-      "sazonal": null
-    },
-    "peg": {
-      "lojas": [
-        {
-          "id": "1mEtGb1ADdIfJrskLH09dbZ26u0wWBSU4",
-          "name": "Peg 2 13-02.mp4",
-          "pasta": "Peg Pneus Sorocaba"
-        },
-        {
-          "id": "1ifwglcVCF5UG96-MWDjjaNYXlnGGLWN3",
-          "name": "Peg 2 20-03.mp4",
-          "pasta": "Peg Pneus Sorocaba"
-        },
-        {
-          "id": "17kxqLpe80F-_1MAcB8wt01cEo4w3skkL",
-          "name": "Peg Sorocaba 23-01.mp4",
-          "pasta": "Peg Pneus Sorocaba"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "1HMz5A9jRUUywD9ajfsGXO_31uwKFLUJ6",
-          "name": "5.png"
-        }
-      },
-      "arraia_video": {
-        "id": "1E7lHHS5Wuk5xo157fKpBYi4CnKSRx5DT",
-        "name": "v3_ok.mp4"
-      }
-    }
-  },
-  "2026-06-27": {
-    "dia_semana": "Sáb",
-    "br": {
-      "lojas": [
-        {
-          "id": "15cEUq4QB7H_cY7SUc8FSZBJ2VtC05M9z",
-          "name": "Loja 2 Araraquara 02-01.mp4",
-          "pasta": "Araraquara Loja 2"
-        },
-        {
-          "id": "1btofWfoMNEpB2PuKSuboul08aGvQTGer",
-          "name": "São Carlos 06-02.mp4",
-          "pasta": "São Carlos"
-        },
-        {
-          "id": "1dXzW8qddWnFJ0v0okjGysSNa776l-vmA",
-          "name": "Maringá 2 22-01.mp4",
-          "pasta": "Maringá"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "1-Yv4MdhavZQQsBYLofNqJK1M-OVZgS8a",
-          "name": "4.png"
-        }
-      },
-      "arraia_video": null,
-      "sazonal": {
-        "id": "1TWd3gIKMR0yy8Dza6JozcNNZU_c44eIt",
-        "name": "Consultor de vendas_OK.mp4"
-      }
-    },
-    "peg": {
-      "lojas": [
-        {
-          "id": "1rqUQP2pNtaUjrVpQ8W9KnN7KSNHjC73y",
-          "name": "Peg BYD.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1YrtXtpHXzXp6LNh5RlDmCmpSEnRj1Jk0",
-          "name": "Peg 1 10-01.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1Mzhja7CoGOZvdnaUehPbg_mehJvjrur_",
-          "name": "Peg Pneus Sorocaba 02-01.mp4",
-          "pasta": "Peg Pneus Sorocaba"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "1btnq7Pq8BNg3YcD3wtwCykHB389uYHoB",
-          "name": "6.png"
-        }
-      },
-      "arraia_video": null
-    }
-  },
-  "2026-06-29": {
-    "dia_semana": "Seg",
-    "br": {
-      "lojas": [
-        {
-          "id": "19N3ZgW7w4jCfq2_fAhlS5uWYTr5Ga2qY",
-          "name": "Maringá 2 31-01.mp4",
-          "pasta": "Maringá"
-        },
-        {
-          "id": "1POBSdy5YQ25m4h2IGwNVpTXP8jFwDH7T",
-          "name": "Loja 1 06-02.mp4",
-          "pasta": "Araraquara Loja 1"
-        },
-        {
-          "id": "1DmUdeYDZ14U1IPdq0CrtAG9gjx0XGvSZ",
-          "name": "São Carlos 10-01.mp4",
-          "pasta": "São Carlos"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "16b1tAz-4_lhfIAYhMpMvkVorJvqB6OiC",
-          "name": "5.png"
-        }
-      },
-      "arraia_video": {
-        "id": "1nsgDvJbrNay42RBBFRyOK4e2IUt5QYNC",
-        "name": "V1 - UTILITÁRIOS.mp4"
-      },
-      "sazonal": null
-    },
-    "peg": {
-      "lojas": [
-        {
-          "id": "1nZS4jaqnGgr--VuWAwJE4W2jH8rE_-LS",
-          "name": "175 70 14 Pirelli.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1XYf9VgRJOgLT9Wz8MW2Nt2sD79NGOEV8",
-          "name": "chegou pneus_OK.mp4",
-          "pasta": "Sazonais Peg"
-        },
-        {
-          "id": "1bbMhgaiKQGkVPk0ChONMW09zAGPdc69I",
-          "name": "Peg 2 23-02.mp4",
-          "pasta": "Peg Pneus Sorocaba"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "1CrTJbIyOlSJBBAPdafuD1unAQU8E-dtM",
-          "name": "7.png"
-        }
-      },
-      "arraia_video": {
-        "id": "1ir-3UbLSN6EMD7uNOkBiIPEmKSJw7diI",
-        "name": "v1 utilitários v2.mp4"
-      }
-    }
-  },
-  "2026-06-30": {
-    "dia_semana": "Ter",
-    "br": {
-      "lojas": [
-        {
-          "id": "1bYY7wAQ97okbR3sKeBEd489Ep0n4zlOw",
-          "name": "Maringa 23-02.mp4",
-          "pasta": "Maringá"
-        },
-        {
-          "id": "14u2kH7NUibaZiXniKqcwOJOxdCNctbS_",
-          "name": "Americana 10-01.mp4",
-          "pasta": "Americana"
-        },
-        {
-          "id": "1OouY9icl3Sk_kD6EUVQfdBcVfNluHan9",
-          "name": "Araraquara Loja 1 13-02.mp4",
-          "pasta": "Araraquara Loja 1"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1mPhY5UTyVBfAsTURLTXi0mYtLhwrhTEB",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "1EhgKjZbObWJfgJyY5XyF3dscv-cT6WEi",
-          "name": "6.png"
-        }
-      },
-      "arraia_video": null,
-      "sazonal": {
-        "id": "16VmW08XKDjvNze3wkt09oMFzlG_j356O",
-        "name": "TRABALHE GERAL_OK.mp4"
-      }
-    },
-    "peg": {
-      "lojas": [
-        {
-          "id": "1Uhkl93Go1dUxP-B07KdWNMP19AJ9pLB5",
-          "name": "Xbri Forza MT.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1oZ1LvKbwsKLA9NU26XmgV6wgMguBQoj8",
-          "name": "Peg araraquara 22-01.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        },
-        {
-          "id": "1UpsWnKrw_57cUj7cgi1GRH-TyaxZYgcv",
-          "name": "Peg 1 31-01.mp4",
-          "pasta": "Peg Pneus Araraquara"
-        }
-      ],
-      "arte": {
-        "fixa": {
-          "id": "1jySPmgjCnSjipdLQJ4kaXp8nK3kI6EbY",
-          "name": "1.png"
-        },
-        "rotativa": {
-          "id": "1wnS7NkOti72OOiwrWKRorNlK-co47R-4",
-          "name": "8.png"
         }
       },
       "arraia_video": null
