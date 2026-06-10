@@ -1,0 +1,114 @@
+name: Verificar Token Google Ads
+
+on:
+  schedule:
+    # Toda segunda-feira às 8h BRT (11h UTC) — checa antes da semana de coleta
+    - cron: '0 11 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write   # para abrir Issue de alerta
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}" >> .env
+          echo "GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }}"             >> .env
+          echo "GOOGLE_ADS_CLIENT_SECRET=${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}"     >> .env
+          echo "GOOGLE_ADS_REFRESH_TOKEN=${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}"     >> .env
+
+      - name: Testar token Google Ads
+        id: check
+        run: |
+          node tools/verificar-token-google-ci.js
+          echo "status=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Abrir Issue de alerta se token inválido
+        if: steps.check.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '🔑 Google Ads: token expirado — renovar agora';
+            const body = [
+              '## Token Google Ads expirado',
+              '',
+              'A verificação semanal detectou que o `GOOGLE_ADS_REFRESH_TOKEN` está inválido.',
+              'O Dashboard ADS no NexusZ está mostrando `invalid_grant` em todas as contas Google.',
+              '',
+              '## Como renovar',
+              '',
+              '1. No seu PC (com o Marketing aberto), rode:',
+              '   ```bash',
+              '   cd C:\\Users\\Nick\\Downloads\\Marketing',
+              '   node tools/renovar-google-token.js',
+              '   ```',
+              '2. Autorize no browser com a conta Google do MCC',
+              '3. Após salvar, rode:',
+              '   ```bash',
+              '   gh secret set GOOGLE_ADS_REFRESH_TOKEN --body "$(grep GOOGLE_ADS_REFRESH_TOKEN .env | cut -d= -f2)" --repo marketingsmartcar/marketing-automacoes',
+              '   ```',
+              '',
+              '> Este Issue foi aberto automaticamente pelo workflow `verificar-token-google.yml`.',
+            ].join('\n');
+
+            // Verificar se já existe Issue aberta com mesmo título (evitar duplicatas)
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'token-expirado',
+            });
+
+            const jaExiste = issues.data.some(i => i.title === title);
+            if (!jaExiste) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['token-expirado'],
+              });
+              console.log('Issue de alerta criada.');
+            } else {
+              console.log('Issue já existe — não duplicando.');
+            }
+
+      - name: Token OK — fechar Issues abertas de alerta
+        if: steps.check.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'token-expirado',
+            });
+            for (const issue of issues.data) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+              });
+              console.log(`Issue #${issue.number} fechada — token renovado.`);
+            }
