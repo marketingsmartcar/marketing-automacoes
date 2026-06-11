@@ -88,17 +88,28 @@ async function scrollReviews(page) {
   return prevCount;
 }
 
-// ─── Clicar na aba "Avaliações" para abrir o painel ──────────────────────────
+// ─── Abrir painel de reviews ──────────────────────────────────────────────────
 
-async function clicarAbaAvaliacoes(page) {
-  // Procura o botão da aba "Avaliações" especificamente (não qualquer elemento)
-  const clicou = await page.evaluate(() => {
-    const tabs = [...document.querySelectorAll('button[role="tab"]')];
-    const tab = tabs.find(b => /^avalia/i.test((b.textContent || '').trim()));
-    if (tab) { tab.click(); return true; }
-    return false;
-  });
-  if (clicou) await new Promise(r => setTimeout(r, 2500));
+async function abrirPainelReviews(page) {
+  // 1) Aba "Avaliações" com role=tab
+  try {
+    await page.evaluate(() => {
+      const btns = [...document.querySelectorAll('button[role="tab"], [role="tab"]')];
+      const tab = btns.find(b => /avalia/i.test(b.textContent || '') || /review/i.test(b.getAttribute('aria-label') || ''));
+      if (tab) tab.click();
+    });
+    await new Promise(r => setTimeout(r, 2000));
+  } catch (_) {}
+
+  // 2) Fallback: qualquer link/botão/span com texto "avaliações" (ex: "4.267 avaliações")
+  try {
+    await page.evaluate(() => {
+      const els = [...document.querySelectorAll('a, button, span, div')];
+      const el = els.find(e => /\d[\d\s.,]*\s*avalia[çc][õo]es?/i.test(e.textContent || ''));
+      if (el) el.click();
+    });
+    await new Promise(r => setTimeout(r, 2000));
+  } catch (_) {}
 }
 
 // ─── Extrair reviews do DOM ───────────────────────────────────────────────────
@@ -211,45 +222,22 @@ async function scrapeLojaCompleto(browser, loja) {
 
     await new Promise(r => setTimeout(r, 2000));
 
-    // Aguarda página carregar (mesmo critério do coletar-avaliacoes.js)
-    try {
-      await page.waitForFunction(
-        () => {
-          const el = document.querySelector('.lyplG');
-          return el && el.textContent.trim().length > 0;
-        },
-        { timeout: 15000 }
-      );
-    } catch (_) {}
+    // Abre o painel de reviews
+    await abrirPainelReviews(page);
 
-    // Aguarda reviews iniciais aparecerem
+    // Aguarda reviews aparecerem
     try {
       await page.waitForFunction(
         () => document.querySelectorAll('.jftiEf, [data-review-id]').length > 0,
-        { timeout: 10000 }
+        { timeout: 12000 }
       );
     } catch (_) {}
 
-    // Se ainda não tem reviews, tenta clicar na aba Avaliações
-    const inicial = await page.evaluate(() =>
+    const totalInicial = await page.evaluate(() =>
       document.querySelectorAll('.jftiEf, [data-review-id]').length
     );
 
-    if (inicial === 0) {
-      await clicarAbaAvaliacoes(page);
-      try {
-        await page.waitForFunction(
-          () => document.querySelectorAll('.jftiEf, [data-review-id]').length > 0,
-          { timeout: 10000 }
-        );
-      } catch (_) {}
-    }
-
-    const aposEspera = await page.evaluate(() =>
-      document.querySelectorAll('.jftiEf, [data-review-id]').length
-    );
-
-    if (aposEspera === 0) {
+    if (totalInicial === 0) {
       console.log('\n     ⚠️  Nenhum review encontrado na página');
       return 0;
     }
