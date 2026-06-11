@@ -2,21 +2,8 @@
 /**
  * tools/coletar-avaliacoes.js
  *
- * Scrapa a nota média e total de avaliações de cada loja no Google
- * e salva na tabela google_ratings do Supabase (NexusZ).
- *
- * Uso:
- *   node tools/coletar-avaliacoes.js
- *
- * Pré-requisito Supabase — criar a tabela uma vez:
- *   CREATE TABLE google_ratings (
- *     id bigserial PRIMARY KEY,
- *     loja_key text NOT NULL,
- *     loja_nome text NOT NULL,
- *     nota_media numeric(3,1),
- *     total_avaliacoes integer,
- *     coletado_em timestamptz DEFAULT now()
- *   );
+ * Coleta nota média, total de avaliações E reviews individuais de cada loja
+ * no Google Maps e salva nas tabelas google_ratings e google_reviews do Supabase.
  */
 
 require('dotenv').config();
@@ -35,7 +22,9 @@ const LOJAS = [
   { key: 'PEG_ARQ', nome: 'Peg Pneus Araraquara',  placeId: process.env.GOOGLE_PLACE_ID_PEG_ARARAQUARA },
 ].filter(l => l.placeId);
 
-async function scrapeRating(browser, loja) {
+// ─── Scrape rating + reviews ──────────────────────────────────────────────────
+
+async function scrapeLoja(browser, loja) {
   const page = await browser.newPage();
   try {
     await page.setViewport({ width: 1280, height: 900 });
@@ -43,8 +32,6 @@ async function scrapeRating(browser, loja) {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
     );
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
-
-    // Oculta que é headless para evitar page simplificada do Google
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
@@ -52,19 +39,17 @@ async function scrapeRating(browser, loja) {
     const url = `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 40000 });
 
-    // Aguarda o contador de avaliações (lyplG) ser preenchido — até 20s
-    // Tenta 3 estratégias em sequência se necessário
-    let lyplGLoaded = false;
+    // Aguarda nota aparecer
+    let loaded = false;
     try {
       await page.waitForFunction(
         () => { const el = document.querySelector('.lyplG'); return el && el.textContent.trim().length > 0; },
         { timeout: 15000 }
       );
-      lyplGLoaded = true;
+      loaded = true;
     } catch (_) {}
 
-    if (!lyplGLoaded) {
-      // Estratégia 2: scroll + aguardar aria-label com avaliações
+    if (!loaded) {
       await page.evaluate(() => window.scrollBy(0, 400));
       try {
         await page.waitForFunction(
@@ -74,11 +59,19 @@ async function scrapeRating(browser, loja) {
       } catch (_) {}
     }
 
+    // Aguarda reviews carregarem
+    try {
+      await page.waitForFunction(
+        () => document.querySelectorAll('.jftiEf, [data-review-id]').length > 0,
+        { timeout: 8000 }
+      );
+    } catch (_) {}
+
     const result = await page.evaluate(() => {
       let nota = null;
       let total = null;
 
-      // Padrão 1: aria-label="X,X estrelas" em qualquer elemento
+      // ── Nota ─────────────────────────────────────────────────────────────────
       for (const el of document.querySelectorAll('[aria-label]')) {
         const lbl = el.getAttribute('aria-label') || '';
         const m = lbl.match(/([1-5][,\.]\d)\s*estrelas?/i);
@@ -87,8 +80,6 @@ async function scrapeRating(browser, loja) {
           if (val >= 1 && val <= 5) { nota = val; break; }
         }
       }
-
-      // Padrão 2: span/div com o número da nota grande (ex: "4,9")
       if (!nota) {
         for (const el of document.querySelectorAll('span, div')) {
           const t = (el.textContent || '').trim();
@@ -99,78 +90,70 @@ async function scrapeRating(browser, loja) {
         }
       }
 
-      // Padrão 3: texto da página
-      if (!nota) {
-        const m = document.body.innerText.match(/\b([1-5][,\.]\d)\s*(?:\(|estrelas?|de\s*5)/i);
-        if (m) nota = parseFloat(m[1].replace(',', '.'));
-      }
-
-      // Total de avaliações
-      // Normaliza o texto substituindo nbsp e thin-space por espaço comum
-      function normNum(s) { return s.replace(/[   ⁠]/g, '').replace(/\D/g, ''); }
-
-      // Padrão direto: div.lyplG contém '(6.031)' ou '6.031'
+      // ── Total ─────────────────────────────────────────────────────────────────
+      function normNum(s) { return s.replace(/[   ⁠]/g, '').replace(/\D/g, ''); }
       const lyplGText = (document.querySelector('.lyplG')?.textContent || '').trim();
-      if (!total && lyplGText) {
-        const v = parseInt(normNum(lyplGText));
-        if (v >= 10) total = v;
-      }
+      if (lyplGText) { const v = parseInt(normNum(lyplGText)); if (v >= 10) total = v; }
 
-
-      // Padrão 0: aria-label em qualquer elemento (ex: "6.016 avaliações", "3,5 mil avaliações")
       for (const el of document.querySelectorAll('[aria-label]')) {
+        if (total) break;
         const lbl = el.getAttribute('aria-label') || '';
-        // "X,X mil"
         const mMil = lbl.match(/(\d+[,\.]\d+)\s*mil\s*avalia/i);
         if (mMil) { total = Math.round(parseFloat(mMil[1].replace(',', '.')) * 1000); break; }
-        // número inteiro
-        const mAria = lbl.match(/([\d][\d\s  \.,]*)\s*avalia[çc][õo]es?/i);
-        if (mAria) {
-          const v = parseInt(normNum(mAria[1]));
-          if (v >= 10) { total = v; break; }
+        const mAria = lbl.match(/([\d][\d\s  \.,]*)\s*avalia[çc][õo]es?/i);
+        if (mAria) { const v = parseInt(normNum(mAria[1])); if (v >= 10) { total = v; break; } }
+      }
+      if (!total) {
+        const bodyText = document.body.innerText.replace(/[   ]/g, ' ');
+        const mMil = bodyText.match(/\(\s*(\d+[,\.]\d+)\s*mil\s*\)/i);
+        if (mMil) total = Math.round(parseFloat(mMil[1].replace(',', '.')) * 1000);
+        if (!total) {
+          const m = bodyText.match(/([\d][\d\s\.,]*)\s*avalia[çc][õo]es?/i);
+          if (m) { const v = parseInt(normNum(m[1])); if (v >= 10) total = v; }
         }
       }
 
-      // Padrão 1: innerText completo da página
-      const bodyText = document.body.innerText.replace(/[   ]/g, ' ');
+      // ── Reviews individuais ───────────────────────────────────────────────────
+      const reviews = [];
+      const containers = document.querySelectorAll('.jftiEf, [data-review-id]');
 
-      // "(3,5 mil)" ou "(1,2 mil)"
-      if (!total) {
-        const m = bodyText.match(/\(\s*(\d+[,\.]\d+)\s*mil\s*\)/i);
-        if (m) total = Math.round(parseFloat(m[1].replace(',', '.')) * 1000);
-      }
+      for (const el of containers) {
+        // Author name
+        const author = (
+          el.querySelector('.d4r55')?.textContent ||
+          el.querySelector('.X43Kjb')?.textContent ||
+          el.querySelector('[class*="author"]')?.textContent
+        )?.trim();
+        if (!author) continue;
 
-      // "3,5 mil avaliações" (sem parênteses)
-      if (!total) {
-        const m = bodyText.match(/(\d+[,\.]\d+)\s*mil\s*avalia/i);
-        if (m) total = Math.round(parseFloat(m[1].replace(',', '.')) * 1000);
-      }
+        // Profile photo
+        const imgEl = el.querySelector('img.NBa7we') || el.querySelector('button img') || el.querySelector('img');
+        const photo = imgEl?.src?.startsWith('http') ? imgEl.src : null;
 
-      // "X mil avaliações" (inteiro, ex: "3 mil avaliações")
-      if (!total) {
-        const m = bodyText.match(/\b(\d+)\s*mil\s*avalia/i);
-        if (m) total = parseInt(m[1]) * 1000;
-      }
-
-      // "3.500 avaliações" / "3 500 avaliações" / "3413 avaliações"
-      if (!total) {
-        const m = bodyText.match(/([\d][\d\s\.,]*)\s*avalia[çc][õo]es?/i);
-        if (m) {
-          const v = parseInt(normNum(m[1]));
-          if (v >= 10) total = v;
+        // Stars
+        let rating = null;
+        for (const starEl of el.querySelectorAll('[aria-label]')) {
+          const lbl = starEl.getAttribute('aria-label') || '';
+          const m = lbl.match(/([1-5])\s*estrelas?/i) || lbl.match(/([1-5])\s*star/i);
+          if (m) { rating = parseInt(m[1]); break; }
         }
+
+        // Review text — pode ter botão "mais" que trunca
+        const textEl = el.querySelector('.wiI7pd:not(.CDe7pd .wiI7pd)');
+        const text = textEl?.textContent?.trim() || null;
+
+        // Time
+        const timeText = el.querySelector('.rsqaWe')?.textContent?.trim() || null;
+
+        // Reply (proprietário)
+        const replyEl = el.querySelector('.CDe7pd .wiI7pd');
+        const replyText = replyEl?.textContent?.trim() || null;
+
+        reviews.push({ author, photo, rating, text, timeText, replyText });
+        if (reviews.length >= 10) break;
       }
 
-      // "(6.016)" ou "(3 413)" — ignora < 200 (DDDs, CEPs curtos)
-      if (!total) {
-        const allParens = bodyText.match(/\([\d\s\. ,]+\)/g) || [];
-        for (const p of allParens) {
-          const v = parseInt(normNum(p));
-          if (v >= 200) { total = v; break; }
-        }
-      }
-
-      return { nota, total };
+      return { nota, total, reviews };
     });
 
     return result;
@@ -179,15 +162,17 @@ async function scrapeRating(browser, loja) {
   }
 }
 
-async function salvarSupabase(rows) {
+// ─── Salvar Supabase ──────────────────────────────────────────────────────────
+
+async function salvarSupabase(endpoint, rows, upsert = false) {
   const headers = {
     apikey:         SUPABASE_KEY,
     Authorization:  `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json',
-    Prefer:         'return=minimal',
+    Prefer:         upsert ? 'resolution=ignore-duplicates,return=minimal' : 'return=minimal',
   };
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/google_ratings`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
     method:  'POST',
     headers,
     body:    JSON.stringify(rows),
@@ -199,12 +184,13 @@ async function salvarSupabase(rows) {
   }
 }
 
+// ─── Main ────────────────────────────────────────────────────────────────────
+
 async function main() {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error('❌ NEXUSZ_SUPABASE_URL / NEXUSZ_SUPABASE_SERVICE_ROLE_KEY não configurados');
     process.exit(1);
   }
-
   if (!LOJAS.length) {
     console.warn('⚠️  Nenhum GOOGLE_PLACE_ID configurado no .env');
     return;
@@ -217,23 +203,39 @@ async function main() {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'],
   });
 
-  const rows = [];
+  const ratingRows  = [];
+  const reviewRows  = [];
+  const now         = new Date().toISOString();
 
   try {
     for (const loja of LOJAS) {
       try {
         console.log(`  🔍 ${loja.nome}...`);
-        const { nota, total } = await scrapeRating(browser, loja);
+        const { nota, total, reviews } = await scrapeLoja(browser, loja);
 
         if (nota) {
-          rows.push({
-            loja_key:          loja.key,
-            loja_nome:         loja.nome,
-            nota_media:        nota,
-            total_avaliacoes:  total,
-            coletado_em:       new Date().toISOString(),
+          ratingRows.push({
+            loja_key:         loja.key,
+            loja_nome:        loja.nome,
+            nota_media:       nota,
+            total_avaliacoes: total,
+            coletado_em:      now,
           });
-          console.log(`     ✅ ${nota} ★  (${total ?? '?'} avaliações)`);
+          console.log(`     ✅ ${nota} ★  (${total ?? '?'} avaliações) | ${reviews.length} reviews`);
+
+          for (const rv of reviews) {
+            reviewRows.push({
+              loja_key:    loja.key,
+              loja_nome:   loja.nome,
+              author_name: rv.author,
+              profile_photo: rv.photo,
+              rating:      rv.rating,
+              review_text: rv.text,
+              time_text:   rv.timeText,
+              reply_text:  rv.replyText,
+              coletado_em: now,
+            });
+          }
         } else {
           console.log(`     ⚠️  Nota não encontrada`);
         }
@@ -245,17 +247,28 @@ async function main() {
     await browser.close();
   }
 
-  if (!rows.length) {
+  if (!ratingRows.length) {
     console.log('⚠️  Nenhuma nota coletada — Supabase não atualizado');
     return;
   }
 
   try {
-    await salvarSupabase(rows);
-    console.log(`✅ ${rows.length} avaliação(ões) salvas no Supabase`);
+    await salvarSupabase('google_ratings', ratingRows);
+    console.log(`✅ ${ratingRows.length} nota(s) salva(s)`);
   } catch (err) {
-    console.error('❌ Erro ao salvar:', err.message);
+    console.error('❌ Erro ao salvar ratings:', err.message);
     process.exit(1);
+  }
+
+  if (reviewRows.length) {
+    try {
+      // upsert com ignore-duplicates (UNIQUE index em loja_key+author+rating+text)
+      await salvarSupabase('google_reviews', reviewRows, true);
+      console.log(`✅ ${reviewRows.length} review(s) salvo(s) (duplicatas ignoradas)`);
+    } catch (err) {
+      // Falha em reviews não impede a execução
+      console.warn('⚠️  Erro ao salvar reviews (não crítico):', err.message);
+    }
   }
 }
 
