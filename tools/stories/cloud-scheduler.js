@@ -50,6 +50,7 @@ const CONTAS = [
   },
   {
     key: 'peg', nome: 'Peg Pneus',
+    paused: true, // desativado — reativar removendo esta linha
     instagram: { igUserId: process.env.META_IG_ID_PEG_ARQ,   pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ },
     facebook:  { pageId:   process.env.META_PAGE_ID_PEG_ARQ, pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ },
     pastasLojas:     PASTAS_PEG,
@@ -169,6 +170,10 @@ async function publicarStories() {
   if (!diaPlano) console.log(`   Arraia Seg/Qua/Sex: ${postarArr?'Sim':'Não'} | Sazonal Ter/Qui/Sáb: ${postarSaz?'Sim':'Não'}`);
 
   for (const conta of CONTAS) {
+    if (conta.paused) {
+      console.log(`\n📂 ${conta.nome} — ⏸️  PAUSADO (paused: true em cloud-scheduler.js)`);
+      continue;
+    }
     console.log(`\n📂 ${conta.nome}`);
 
     if (!estado[conta.key]) estado[conta.key] = { historico: {}, arraia_arte_index: 1, arraia_video_index: 0, sazonal_index: 0 };
