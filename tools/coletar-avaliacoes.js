@@ -13,7 +13,12 @@ const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY;
 
 const LOJAS = [
-  { key: 'BR_ARQ1', nome: 'BR Pneus Araraquara 1', placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA1 },
+  {
+    key: 'BR_ARQ1', nome: 'BR Pneus Araraquara 1',
+    placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA1,
+    // URL direta para o painel de avaliações (mais confiável que place_id para esta loja)
+    mapsUrl: 'https://www.google.com/maps/place/BR+PNEUS+ARARAQUARA+LOJA+1/@-21.7984819,-48.1722341,19z/data=!4m16!1m9!4m8!1m0!1m6!1m2!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!2sBR+PNEUS+ARARAQUARA+LOJA+1,+Av.+Genaro+Vonno,+10+-+Vila+Furlan,+Araraquara+-+SP,+14807-008!2m2!1d-48.1710432!2d-21.7984819!3m5!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!8m2!3d-21.7984819!4d-48.1710432!16s%2Fg%2F11ddzh8ydv?entry=ttu&hl=pt-BR',
+  },
   { key: 'BR_ARQ2', nome: 'BR Pneus Araraquara 2', placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA2 },
   { key: 'BR_SAO',  nome: 'BR Pneus São Carlos',   placeId: process.env.GOOGLE_PLACE_ID_BR_SAO_CARLOS  },
   { key: 'BR_AME',  nome: 'BR Pneus Americana',    placeId: process.env.GOOGLE_PLACE_ID_BR_AMERICANA   },
@@ -36,7 +41,7 @@ async function scrapeLoja(browser, loja) {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
 
-    const url = `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
+    const url = loja.mapsUrl ?? `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 40000 });
 
     // Aguarda nota aparecer
@@ -92,8 +97,14 @@ async function scrapeLoja(browser, loja) {
 
       // ── Total ─────────────────────────────────────────────────────────────────
       function normNum(s) { return s.replace(/[   ⁠]/g, '').replace(/\D/g, ''); }
-      const lyplGText = (document.querySelector('.lyplG')?.textContent || '').trim();
-      if (lyplGText) { const v = parseInt(normNum(lyplGText)); if (v >= 10) total = v; }
+
+      // Seletores diretos do Maps para total de avaliações
+      const TOTAL_SELS = ['.lyplG', '.jANrlb .fontBodySmall', '.DkEaL', '.gm2-body-2'];
+      for (const sel of TOTAL_SELS) {
+        if (total) break;
+        const t = (document.querySelector(sel)?.textContent || '').trim();
+        if (t) { const v = parseInt(normNum(t)); if (v >= 10) total = v; }
+      }
 
       for (const el of document.querySelectorAll('[aria-label]')) {
         if (total) break;
@@ -102,6 +113,9 @@ async function scrapeLoja(browser, loja) {
         if (mMil) { total = Math.round(parseFloat(mMil[1].replace(',', '.')) * 1000); break; }
         const mAria = lbl.match(/([\d][\d\s  \.,]*)\s*avalia[çc][õo]es?/i);
         if (mAria) { const v = parseInt(normNum(mAria[1])); if (v >= 10) { total = v; break; } }
+        // Formato inglês: "6,048 reviews"
+        const mEn = lbl.match(/([\d][\d\s,]*)\s*review/i);
+        if (mEn) { const v = parseInt(normNum(mEn[1])); if (v >= 10) { total = v; break; } }
       }
       if (!total) {
         const bodyText = document.body.innerText.replace(/[   ]/g, ' ');
@@ -110,6 +124,11 @@ async function scrapeLoja(browser, loja) {
         if (!total) {
           const m = bodyText.match(/([\d][\d\s\.,]*)\s*avalia[çc][õo]es?/i);
           if (m) { const v = parseInt(normNum(m[1])); if (v >= 10) total = v; }
+        }
+        // Fallback: padrão (NÚMERO) com pelo menos 3 dígitos (ex: "(6.048)")
+        if (!total) {
+          const mP = bodyText.match(/\(([1-9][\d.,\s]{2,})\)/);
+          if (mP) { const v = parseInt(normNum(mP[1])); if (v >= 10) total = v; }
         }
       }
 

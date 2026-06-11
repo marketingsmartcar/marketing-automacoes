@@ -17,7 +17,11 @@ const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY;
 
 const TODAS_LOJAS = [
-  { key: 'BR_ARQ1', nome: 'BR Pneus Araraquara 1', placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA1 },
+  {
+    key: 'BR_ARQ1', nome: 'BR Pneus Araraquara 1',
+    placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA1,
+    mapsUrl: 'https://www.google.com/maps/place/BR+PNEUS+ARARAQUARA+LOJA+1/@-21.7984819,-48.1722341,19z/data=!4m16!1m9!4m8!1m0!1m6!1m2!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!2sBR+PNEUS+ARARAQUARA+LOJA+1,+Av.+Genaro+Vonno,+10+-+Vila+Furlan,+Araraquara+-+SP,+14807-008!2m2!1d-48.1710432!2d-21.7984819!3m5!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!8m2!3d-21.7984819!4d-48.1710432!16s%2Fg%2F11ddzh8ydv?entry=ttu&hl=pt-BR',
+  },
   { key: 'BR_ARQ2', nome: 'BR Pneus Araraquara 2', placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA2 },
   { key: 'BR_SAO',  nome: 'BR Pneus São Carlos',   placeId: process.env.GOOGLE_PLACE_ID_BR_SAO_CARLOS  },
   { key: 'BR_AME',  nome: 'BR Pneus Americana',    placeId: process.env.GOOGLE_PLACE_ID_BR_AMERICANA   },
@@ -209,7 +213,7 @@ async function scrapeLojaCompleto(browser, loja) {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
 
-    const url = `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
+    const url = loja.mapsUrl ?? `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
 
     // Aguarda a página carregar completamente
