@@ -136,8 +136,19 @@ function extractReviews() {
     let rating = null;
     for (const starEl of el.querySelectorAll('[aria-label]')) {
       const lbl = starEl.getAttribute('aria-label') || '';
-      const m = lbl.match(/([1-5])\s*estrelas?/i) || lbl.match(/([1-5])\s*star/i);
+      const m = lbl.match(/([1-5])\s*estrelas?/i)
+             || lbl.match(/([1-5])\s*star/i)
+             || lbl.match(/avali[ao]d[oa]\s+com\s+([1-5])/i)
+             || lbl.match(/classific[ao]d[oa]\s+com\s+([1-5])/i)
+             || lbl.match(/([1-5])\s*de\s*5/i);
       if (m) { rating = parseInt(m[1]); break; }
+    }
+    // Fallback: data-value nos elementos de estrela
+    if (rating === null) {
+      for (const sv of el.querySelectorAll('[data-value]')) {
+        const v = parseInt(sv.getAttribute('data-value') || '');
+        if (v >= 1 && v <= 5) { rating = v; break; }
+      }
     }
 
     const textEl = el.querySelector('.wiI7pd:not(.CDe7pd .wiI7pd)');
