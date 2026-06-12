@@ -949,4 +949,48 @@ node tools/renovar-token-fb-br.js TOKEN  # renovar só BR (precisa token do app 
 
 ---
 
-*Última atualização: 01/06/2026 — Vendas Pneus (coleta horária GitHub Actions), Stories migrados para GitHub Actions (PM2 removido), Estoque Pneus em desenvolvimento.*
+---
+
+## 20. Agendamento de Posts — Instagram/Facebook (Supabase)
+
+**O que faz:** Permite programar posts (foto, vídeo, reel, story) para Instagram e Facebook com até ~1 minuto de precisão. O pg_cron dispara a cada minuto e chama a Edge Function que publica todos os posts com `agendado_para <= now()` e `status = pendente`.
+
+| Campo | Valor |
+|-------|-------|
+| Tabela Supabase | `scheduled_posts` (NexusZ — projeto `ubiuershczqjnoczcupa`) |
+| Edge Function | `publish-scheduled-posts` (Deno, `verify_jwt: false`) |
+| pg_cron job | `publish-scheduled-posts` — `* * * * *` (toda minuto) |
+| UI no NexusZ | Menu **Marketing > Agendamento** → `/admin/agendamento` |
+| PC necessário | ❌ Não (100% Supabase) |
+
+**Contas suportadas:**
+
+| conta_key | Plataformas |
+|-----------|-------------|
+| `BR` | Instagram (BR Pneus) + Facebook (BR Pneus) |
+| `PEG_ARQ` | Instagram (Peg Pneus Araraquara) + Facebook (Peg Pneus Araraquara) |
+
+**Credenciais necessárias (Supabase Edge Function Secrets):**
+- `META_IG_ID_BR`, `META_PAGE_ID_BR`, `META_PAGE_TOKEN_BR`
+- `META_IG_ID_PEG_ARQ`, `META_PAGE_ID_PEG_ARQ`, `META_PAGE_TOKEN_PEG_ARQ`
+
+**Configurar no Dashboard Supabase:**
+> Project → Edge Functions → publish-scheduled-posts → Secrets → Add cada variável acima
+
+**Tipos de conteúdo:**
+- `IMAGE` → foto (Instagram container+publish, Facebook photos)
+- `VIDEO` → vídeo/reel (Instagram poll até FINISHED, Facebook videos)
+- `STORY` → story (Instagram stories container, Facebook photo_stories/video_stories)
+
+**Status do post:**
+- `pendente` → agendado, aguardando execução
+- `publicando` → processamento em andamento (vídeos: aguardando encoding Meta)
+- `publicado` → publicado com sucesso
+- `erro` → falhou (mensagem em `erro_msg`)
+- `cancelado` → cancelado pelo usuário
+
+**Regra importante:** A URL da mídia deve ser pública e permanente. Use Google Drive (compartilhamento "qualquer pessoa"), imgbb, CDN próprio, etc. URLs temporárias causam erro de publicação.
+
+---
+
+*Última atualização: 12/06/2026 — Agendamento de Posts Meta adicionado (Supabase pg_cron + Edge Function).*
