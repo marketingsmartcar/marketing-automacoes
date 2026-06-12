@@ -50,7 +50,7 @@ const CONTAS = [
   },
   {
     key: 'peg', nome: 'Peg Pneus',
-    // paused: true — reativado temporariamente para execução de hoje (12/06)
+    paused: true, // desativado — reativar removendo esta linha
     instagram: { igUserId: process.env.META_IG_ID_PEG_ARQ,   pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ },
     facebook:  { pageId:   process.env.META_PAGE_ID_PEG_ARQ, pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ },
     pastasLojas:     PASTAS_PEG,
