@@ -18,7 +18,7 @@ const path   = require('path');
 const { spawn } = require('child_process');
 const { google } = require('googleapis');
 
-const PORT = process.env.PORT || 3099;
+const PORT = process.env.PORT || 3098;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  '*',
@@ -75,27 +75,47 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
-        const { colaborador_id, tipo, marca, info } = JSON.parse(body);
-        if (!colaborador_id || !tipo) {
+        const { colaborador_id, tipo, marca, info, nome, cargo, loja, foto_base64 } = JSON.parse(body);
+        if (!tipo) {
           res.writeHead(400, CORS_HEADERS);
-          res.end(JSON.stringify({ ok: false, erro: 'colaborador_id e tipo obrigatórios' }));
+          res.end(JSON.stringify({ ok: false, erro: 'tipo é obrigatório' }));
           return;
         }
-        console.log(`[arte] Iniciando: tipo=${tipo} colab=${colaborador_id}`);
+        if (!colaborador_id && !foto_base64) {
+          res.writeHead(400, CORS_HEADERS);
+          res.end(JSON.stringify({ ok: false, erro: 'Envie uma foto para gerar a arte' }));
+          return;
+        }
+        if (!colaborador_id && !nome) {
+          res.writeHead(400, CORS_HEADERS);
+          res.end(JSON.stringify({ ok: false, erro: 'nome é obrigatório' }));
+          return;
+        }
+
+        const extra = { ARTE_TIPO: tipo };
+        if (colaborador_id) {
+          extra.ARTE_COLABORADOR_ID = colaborador_id;
+        } else {
+          const tmpFoto = require('path').join(require('os').tmpdir(), `arte-foto-${Date.now()}.jpg`);
+          const b64 = foto_base64.replace(/^data:image\/\w+;base64,/, '');
+          require('fs').writeFileSync(tmpFoto, Buffer.from(b64, 'base64'));
+          extra.ARTE_FOTO_PATH = tmpFoto;
+          extra.ARTE_NOME = nome;
+          if (cargo) extra.ARTE_CARGO = cargo;
+          if (loja)  extra.ARTE_LOJA  = loja;
+        }
+        if (marca) extra.ARTE_MARCA = marca;
+        if (info)  extra.ARTE_INFO  = info;
+
+        console.log(`[arte] Iniciando: tipo=${tipo} ${colaborador_id ? 'colab=' + colaborador_id : 'manual:' + nome}`);
         res.writeHead(202, { ...CORS_HEADERS, 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, running: true }));
-        const extra = {
-          ARTE_COLABORADOR_ID: colaborador_id,
-          ARTE_TIPO: tipo,
-          ...(marca ? { ARTE_MARCA: marca } : {}),
-          ...(info  ? { ARTE_INFO:  info  } : {}),
-        };
         runArte(extra)
-          .then(() => console.log(`[arte] Concluída: tipo=${tipo} colab=${colaborador_id}`))
+          .then(() => console.log(`[arte] Concluída: tipo=${tipo}`))
           .catch(e  => console.error(`[arte] ERRO:`, e.message));
-      } catch {
+      } catch (e) {
         res.writeHead(400, CORS_HEADERS);
-        res.end(JSON.stringify({ ok: false, erro: 'JSON inválido' }));
+        res.end(JSON.stringify({ ok: false, erro: 'JSON inválido: ' + e.message }));
       }
     });
     return;
