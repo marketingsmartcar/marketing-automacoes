@@ -431,7 +431,7 @@ BRPneus-MonitorAds-17h30     → seg–sáb 17h30
 **PM2 (sempre ativos):**
 ```
 br-pneus-bot       (ID 0) → bot WhatsApp, porta 3099
-stories-scheduler  (ID 2) → stories diários às 8h
+server-artes       (ID 2) → servidor de artes NexusZ, porta 3098
 ```
 
 ---
@@ -827,24 +827,43 @@ node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
 
 ## 17. Geração de Artes de Colaboradores (sob demanda)
 
-**O que faz:** Gera arte PNG personalizada para um colaborador (aniversário, boas-vindas ou destaque), faz upload para o Google Drive e salva o registro no Supabase. Acionado pelo menu "Artes Colaboradores" no NexusZ.
+**O que faz:** Gera arte PNG personalizada para um colaborador (aniversário ou boas-vindas), faz upload para o Google Drive e salva o registro no Supabase. Acionado pelo menu "Artes Colaboradores" no NexusZ. **Independente do bot WhatsApp** — usa servidor dedicado `server-artes` na porta 3098.
 
 | Campo | Valor |
 |-------|-------|
-| Script | `tools/gerar-arte-colaborador.js` |
-| Endpoint bot | `POST /gerar-arte` (body: `colaborador_id`, `tipo`, `marca`) |
+| Script gerador | `tools/gerar-arte-colaborador.js` |
+| Servidor dedicado | `tools/server-artes.js` (PM2: `server-artes`, porta **3098**) |
+| Endpoint | `POST http://localhost:3098/gerar-arte` |
 | Tabela Supabase | `artes_colaboradores` |
 | Migration | `supabase/migrations/create_artes_colaboradores.sql` |
 | Acionamento | Sob demanda via NexusZ → /admin/artes |
 | Tempo estimado | ~40s (Puppeteer render + Drive upload) |
 
-**Tipos disponíveis:** `aniversario` · `boasvinda` · `destaque`
+**Tipos disponíveis:** `aniversario` · `boasvinda`
+
+**Modos de operação:**
+- **Modo manual (padrão no NexusZ):** formulário com nome, cargo, loja e upload de foto — sem necessidade de colaborador cadastrado no RH
+- **Modo colaborador:** body com `colaborador_id` → busca dados no Supabase automaticamente
+
+**Payload do endpoint:**
+```json
+{ "tipo": "aniversario", "nome": "João", "cargo": "Mecânico", "loja": "Araraquara", "foto_base64": "data:image/jpeg;base64,..." }
+```
 
 **Env vars necessárias:**
 - `GOOGLE_SERVICE_ACCOUNT_JSON` — JSON da Service Account (ou base64)
 - `GOOGLE_DRIVE_ARTES_FOLDER_ID` — ID da pasta no Drive onde as artes são salvas
 
-**Regra de marca:** Se `ARTE_MARCA` não for passado, detecta automaticamente pelo nome da unidade do colaborador (`peg` → PEG, caso contrário → BR).
+**PM2:**
+```bash
+pm2 start tools/server-artes.js --name server-artes   # iniciar
+pm2 restart server-artes                               # reiniciar
+pm2 logs server-artes                                  # ver logs
+```
+
+**Regra de marca:** `ARTE_MARCA` env var (BR/PEG). Se não informado: BR por padrão no modo manual.
+
+**Detecção de duplicatas:** NexusZ verifica `artes_colaboradores` por nome + tipo antes de gerar — exibe thumb + link de download caso já exista, com botão "Gerar mesmo assim".
 
 **Acesso público:** Cada arquivo enviado ao Drive recebe permissão pública de leitura automaticamente, para que o thumbnail apareça no NexusZ.
 
@@ -951,15 +970,15 @@ node tools/renovar-token-fb-br.js TOKEN  # renovar só BR (precisa token do app 
 
 ---
 
-## 20. Agendamento de Posts — Instagram/Facebook (Supabase)
+## 20. Agendamento de Posts — Instagram/Facebook/YouTube/TikTok (Supabase)
 
-**O que faz:** Permite programar posts (foto, vídeo, reel, story) para Instagram e Facebook com até ~1 minuto de precisão. O pg_cron dispara a cada minuto e chama a Edge Function que publica todos os posts com `agendado_para <= now()` e `status = pendente`.
+**O que faz:** Permite programar posts para Instagram, Facebook, YouTube e **TikTok** com até ~1 minuto de precisão. O pg_cron dispara a cada minuto e chama a Edge Function que publica todos os posts com `agendado_para <= now()` e `status = pendente`. Suporta publicar agora, salvar como rascunho ou agendar.
 
 | Campo | Valor |
 |-------|-------|
 | Tabela Supabase | `scheduled_posts` (NexusZ — projeto `ubiuershczqjnoczcupa`) |
-| Edge Function | `publish-scheduled-posts` (Deno, `verify_jwt: false`) |
-| pg_cron job | `publish-scheduled-posts` — `* * * * *` (toda minuto) |
+| Edge Function | `publish-scheduled-posts` **v20** (Deno, `verify_jwt: true`) |
+| pg_cron job | `publish-scheduled-posts` — `* * * * *` (todo minuto) |
 | UI no NexusZ | Menu **Marketing > Agendamento** → `/admin/agendamento` |
 | PC necessário | ❌ Não (100% Supabase) |
 
@@ -967,30 +986,57 @@ node tools/renovar-token-fb-br.js TOKEN  # renovar só BR (precisa token do app 
 
 | conta_key | Plataformas |
 |-----------|-------------|
-| `BR` | Instagram (BR Pneus) + Facebook (BR Pneus) |
-| `PEG_ARQ` | Instagram (Peg Pneus Araraquara) + Facebook (Peg Pneus Araraquara) |
+| `BR` | Instagram + Facebook (BR Pneus) + YouTube + TikTok |
+| `PEG_ARQ` | Instagram + Facebook (Peg Pneus Araraquara) + YouTube + TikTok |
 
 **Credenciais necessárias (Supabase Edge Function Secrets):**
-- `META_IG_ID_BR`, `META_PAGE_ID_BR`, `META_PAGE_TOKEN_BR`
-- `META_IG_ID_PEG_ARQ`, `META_PAGE_ID_PEG_ARQ`, `META_PAGE_TOKEN_PEG_ARQ`
+- Meta: `META_IG_ID_BR`, `META_PAGE_ID_BR`, `META_PAGE_TOKEN_BR` + `_PEG_ARQ`
+- YouTube: `YOUTUBE_CLIENT_ID_BR`, `YOUTUBE_CLIENT_SECRET_BR`, `YOUTUBE_REFRESH_TOKEN_BR`, `YOUTUBE_CHANNEL_ID_BR` + `_PEG_ARQ`
+- TikTok: `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_REDIRECT_URI` (padrão: `https://nexusz.app.br/tiktok-callback`)
 
 **Configurar no Dashboard Supabase:**
 > Project → Edge Functions → publish-scheduled-posts → Secrets → Add cada variável acima
 
+**TikTok OAuth — Tabela `social_tokens`:**
+- Tokens OAuth do TikTok são armazenados na tabela `social_tokens` (conta_key + platform)
+- Conexão feita via NexusZ → Agendamento → Novo Post → selecionar TikTok → "Conectar conta TikTok"
+- Edge function `tiktok-oauth-init` (v1, verify_jwt: true) — gera URL de autorização
+- Edge function `tiktok-oauth-callback` (v1, verify_jwt: false) — troca code por token e salva
+- Callback URL registrada no TikTok Developer Portal: `https://nexusz.app.br/tiktok-callback`
+- Token é renovado automaticamente na publicação (refresh_token com validade maior)
+- DNS TXT de verificação: `tiktok-developers-site-verification=Wzt3FmIHMwc4Oo7HYGVxIs0M6pDzTF6p` no domínio raiz `nexusz.app.br`
+
 **Tipos de conteúdo:**
-- `IMAGE` → foto (Instagram container+publish, Facebook photos)
-- `VIDEO` → vídeo/reel (Instagram poll até FINISHED, Facebook videos)
-- `STORY` → story (Instagram stories container, Facebook photo_stories/video_stories)
+
+| Tipo | Instagram | Facebook | YouTube | TikTok |
+|------|-----------|----------|---------|--------|
+| `IMAGE` | foto + user_tags + collaborators + location | foto | — | — |
+| `VIDEO` | reel (poll até FINISHED) + collaborators + location | vídeo | vídeo | ✅ via PULL_FROM_URL |
+| `SHORT` | — | — | YouTube Short (adiciona #Shorts) | — |
+| `STORY` | story + link CTA | story + link | — | — |
+| `CAROUSEL` | múltiplos containers → carrossel | attached_media | — | — |
+
+**Recursos avançados:**
+- **Localização:** nome do local → busca automática via API IG/FB → salva `location_id`
+- **Tags de usuário:** `user_tags = "@user1, @user2"` → posicionados ao centro (x:0.5, y:0.5)
+- **Colaboradores (collab):** `collaborators = "@conta"` → Instagram collab post
+- **Link CTA story:** `link_url` → adicionado como link swipe-up no story
+- **Primeiro comentário:** texto postado automaticamente após publicação (Meta apenas)
+- **Publicar agora:** `agendado_para = now()`, `status = pendente` (processa no próximo cron)
+- **Rascunho:** `status = rascunho` → não publicado até ser alterado para `pendente`
 
 **Status do post:**
+- `rascunho` → salvo, não agendado
 - `pendente` → agendado, aguardando execução
 - `publicando` → processamento em andamento (vídeos: aguardando encoding Meta)
 - `publicado` → publicado com sucesso
 - `erro` → falhou (mensagem em `erro_msg`)
 - `cancelado` → cancelado pelo usuário
 
-**Regra importante:** A URL da mídia deve ser pública e permanente. Use Google Drive (compartilhamento "qualquer pessoa"), imgbb, CDN próprio, etc. URLs temporárias causam erro de publicação.
+**Upload direto para Google Drive (v3):** Na tela de novo post, cada campo de mídia (vídeo/imagem principal, imagens do carrossel, capa/thumbnail) possui um botão **"Drive"**. Ao clicar, o usuário seleciona o arquivo localmente e ele é enviado ao Google Drive via edge function `upload-to-drive`. A URL pública (`drive.google.com/uc?id=...`) é preenchida automaticamente no campo — não é necessário copiar e colar link manualmente. Ainda é possível colar URLs externas normalmente.
+
+**Regra importante:** A URL da mídia deve ser pública e permanente. O botão Drive faz isso automaticamente (permissão `reader: anyone`). Se usar URL externa, certifique-se de que é pública e permanente.
 
 ---
 
-*Última atualização: 12/06/2026 — Agendamento de Posts Meta adicionado (Supabase pg_cron + Edge Function).*
+*Última atualização: 12/06/2026 — v3: upload direto para Google Drive em todos os campos de mídia via botão "Drive"; v19 Edge Function com YouTube Studio completo (título, tags SEO, categoria, visibilidade, thumbnail, playlist), Meta completo (capa vídeo, alt text, privacidade FB), CAROUSEL, stories link CTA.*
