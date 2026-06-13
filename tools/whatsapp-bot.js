@@ -2339,19 +2339,45 @@ const apiServer = http.createServer((req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
       try {
-        const { colaborador_id, tipo, marca, info } = JSON.parse(body);
-        if (!colaborador_id || !tipo) {
+        const { colaborador_id, tipo, marca, info, nome, cargo, loja, foto_base64 } = JSON.parse(body);
+        if (!tipo) {
           res.writeHead(400, CORS_HEADERS);
-          res.end(JSON.stringify({ ok: false, erro: 'colaborador_id e tipo são obrigatórios' }));
+          res.end(JSON.stringify({ ok: false, erro: 'tipo é obrigatório' }));
           return;
         }
-        console.log(`[API] Gerar arte: tipo=${tipo} colab=${colaborador_id}`);
+        if (!colaborador_id && !foto_base64) {
+          res.writeHead(400, CORS_HEADERS);
+          res.end(JSON.stringify({ ok: false, erro: 'Selecione um colaborador ou envie uma foto' }));
+          return;
+        }
+        if (!colaborador_id && !nome) {
+          res.writeHead(400, CORS_HEADERS);
+          res.end(JSON.stringify({ ok: false, erro: 'nome é obrigatório no modo manual' }));
+          return;
+        }
+
+        const extra = { ARTE_TIPO: tipo };
+        if (colaborador_id) {
+          extra.ARTE_COLABORADOR_ID = colaborador_id;
+        } else {
+          // Modo manual: salva foto base64 em arquivo temporário
+          const tmpFoto = path.join(require('os').tmpdir(), `arte-foto-manual-${Date.now()}.jpg`);
+          const base64Data = foto_base64.replace(/^data:image\/\w+;base64,/, '');
+          require('fs').writeFileSync(tmpFoto, Buffer.from(base64Data, 'base64'));
+          extra.ARTE_FOTO_PATH = tmpFoto;
+          extra.ARTE_NOME      = nome;
+          if (cargo) extra.ARTE_CARGO = cargo;
+          if (loja)  extra.ARTE_LOJA  = loja;
+        }
+        if (marca) extra.ARTE_MARCA = marca;
+        if (info)  extra.ARTE_INFO  = info;
+
+        console.log(`[API] Gerar arte: tipo=${tipo} colab=${colaborador_id || 'manual:' + nome}`);
         res.writeHead(202, CORS_HEADERS);
         res.end(JSON.stringify({ ok: true, running: true }));
         const script = path.join(__dirname, 'gerar-arte-colaborador.js');
-        const extra  = { ARTE_COLABORADOR_ID: colaborador_id, ARTE_TIPO: tipo, ...(marca ? { ARTE_MARCA: marca } : {}), ...(info ? { ARTE_INFO: info } : {}) };
         runCollector(script, extra)
-          .then(() => console.log(`[API] Arte ${tipo}/${colaborador_id} concluída`))
+          .then(() => console.log(`[API] Arte ${tipo}/${colaborador_id || nome} concluída`))
           .catch(err => console.error(`[API] Arte ERRO:`, err.message.slice(0, 200)));
       } catch (e) {
         res.writeHead(400, CORS_HEADERS);
