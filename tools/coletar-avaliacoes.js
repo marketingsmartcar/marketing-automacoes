@@ -91,10 +91,18 @@ async function scrapeLoja(browser, loja) {
       } catch (_) {}
     }
 
-    // Para URL direta (mapsUrl), aguardar mais e fazer scroll para garantir carregamento completo
+    // Para URL direta (mapsUrl), aguardar mais e rolar o painel lateral
     if (loja.mapsUrl) {
       await new Promise(r => setTimeout(r, 2000));
-      await page.evaluate(() => window.scrollBy(0, 300));
+      // Rolar o painel lateral (não a janela) — Maps usa scroll container próprio
+      await page.evaluate(() => {
+        const PANEL_SELS = ['.m6QErb[tabindex]', '.m6QErb', '.DxyBCb', '[role="main"]'];
+        for (const sel of PANEL_SELS) {
+          const el = document.querySelector(sel);
+          if (el && el.scrollHeight > el.clientHeight + 50) { el.scrollTop += 600; return; }
+        }
+        window.scrollBy(0, 300);
+      });
       await new Promise(r => setTimeout(r, 1500));
       // Aguarda elemento de rating carregar completamente
       try {
@@ -107,29 +115,40 @@ async function scrapeLoja(browser, loja) {
         );
       } catch (_) {}
 
-      // Clicar na área de estrelas/avaliações para abrir a aba de reviews
+      // Clicar na aba "Avaliações" ou no botão de estrelas para abrir a aba de reviews
       try {
-        await page.evaluate(() => {
-          // Tenta botão de avaliações por seletores conhecidos do Maps
-          const selectors = [
-            '[data-async-trigger="routeReviews"]',
-            '[jsaction*="reviews"]',
-            '.MyEned',
-            '.F7nice',
-          ];
-          for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (el) { el.click(); return; }
+        const clicked = await page.evaluate(() => {
+          // Tentar aba [role="tab"] com texto "Avaliações"
+          for (const tab of document.querySelectorAll('[role="tab"]')) {
+            const t = (tab.getAttribute('aria-label') || tab.textContent || '');
+            if (/avalia/i.test(t)) { tab.click(); return 'tab'; }
           }
-          // Fallback: clica no elemento aria-label que menciona avaliações + número
+          // Seletores conhecidos do painel Maps
+          for (const sel of ['[data-async-trigger="routeReviews"]', '[jsaction*="reviews"]', '.MyEned', '.F7nice']) {
+            const el = document.querySelector(sel);
+            if (el) { el.click(); return sel; }
+          }
+          // Fallback: clica em qualquer aria-label com avaliações + número
           for (const el of document.querySelectorAll('[aria-label]')) {
             const lbl = el.getAttribute('aria-label') || '';
             if (/avalia/i.test(lbl) && /\d/.test(lbl) && el.tagName !== 'INPUT') {
-              el.click(); return;
+              el.click(); return 'aria-label';
             }
           }
+          return null;
         });
+        console.log(`     [mapsUrl] clique reviews: ${clicked}`);
         await new Promise(r => setTimeout(r, 2500));
+        // Rolar painel novamente após o clique
+        await page.evaluate(() => {
+          const PANEL_SELS = ['.m6QErb[tabindex]', '.m6QErb', '.DxyBCb', '[role="main"]'];
+          for (const sel of PANEL_SELS) {
+            const el = document.querySelector(sel);
+            if (el && el.scrollHeight > el.clientHeight + 50) { el.scrollTop += 600; return; }
+          }
+          window.scrollBy(0, 500);
+        });
+        await new Promise(r => setTimeout(r, 1500));
       } catch (_) {}
     }
 
@@ -140,6 +159,25 @@ async function scrapeLoja(browser, loja) {
         { timeout: 10000 }
       );
     } catch (_) {}
+
+    // Se mapsUrl não encontrou reviews mas tem placeId, tenta com URL place_id como fallback
+    if (loja.mapsUrl && loja.placeId) {
+      const reviewCount = await page.evaluate(
+        () => document.querySelectorAll('.jftiEf, [data-review-id]').length
+      );
+      if (reviewCount === 0) {
+        console.log(`     [mapsUrl] 0 reviews no painel Maps — tentando URL place_id como fallback`);
+        const fallbackUrl = `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
+        await page.goto(fallbackUrl, { waitUntil: 'networkidle2', timeout: 50000 });
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          await page.waitForFunction(
+            () => document.querySelectorAll('.jftiEf, [data-review-id]').length > 0,
+            { timeout: 10000 }
+          );
+        } catch (_) {}
+      }
+    }
 
     const result = await page.evaluate(() => {
       let nota = null;
@@ -432,12 +470,19 @@ async function main() {
 
   if (reviewRows.length) {
     try {
-      // upsert com ignore-duplicates (UNIQUE index em loja_key+author+rating+text)
       await salvarSupabase('google_reviews', reviewRows, true);
       console.log(`✅ ${reviewRows.length} review(s) salvo(s) (duplicatas ignoradas)`);
     } catch (err) {
-      // Falha em reviews não impede a execução
-      console.warn('⚠️  Erro ao salvar reviews (não crítico):', err.message);
+      // PostgREST pode retornar 409 em índices expressão — tenta um a um
+      console.warn(`⚠️  Batch reviews falhou (${err.message.slice(0,80)}) — tentando um a um`);
+      let saved = 0, skipped = 0;
+      for (const row of reviewRows) {
+        try {
+          await salvarSupabase('google_reviews', [row], true);
+          saved++;
+        } catch (_) { skipped++; }
+      }
+      console.log(`✅ Reviews salvos: ${saved} novos, ${skipped} duplicatas ignoradas`);
     }
   }
 }
