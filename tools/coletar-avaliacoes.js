@@ -9,6 +9,28 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 
+// Converte texto relativo do Google ("9 meses atrás") em data aproximada
+function aproximarDataAvaliacao(timeText, agora) {
+  if (!timeText) return null;
+  const ref = agora ? new Date(agora) : new Date();
+  const t = timeText.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // remove acentos
+    .replace(/edited|editado/g, '').trim();
+
+  const n = (p) => { const m = t.match(p); return m ? parseInt(m[1]) : null; };
+
+  if (/agora|just now/.test(t)) return ref.toISOString();
+  if (/ontem|yesterday/.test(t)) { const d = new Date(ref); d.setDate(d.getDate()-1); return d.toISOString(); }
+
+  const h = n(/(\d+)\s*hora/);  if (h) { const d = new Date(ref); d.setHours(d.getHours()-h);       return d.toISOString(); }
+  const di = n(/(\d+)\s*dia/);  if (di){ const d = new Date(ref); d.setDate(d.getDate()-di);         return d.toISOString(); }
+  const w = n(/(\d+)\s*semana/);if (w) { const d = new Date(ref); d.setDate(d.getDate()-w*7);        return d.toISOString(); }
+  const mo= n(/(\d+)\s*mes/);   if (mo){ const d = new Date(ref); d.setMonth(d.getMonth()-mo);       return d.toISOString(); }
+  const a = n(/(\d+)\s*ano/);   if (a) { const d = new Date(ref); d.setFullYear(d.getFullYear()-a);  return d.toISOString(); }
+
+  return null;
+}
+
 const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY;
 
@@ -338,6 +360,7 @@ async function main() {
               review_text: rv.text,
               time_text:   rv.timeText,
               reply_text:  rv.replyText,
+              review_date: aproximarDataAvaliacao(rv.timeText, now),
               coletado_em: now,
             });
           }
