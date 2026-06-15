@@ -12,7 +12,9 @@
  */
 
 require('dotenv').config();
-const puppeteer = require('puppeteer');
+const puppeteer      = require('puppeteer-extra');
+const StealthPlugin  = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const path      = require('path');
 const fs        = require('fs');
 const { syncColaboradoresOI } = require('./supabase-colaboradores-sync');
@@ -739,8 +741,12 @@ async function main() {
     const pg = await br.newPage();
     await pg.setViewport({ width: 1366, height: 768 });
     await pg.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
     );
+    await pg.setExtraHTTPHeaders({
+      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    });
     await pg.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
       Object.defineProperty(navigator, 'plugins',   { get: () => [1, 2, 3] });

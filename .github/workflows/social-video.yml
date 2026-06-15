@@ -66,6 +66,8 @@ jobs:
           NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           STATUS="${{ job.status }}"
+          SUPABASE_URL="${NEXUSZ_SUPABASE_URL//[$'\t\r\n ']}"
+          SUPABASE_KEY="${NEXUSZ_SUPABASE_SERVICE_ROLE_KEY//[$'\t\r\n ']}"
           if [ "$STATUS" = "success" ]; then
             FINAL_STATUS="concluido"
             MSG="Coleta concluída com sucesso"
@@ -73,8 +75,8 @@ jobs:
             FINAL_STATUS="erro"
             MSG="Coleta falhou — verifique os logs do GitHub Actions"
           fi
-          curl -s -X PATCH "$NEXUSZ_SUPABASE_URL/rest/v1/sync_jobs?id=eq.${{ github.event.inputs.job_id }}" \
-            -H "apikey: $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" \
+          curl -s -X PATCH "$SUPABASE_URL/rest/v1/sync_jobs?id=eq.${{ github.event.inputs.job_id }}" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"status\":\"$FINAL_STATUS\",\"progresso\":100,\"mensagem\":\"$MSG\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null
