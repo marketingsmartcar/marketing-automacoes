@@ -19,7 +19,11 @@ const LOJAS = [
     // URL direta para o painel de avaliações (mais confiável que place_id para esta loja)
     mapsUrl: 'https://www.google.com/maps/place/BR+PNEUS+ARARAQUARA+LOJA+1/@-21.7984819,-48.1722341,19z/data=!4m16!1m9!4m8!1m0!1m6!1m2!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!2sBR+PNEUS+ARARAQUARA+LOJA+1,+Av.+Genaro+Vonno,+10+-+Vila+Furlan,+Araraquara+-+SP,+14807-008!2m2!1d-48.1710432!2d-21.7984819!3m5!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!8m2!3d-21.7984819!4d-48.1710432!16s%2Fg%2F11ddzh8ydv?entry=ttu&hl=pt-BR',
   },
-  { key: 'BR_ARQ2', nome: 'BR Pneus Araraquara 2', placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA2 },
+  {
+    key: 'BR_ARQ2', nome: 'BR Pneus Araraquara 2',
+    placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA2,
+    mapsUrl: 'https://www.google.com/maps/place/BR+PNEUS+ARARAQUARA+LOJA+2/@-21.785674,-48.1768369,17z/data=!4m16!1m9!4m8!1m0!1m6!1m2!1s0x94b8f3c6c4cfe799:0x49c00d4e480a7da1!2sBR+PNEUS+ARARAQUARA+LOJA+2,+Av.+Padre+Ant%C3%B4nio+Cezarino,+168+-+Santa+Luzia,+Araraquara+-+SP!2m2!1d-48.1768369!2d-21.785674!3m5!1s0x94b8f3c6c4cfe799:0x49c00d4e480a7da1!8m2!3d-21.785674!4d-48.1768369!16s%2Fg%2F11gy13h2hw?entry=ttu&hl=pt-BR',
+  },
   { key: 'BR_SAO',  nome: 'BR Pneus São Carlos',   placeId: process.env.GOOGLE_PLACE_ID_BR_SAO_CARLOS  },
   { key: 'BR_AME',  nome: 'BR Pneus Americana',    placeId: process.env.GOOGLE_PLACE_ID_BR_AMERICANA   },
   { key: 'BR_MAR',  nome: 'BR Pneus Maringá',      placeId: process.env.GOOGLE_PLACE_ID_BR_MARINGA     },
@@ -42,7 +46,7 @@ async function scrapeLoja(browser, loja) {
     });
 
     const url = loja.mapsUrl ?? `https://www.google.com/maps/place/?q=place_id:${loja.placeId}&hl=pt-BR`;
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 40000 });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 50000 });
 
     // Aguarda nota aparecer
     let loaded = false;
@@ -59,7 +63,25 @@ async function scrapeLoja(browser, loja) {
       try {
         await page.waitForFunction(
           () => [...document.querySelectorAll('[aria-label]')].some(e => /avalia/i.test(e.getAttribute('aria-label') || '')),
-          { timeout: 8000 }
+          { timeout: 10000 }
+        );
+        loaded = true;
+      } catch (_) {}
+    }
+
+    // Para URL direta (mapsUrl), aguardar mais e fazer scroll para garantir carregamento completo
+    if (loja.mapsUrl) {
+      await new Promise(r => setTimeout(r, 2000));
+      await page.evaluate(() => window.scrollBy(0, 300));
+      await new Promise(r => setTimeout(r, 1500));
+      // Aguarda elemento de rating carregar completamente
+      try {
+        await page.waitForFunction(
+          () => [...document.querySelectorAll('[aria-label]')].some(e => {
+            const lbl = e.getAttribute('aria-label') || '';
+            return /avalia/i.test(lbl) && /\d/.test(lbl);
+          }),
+          { timeout: 10000 }
         );
       } catch (_) {}
     }
@@ -96,39 +118,56 @@ async function scrapeLoja(browser, loja) {
       }
 
       // ── Total ─────────────────────────────────────────────────────────────────
-      function normNum(s) { return s.replace(/[   ⁠]/g, '').replace(/\D/g, ''); }
+      function normNum(s) { return s.replace(/[   ⁠  ]/g, '').replace(/\D/g, ''); }
 
-      // Seletores diretos do Maps para total de avaliações
+      // Seletores diretos do Maps para total de avaliações (apenas classes conhecidas de review count)
       const TOTAL_SELS = ['.lyplG', '.jANrlb .fontBodySmall', '.DkEaL', '.gm2-body-2'];
       for (const sel of TOTAL_SELS) {
         if (total) break;
         const t = (document.querySelector(sel)?.textContent || '').trim();
-        if (t) { const v = parseInt(normNum(t)); if (v >= 10) total = v; }
+        if (t) { const v = parseInt(normNum(t)); if (v >= 100) total = v; }
       }
 
+      // Varrer todos aria-label
       for (const el of document.querySelectorAll('[aria-label]')) {
         if (total) break;
         const lbl = el.getAttribute('aria-label') || '';
+        // "1,2 mil avaliações" ou "1.2 mil avaliações"
         const mMil = lbl.match(/(\d+[,\.]\d+)\s*mil\s*avalia/i);
         if (mMil) { total = Math.round(parseFloat(mMil[1].replace(',', '.')) * 1000); break; }
+        // "6.048 avaliações" ou "6 048 avaliações"
         const mAria = lbl.match(/([\d][\d\s  \.,]*)\s*avalia[çc][õo]es?/i);
-        if (mAria) { const v = parseInt(normNum(mAria[1])); if (v >= 10) { total = v; break; } }
+        if (mAria) { const v = parseInt(normNum(mAria[1])); if (v >= 100) { total = v; break; } }
+        // Formato combinado: "4,8 estrelas de 5, 6.048 avaliações"
+        const mCombo = lbl.match(/,\s*([\d][\d\s.,]*)\s*avalia/i);
+        if (mCombo) { const v = parseInt(normNum(mCombo[1])); if (v >= 100) { total = v; break; } }
         // Formato inglês: "6,048 reviews"
         const mEn = lbl.match(/([\d][\d\s,]*)\s*review/i);
-        if (mEn) { const v = parseInt(normNum(mEn[1])); if (v >= 10) { total = v; break; } }
+        if (mEn) { const v = parseInt(normNum(mEn[1])); if (v >= 100) { total = v; break; } }
       }
+
       if (!total) {
-        const bodyText = document.body.innerText.replace(/[   ]/g, ' ');
+        const bodyText = document.body.innerText.replace(/[     ]/g, ' ');
+        // "(1,2 mil)" formato abreviado
         const mMil = bodyText.match(/\(\s*(\d+[,\.]\d+)\s*mil\s*\)/i);
         if (mMil) total = Math.round(parseFloat(mMil[1].replace(',', '.')) * 1000);
+        // "X avaliações" no corpo
         if (!total) {
           const m = bodyText.match(/([\d][\d\s\.,]*)\s*avalia[çc][õo]es?/i);
-          if (m) { const v = parseInt(normNum(m[1])); if (v >= 10) total = v; }
+          if (m) { const v = parseInt(normNum(m[1])); if (v >= 100) total = v; }
         }
-        // Fallback: padrão (NÚMERO) com pelo menos 3 dígitos (ex: "(6.048)")
+        // Padrão "(NÚMERO)" com pelo menos 3 dígitos — ex: "(6.048)"
         if (!total) {
-          const mP = bodyText.match(/\(([1-9][\d.,\s]{2,})\)/);
-          if (mP) { const v = parseInt(normNum(mP[1])); if (v >= 10) total = v; }
+          const allMatches = [...bodyText.matchAll(/\(([1-9][\d.,\s]{2,})\)/g)];
+          for (const mp of allMatches) {
+            const v = parseInt(normNum(mp[1]));
+            if (v >= 100 && v <= 2000000) { total = v; break; }
+          }
+        }
+        // Último recurso: número >= 100 imediatamente antes de "avaliações"
+        if (!total) {
+          const mNear = bodyText.match(/(\d[\d.,\s]{1,})\s{0,5}avalia/i);
+          if (mNear) { const v = parseInt(normNum(mNear[1])); if (v >= 100) total = v; }
         }
       }
 
@@ -215,6 +254,25 @@ async function salvarSupabase(endpoint, rows, upsert = false) {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
+// Busca últimos totais conhecidos por loja (fallback quando scraping não captura o total)
+async function fetchUltimosTotais() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/google_ratings?select=loja_key,total_avaliacoes&order=coletado_em.desc`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    if (!res.ok) return {};
+    const rows = await res.json();
+    const map = {};
+    for (const r of rows) {
+      if (!(r.loja_key in map) && r.total_avaliacoes != null) {
+        map[r.loja_key] = r.total_avaliacoes;
+      }
+    }
+    return map;
+  } catch (_) { return {}; }
+}
+
 async function main() {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error('❌ NEXUSZ_SUPABASE_URL / NEXUSZ_SUPABASE_SERVICE_ROLE_KEY não configurados');
@@ -226,6 +284,9 @@ async function main() {
   }
 
   console.log(`⭐ Coletando avaliações Google de ${LOJAS.length} loja(s)...`);
+
+  // Busca totais anteriores para usar como fallback
+  const ultimosTotais = await fetchUltimosTotais();
 
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -240,7 +301,25 @@ async function main() {
     for (const loja of LOJAS) {
       try {
         console.log(`  🔍 ${loja.nome}...`);
-        const { nota, total, reviews } = await scrapeLoja(browser, loja);
+        const { nota, total: totalScrapeado, reviews } = await scrapeLoja(browser, loja);
+
+        const lastKnown = ultimosTotais[loja.key] ?? null;
+        let total = totalScrapeado;
+
+        // Sanity check: rejeita total raspado se sair do intervalo [50%, 150%] do último valor conhecido
+        if (total != null && lastKnown != null && total < lastKnown * 0.5) {
+          console.log(`     ⚠️  Total raspado (${total}) suspeito (queda) vs último (${lastKnown}) — usando fallback`);
+          total = lastKnown;
+        }
+        if (total != null && lastKnown != null && total > lastKnown * 1.5) {
+          console.log(`     ⚠️  Total raspado (${total}) suspeito (subida) vs último (${lastKnown}) — usando fallback`);
+          total = lastKnown;
+        }
+        // Se total ainda nulo, usa último valor conhecido
+        if (total == null && lastKnown != null) {
+          console.log(`     ℹ️  Total não raspado — usando último valor conhecido: ${lastKnown}`);
+          total = lastKnown;
+        }
 
         if (nota) {
           ratingRows.push({
