@@ -51,7 +51,7 @@ const LOJAS = [
   { key: 'BR_MAR',  nome: 'BR Pneus Maringá',      placeId: process.env.GOOGLE_PLACE_ID_BR_MARINGA     },
   { key: 'PEG_SOR', nome: 'Peg Pneus Sorocaba',    placeId: process.env.GOOGLE_PLACE_ID_PEG_SOROCABA   },
   { key: 'PEG_ARQ', nome: 'Peg Pneus Araraquara',  placeId: process.env.GOOGLE_PLACE_ID_PEG_ARARAQUARA },
-].filter(l => l.placeId);
+].filter(l => l.placeId || l.mapsUrl);
 
 // ─── Scrape rating + reviews ──────────────────────────────────────────────────
 
@@ -106,13 +106,38 @@ async function scrapeLoja(browser, loja) {
           { timeout: 10000 }
         );
       } catch (_) {}
+
+      // Clicar na área de estrelas/avaliações para abrir a aba de reviews
+      try {
+        await page.evaluate(() => {
+          // Tenta botão de avaliações por seletores conhecidos do Maps
+          const selectors = [
+            '[data-async-trigger="routeReviews"]',
+            '[jsaction*="reviews"]',
+            '.MyEned',
+            '.F7nice',
+          ];
+          for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (el) { el.click(); return; }
+          }
+          // Fallback: clica no elemento aria-label que menciona avaliações + número
+          for (const el of document.querySelectorAll('[aria-label]')) {
+            const lbl = el.getAttribute('aria-label') || '';
+            if (/avalia/i.test(lbl) && /\d/.test(lbl) && el.tagName !== 'INPUT') {
+              el.click(); return;
+            }
+          }
+        });
+        await new Promise(r => setTimeout(r, 2500));
+      } catch (_) {}
     }
 
     // Aguarda reviews carregarem
     try {
       await page.waitForFunction(
         () => document.querySelectorAll('.jftiEf, [data-review-id]').length > 0,
-        { timeout: 8000 }
+        { timeout: 10000 }
       );
     } catch (_) {}
 
@@ -210,7 +235,7 @@ async function scrapeLoja(browser, loja) {
         const imgEl = el.querySelector('img.NBa7we') || el.querySelector('button img') || el.querySelector('img');
         const photo = imgEl?.src?.startsWith('http') ? imgEl.src : null;
 
-        // Stars
+        // Stars — tenta múltiplos formatos que o Google Maps usa
         let rating = null;
         for (const starEl of el.querySelectorAll('[aria-label]')) {
           const lbl = starEl.getAttribute('aria-label') || '';
@@ -218,14 +243,31 @@ async function scrapeLoja(browser, loja) {
                  || lbl.match(/([1-5])\s*star/i)
                  || lbl.match(/avali[ao]d[oa]\s+com\s+([1-5])/i)
                  || lbl.match(/classific[ao]d[oa]\s+com\s+([1-5])/i)
-                 || lbl.match(/([1-5])\s*de\s*5/i);
+                 || lbl.match(/([1-5])\s*de\s*5/i)
+                 || lbl.match(/([1-5])\s*\/\s*5/i)
+                 || lbl.match(/nota\s*([1-5])/i)
+                 || lbl.match(/^([1-5])\s*$/);
           if (m) { rating = parseInt(m[1]); break; }
         }
+        // Fallback: data-value
         if (rating === null) {
           for (const sv of el.querySelectorAll('[data-value]')) {
             const v = parseInt(sv.getAttribute('data-value') || '');
             if (v >= 1 && v <= 5) { rating = v; break; }
           }
+        }
+        // Fallback: role="img" (Google Maps frequentemente usa para ratings)
+        if (rating === null) {
+          for (const imgEl of el.querySelectorAll('[role="img"]')) {
+            const lbl = imgEl.getAttribute('aria-label') || imgEl.getAttribute('title') || '';
+            const m = lbl.match(/([1-5])[\s,\.]/);
+            if (m) { const v = parseInt(m[1]); if (v >= 1 && v <= 5) { rating = v; break; } }
+          }
+        }
+        // Fallback: contar estrelas preenchidas (img/span com classe de estrela ativa)
+        if (rating === null) {
+          const filledEls = el.querySelectorAll('.hCCjke, .kvMYJc, [class*="star"][class*="fill"], [class*="star"][class*="active"]');
+          if (filledEls.length >= 1 && filledEls.length <= 5) rating = filledEls.length;
         }
 
         // Review text — pode ter botão "mais" que trunca
