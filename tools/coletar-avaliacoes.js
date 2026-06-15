@@ -306,13 +306,10 @@ async function main() {
         const lastKnown = ultimosTotais[loja.key] ?? null;
         let total = totalScrapeado;
 
-        // Sanity check: rejeita total raspado se sair do intervalo [50%, 150%] do último valor conhecido
+        // Sanity check: rejeita total raspado se cair mais de 50% do último valor conhecido
+        // (proteção contra scraping errado; subidas legítimas são permitidas)
         if (total != null && lastKnown != null && total < lastKnown * 0.5) {
-          console.log(`     ⚠️  Total raspado (${total}) suspeito (queda) vs último (${lastKnown}) — usando fallback`);
-          total = lastKnown;
-        }
-        if (total != null && lastKnown != null && total > lastKnown * 1.5) {
-          console.log(`     ⚠️  Total raspado (${total}) suspeito (subida) vs último (${lastKnown}) — usando fallback`);
+          console.log(`     ⚠️  Total raspado (${total}) suspeito (queda >50%) vs último (${lastKnown}) — usando fallback`);
           total = lastKnown;
         }
         // Se total ainda nulo, usa último valor conhecido
