@@ -827,17 +827,20 @@ node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
 
 ## 17. Geração de Artes de Colaboradores (sob demanda)
 
-**O que faz:** Gera arte PNG personalizada para um colaborador (aniversário ou boas-vindas), faz upload para o Google Drive e salva o registro no Supabase. Acionado pelo menu "Artes Colaboradores" no NexusZ. **Independente do bot WhatsApp** — usa servidor dedicado `server-artes` na porta 3098.
+**O que faz:** Gera arte PNG personalizada para um colaborador (aniversário ou boas-vindas), faz upload para o Google Drive e salva o registro no Supabase. Acionado pelo menu "Artes Colaboradores" no NexusZ.
+
+> **⚠️ Migrado para Supabase Edge Function em 2026-06-17.** O servidor PM2 `server-artes` (porta 3098) não é mais necessário para o NexusZ — a geração roda 100% na nuvem, sem dependência do computador local.
 
 | Campo | Valor |
 |-------|-------|
-| Script gerador | `tools/gerar-arte-colaborador.js` |
-| Servidor dedicado | `tools/server-artes.js` (PM2: `server-artes`, porta **3098**) |
-| Endpoint | `POST http://localhost:3098/gerar-arte` |
+| **Edge Function** | `gerar-arte-colaborador` (Supabase) |
+| Função (NexusZ) | `supabase/functions/gerar-arte-colaborador/index.ts` |
+| Templates | Supabase Storage bucket `artes-templates` (6 PNGs) |
+| Renderização | `@resvg/resvg-wasm` (SVG → PNG, sem sharp) |
 | Tabela Supabase | `artes_colaboradores` |
-| Migration | `supabase/migrations/create_artes_colaboradores.sql` |
 | Acionamento | Sob demanda via NexusZ → /admin/artes |
-| Tempo estimado | ~40s (Puppeteer render + Drive upload) |
+| Tempo estimado | ~5-15s (síncrono, sem fila) |
+| Scripts legados | `tools/gerar-arte-colaborador.js`, `tools/server-artes.js` (mantidos para uso CLI/bot WA) |
 
 **Tipos disponíveis:** `aniversario` · `boasvinda`
 
@@ -845,23 +848,24 @@ node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
 - **Modo manual (padrão no NexusZ):** formulário com nome, cargo, loja e upload de foto — sem necessidade de colaborador cadastrado no RH
 - **Modo colaborador:** body com `colaborador_id` → busca dados no Supabase automaticamente
 
-**Payload do endpoint:**
-```json
-{ "tipo": "aniversario", "nome": "João", "cargo": "Mecânico", "loja": "Araraquara", "foto_base64": "data:image/jpeg;base64,..." }
-```
+**Como a geração funciona (edge function):**
+1. Templates PNG são carregados do Supabase Storage (cache na memória do container)
+2. A composição (template + foto + texto) é feita em SVG com clipPath para corte circular
+3. `@resvg/resvg-wasm` renderiza o SVG para PNG
+4. PNG enviado ao Google Drive via REST API + JWT da Service Account
+5. Registro salvo em `artes_colaboradores`
 
-**Env vars necessárias:**
-- `GOOGLE_SERVICE_ACCOUNT_JSON` — JSON da Service Account (ou base64)
-- `GOOGLE_DRIVE_ARTES_FOLDER_ID` — ID da pasta no Drive onde as artes são salvas
+**Secrets do Supabase necessários:**
+- `GOOGLE_SERVICE_ACCOUNT_JSON` — JSON da Service Account (base64 ou raw JSON)
+- `GOOGLE_DRIVE_ARTES_FOLDER_ID` — ID da pasta raiz no Drive (atualmente: `0ADYbsWZxLsqzUk9PVA`)
+- `NEXUSZ_SUPABASE_URL` e `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` (já configurados)
 
-**PM2:**
+**Para re-fazer upload dos templates no Storage:**
 ```bash
-pm2 start tools/server-artes.js --name server-artes   # iniciar
-pm2 restart server-artes                               # reiniciar
-pm2 logs server-artes                                  # ver logs
+node tools/setup-artes-storage.js
 ```
 
-**Regra de marca:** `ARTE_MARCA` env var (BR/PEG). Se não informado: BR por padrão no modo manual.
+**Bot WhatsApp / CLI:** Continua usando `tools/server-artes.js` + PM2 localmente se necessário para automações não-web.
 
 **Detecção de duplicatas:** NexusZ verifica `artes_colaboradores` por nome + tipo antes de gerar — exibe thumb + link de download caso já exista, com botão "Gerar mesmo assim".
 
