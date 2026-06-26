@@ -1,9 +1,9 @@
-name: ADS Monitor — Coleta Horária
+name: ADS Monitor — Coleta em Tempo Real
 
 on:
   schedule:
-    # Toda hora de seg-sáb das 08:00 às 19:00 BRT (11:00–22:00 UTC)
-    - cron: '0 11-22 * * 1-6'
+    # A cada 15 minutos, 24/7
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       job_id:
