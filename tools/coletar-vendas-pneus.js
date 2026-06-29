@@ -164,15 +164,19 @@ async function carregarGruposEstoque() {
 }
 
 function determinarGrupo(desc) {
-  const d  = desc.toUpperCase();
+  const d   = desc.toUpperCase().trim();
   const dim = extrairDimensoes(desc);
-
   const marcaToken = extrairMarca(desc);
   const isNacional = MARCAS_NACIONAIS.has(marcaToken);
   const prefixo = isNacional ? 'PNEU NACIONAL' : 'PNEU IMPORTADO';
 
-  // Categorias fixas por keyword (sempre corretas, independente de estoque)
-  if (d.includes('MOTO') || (dim && dim.w <= 130)) return `${prefixo} MOTO`;
+  // Prioridade máxima: grupo nativo do OI via estoque_pneus (fonte de verdade)
+  if (GRUPOS_POR_DESC && GRUPOS_POR_DESC.has(d)) {
+    return GRUPOS_POR_DESC.get(d);
+  }
+
+  // Fallback por keywords/dimensões para produtos não encontrados no estoque
+  if (/\bMOTO\b/.test(d) || (dim && dim.w <= 130)) return `${prefixo} MOTO`;
   if (d.includes('AGRICOLA') || d.includes('AGRÍCOLA') || d.includes('TRATOR'))
     return `${prefixo} AGRICOLA`;
   if (d.includes('CARGA PESADA') || d.includes('CAMINHAO') || d.includes('CAMINHÃO') ||
@@ -192,12 +196,7 @@ function determinarGrupo(desc) {
     return `${prefixo} INDUSTRIAL`;
   if (isNacional) return 'PNEU NACIONAL PASSEIO/SUV';
 
-  // Para importados: estoque_pneus é fonte de verdade (usa grupos nativos do OI)
-  if (GRUPOS_POR_DESC && GRUPOS_POR_DESC.has(d.trim())) {
-    return GRUPOS_POR_DESC.get(d.trim());
-  }
-
-  // Fallback por dimensão quando produto não está no estoque atual
+  // Fallback por dimensão para importados não classificados acima
   if (d.includes('PERFIL BAIXO') || d.includes('UHP') || (dim && dim.a <= 55))
     return 'PNEU IMPORTADO PERFIL BAIXO';
 
