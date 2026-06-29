@@ -37,20 +37,14 @@ jobs:
           printf 'NEXUSZ_SUPABASE_URL=%s\n'                     "$NEXUSZ_SUPABASE_URL"   > .env
           printf 'NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=%s\n'        "$NEXUSZ_SUPABASE_SERVICE_ROLE_KEY" >> .env
           printf 'OI_TOKEN_ALT_BR01_CENTRO=%s\n'                "$OI_BR01"     >> .env
-          printf 'OI_TOKEN_BR02_VILA=%s\n'                      "$OI_BR02"     >> .env
           printf 'OI_TOKEN_ALT_BR03_AMERICANA=%s\n'             "$OI_BR03"     >> .env
           printf 'OI_TOKEN_BR04_SAO_CARLOS=%s\n'                "$OI_BR04"     >> .env
-          printf 'OI_TOKEN_BR05_MARINGA=%s\n'                   "$OI_BR05"     >> .env
           printf 'OI_TOKEN_PEG1_ARARAQUARA=%s\n'                "$OI_PEG01"    >> .env
-          printf 'OI_TOKEN_PEG2_SOROCABA=%s\n'                  "$OI_PEG02"    >> .env
         env:
           OI_BR01:  ${{ secrets.OI_TOKEN_BR01 }}
-          OI_BR02:  ${{ secrets.OI_TOKEN_BR02 }}
           OI_BR03:  ${{ secrets.OI_TOKEN_BR03 }}
           OI_BR04:  ${{ secrets.OI_TOKEN_BR04 }}
-          OI_BR05:  ${{ secrets.OI_TOKEN_BR05 }}
           OI_PEG01: ${{ secrets.OI_TOKEN_PEG01 }}
-          OI_PEG02: ${{ secrets.OI_TOKEN_PEG02 }}
 
       - name: Definir datas a coletar
         id: datas
@@ -84,13 +78,10 @@ jobs:
       - name: Coletar vendas
         env:
           # Tokens OI no env direto (shim dotenv não lê .env)
-          OI_TOKEN_ALT_BR01_CENTRO: ${{ secrets.OI_TOKEN_BR01 }}
-          OI_TOKEN_BR02_VILA:       ${{ secrets.OI_TOKEN_BR02 }}
+          OI_TOKEN_ALT_BR01_CENTRO:    ${{ secrets.OI_TOKEN_BR01 }}
           OI_TOKEN_ALT_BR03_AMERICANA: ${{ secrets.OI_TOKEN_BR03 }}
-          OI_TOKEN_BR04_SAO_CARLOS: ${{ secrets.OI_TOKEN_BR04 }}
-          OI_TOKEN_BR05_MARINGA:    ${{ secrets.OI_TOKEN_BR05 }}
-          OI_TOKEN_PEG1_ARARAQUARA: ${{ secrets.OI_TOKEN_PEG01 }}
-          OI_TOKEN_PEG2_SOROCABA:   ${{ secrets.OI_TOKEN_PEG02 }}
+          OI_TOKEN_BR04_SAO_CARLOS:    ${{ secrets.OI_TOKEN_BR04 }}
+          OI_TOKEN_PEG1_ARARAQUARA:    ${{ secrets.OI_TOKEN_PEG01 }}
         run: |
           set +e
           for DATA in ${{ steps.datas.outputs.datas }}; do

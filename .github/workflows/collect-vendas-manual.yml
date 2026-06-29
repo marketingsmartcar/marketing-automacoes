@@ -30,14 +30,11 @@ jobs:
       - name: Coletar vendas de pneus
         env:
           # BR01_CENTRO usa token ALT (alt=true no script)
-          OI_TOKEN_ALT_BR01_CENTRO: ${{ secrets.OI_TOKEN_BR01 }}
-          OI_TOKEN_BR02_VILA:       ${{ secrets.OI_TOKEN_BR02 }}
+          OI_TOKEN_ALT_BR01_CENTRO:    ${{ secrets.OI_TOKEN_BR01 }}
           # BR03_AMERICANA usa token ALT (alt=true no script)
           OI_TOKEN_ALT_BR03_AMERICANA: ${{ secrets.OI_TOKEN_BR03 }}
-          OI_TOKEN_BR04_SAO_CARLOS: ${{ secrets.OI_TOKEN_BR04 }}
-          OI_TOKEN_BR05_MARINGA:    ${{ secrets.OI_TOKEN_BR05 }}
-          OI_TOKEN_PEG1_ARARAQUARA: ${{ secrets.OI_TOKEN_PEG01 }}
-          OI_TOKEN_PEG2_SOROCABA:   ${{ secrets.OI_TOKEN_PEG02 }}
+          OI_TOKEN_BR04_SAO_CARLOS:    ${{ secrets.OI_TOKEN_BR04 }}
+          OI_TOKEN_PEG1_ARARAQUARA:    ${{ secrets.OI_TOKEN_PEG01 }}
           NEXUSZ_SUPABASE_URL:       ${{ secrets.NEXUSZ_SUPABASE_URL }}
           NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
         run: |
