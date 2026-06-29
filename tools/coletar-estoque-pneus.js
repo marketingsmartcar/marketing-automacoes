@@ -20,10 +20,10 @@ const sleep      = ms => new Promise(r => setTimeout(r, ms));
 
 const LOJAS = [
   { key: 'BR01', empresa: 'BR01' },
-  { key: 'BR02', empresa: 'BR02' },
+  // BR02 encerrada (jun/2026)
   { key: 'BR03', empresa: 'BR03' },
   { key: 'BR04', empresa: 'BR04' },
-  { key: 'BR05', empresa: 'BR05' },
+  // BR05 encerrada (jun/2026)
   { key: 'PEG1', empresa: 'Peg11' },
 ];
 

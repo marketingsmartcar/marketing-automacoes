@@ -22,12 +22,12 @@ const NEXUSZ_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY;
 // Mapeamento loja → código usado na tabela vendas_pneus
 const LOJAS = [
   { key: 'BR01_CENTRO',     loja: 'BR01', nome: 'BR Pneus Araraquara Centro', alt: true  },
-  { key: 'BR02_VILA',       loja: 'BR02', nome: 'BR Pneus Araraquara Vila',   alt: false },
+  // BR02_VILA encerrada (jun/2026)
   { key: 'BR03_AMERICANA',  loja: 'BR03', nome: 'BR Pneus Americana',         alt: true  },
   { key: 'BR04_SAO_CARLOS', loja: 'BR04', nome: 'BR Pneus São Carlos',        alt: false },
-  { key: 'BR05_MARINGA',    loja: 'BR05', nome: 'BR Pneus Maringá',           alt: false },
+  // BR05_MARINGA encerrada (jun/2026)
   { key: 'PEG1_ARARAQUARA', loja: 'PEG1', nome: 'Peg Pneus Araraquara',      alt: false },
-  { key: 'PEG2_SOROCABA',   loja: 'SOR1', nome: 'Peg Pneus Sorocaba',        alt: false },
+  // PEG2_SOROCABA encerrada (jun/2026)
 ];
 
 // Grupos de pneu — usados para classificar cada item
