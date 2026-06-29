@@ -313,27 +313,41 @@ async function coletarGruposLoja(ck, lojaKey) {
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 
-function sbDelete(lojaKey) {
+function sbQueryLoja(lojaKey) {
   return new Promise((res) => {
-    const url = new URL(NEXUSZ_URL + '/rest/v1/estoque_pneus?loja=eq.' + lojaKey);
+    const url = new URL(NEXUSZ_URL + '/rest/v1/estoque_pneus?loja=eq.' + lojaKey + '&select=descricao,estoque&limit=2000');
     const req = https.request({
-      hostname: url.hostname, path: url.pathname + url.search, method: 'DELETE',
-      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, Prefer: 'return=minimal' },
-    }, r => { r.on('data', () => {}); r.on('end', () => res({ status: r.statusCode })); });
-    req.on('error', () => res({ status: 0 }));
+      hostname: url.hostname, path: url.pathname + url.search, method: 'GET',
+      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY },
+    }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => res(r.statusCode === 200 ? JSON.parse(d) : [])); });
+    req.on('error', () => res([]));
     req.end();
   });
 }
 
-function sbInsert(rows) {
+function sbUpsert(rows) {
   return new Promise((res) => {
     const body = JSON.stringify(rows);
     const url  = new URL(NEXUSZ_URL + '/rest/v1/estoque_pneus');
     const req  = https.request({
       hostname: url.hostname, path: url.pathname, method: 'POST',
-      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Prefer: 'return=minimal' },
+      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Prefer: 'resolution=merge-duplicates,return=minimal' },
     }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => res({ status: r.statusCode, body: d })); });
     req.on('error', () => res({ status: 0, body: '' }));
+    req.write(body); req.end();
+  });
+}
+
+function sbZeroEstoque(lojaKey, descricao) {
+  return new Promise((res) => {
+    const body = JSON.stringify({ estoque: 0 });
+    const path = '/rest/v1/estoque_pneus?loja=eq.' + lojaKey + '&descricao=eq.' + encodeURIComponent(descricao);
+    const url  = new URL(NEXUSZ_URL + path);
+    const req  = https.request({
+      hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH',
+      headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Prefer: 'return=minimal' },
+    }, r => { r.on('data', () => {}); r.on('end', () => res({ status: r.statusCode })); });
+    req.on('error', () => res({ status: 0 }));
     req.write(body); req.end();
   });
 }
@@ -379,18 +393,31 @@ async function main() {
       console.log(`  Total: ${rows.length} pneus com estoque`);
 
       if (!inspecionar && rows.length > 0) {
-        // Limpa dados antigos da loja e insere os novos
-        await sbDelete(loja.key);
+        // Busca registros atuais para detectar produtos que zeraram estoque
+        const anterior = await sbQueryLoja(loja.key);
+        const novosSet = new Set(rows.map(r => r.descricao.toUpperCase()));
+
+        // Upsert: insere novos e atualiza existentes (grupo preservado pelo OI)
         let lojaErros = 0;
         for (let i = 0; i < rows.length; i += 100) {
-          const r = await sbInsert(rows.slice(i, i + 100));
-          if (r.status !== 201) {
+          const r = await sbUpsert(rows.slice(i, i + 100));
+          if (r.status !== 201 && r.status !== 200) {
             console.error('  ❌ Supabase:', r.status, r.body?.slice(0, 100));
             lojaErros++;
           } else {
             totalGravados += Math.min(100, rows.length - i);
           }
         }
+
+        // Zero-out: produtos que estavam no estoque mas não aparecem mais (vendidos)
+        const vendidos = anterior.filter(a => a.estoque > 0 && !novosSet.has(a.descricao.toUpperCase()));
+        if (vendidos.length > 0) {
+          console.log(`  ⤵  ${vendidos.length} produto(s) zerado(s) (vendidos/esgotados)`);
+          for (const v of vendidos) {
+            await sbZeroEstoque(loja.key, v.descricao);
+          }
+        }
+
         if (lojaErros) totalErros += lojaErros;
         console.log(`  ✅ ${rows.length} gravados`);
       } else if (inspecionar) {
