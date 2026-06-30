@@ -386,7 +386,21 @@ async function main() {
     try {
       // Login separado por loja — garante que a sessão está na empresa correta
       console.log(`  🔑 Login ${loja.key}...`);
-      const ck = await loginAndSwitch(loja.empresa);
+      let ck, lastErr;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          ck = await loginAndSwitch(loja.empresa);
+          break;
+        } catch (e) {
+          lastErr = e;
+          if (attempt < 3) {
+            const wait = attempt * 8000;
+            console.log(`  ⚠️  Tentativa ${attempt} falhou (${e.message}) — aguardando ${wait/1000}s...`);
+            await sleep(wait);
+          }
+        }
+      }
+      if (!ck) throw lastErr;
 
       const rows = await coletarGruposLoja(ck, loja.key);
       console.log(`  Total: ${rows.length} pneus com estoque`);
