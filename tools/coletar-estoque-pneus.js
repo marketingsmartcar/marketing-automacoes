@@ -195,11 +195,9 @@ async function coletarGruposLoja(ck, lojaKey) {
     }
   }
 
-  // Coleta TODOS os grupos que começam com "PNEU" encontrados na OI — não limita à lista hardcoded.
-  // Isso garante que grupos novos ou grupos fora da lista (ex: PNEU USADO) sejam capturados.
-  const pneuGrupos = Object.keys(gruposMap).filter(g => g.toUpperCase().startsWith('PNEU '));
+  const pneuGrupos = GRUPOS_PNEU.filter(g => gruposMap[g]);
   console.log(`  Todos os grupos no OI (${lojaKey}):`, Object.keys(gruposMap).join(' | '));
-  console.log(`  Grupos coletados: ${pneuGrupos.join(' | ') || '(nenhum)'}`);
+  console.log(`  Grupos de pneu mapeados: ${pneuGrupos.join(' | ') || '(nenhum)'}`);
 
   const resultados = [];
 
