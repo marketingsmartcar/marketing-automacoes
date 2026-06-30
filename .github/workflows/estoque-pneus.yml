@@ -2,7 +2,7 @@ name: Estoque de Pneus — Coleta Horária
 
 on:
   schedule:
-    # A cada hora, seg–sáb 07h–19h BRT (10h–22h UTC) — mais confiável que */30
+    # A cada hora, seg–sáb 07h–19h BRT (10h–22h UTC)
     - cron: '0 10-22 * * 1-6'
   workflow_dispatch:
     inputs:
@@ -17,7 +17,8 @@ on:
 
 jobs:
   coletar:
-    runs-on: ubuntu-latest
+    # Runner local (Brasil) — OI bloqueia logins vindos de IPs do GitHub (EUA)
+    runs-on: self-hosted
     timeout-minutes: 30
 
     env:
@@ -33,17 +34,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Adicionar Git bash ao PATH
+        shell: powershell
+        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Criar shim dotenv
-        run: |
-          mkdir -p node_modules/dotenv
-          echo 'exports.config = function() {};' > node_modules/dotenv/index.js
-          echo 'exports.config = function() {};' > node_modules/dotenv/config.js
+      - name: Instalar dependências
+        shell: bash
+        run: npm ci
 
       - name: Coletar estoque
+        shell: bash
         run: |
           LOJA="${{ github.event.inputs.loja }}"
           JOB="${{ github.event.inputs.job_id }}"
@@ -51,3 +51,26 @@ jobs:
           [ -n "$LOJA" ] && ARGS="$ARGS $LOJA"
           [ -n "$JOB"  ] && ARGS="$ARGS --job-id=$JOB"
           node tools/coletar-estoque-pneus.js $ARGS
+
+      - name: Marcar conclusão no Supabase
+        if: always() && github.event.inputs.job_id != ''
+        shell: bash
+        env:
+          NEXUSZ_SUPABASE_URL: ${{ secrets.NEXUSZ_SUPABASE_URL }}
+          NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          STATUS="${{ job.status }}"
+          SUPABASE_URL="${NEXUSZ_SUPABASE_URL//[$'\t\r\n ']}"
+          SUPABASE_KEY="${NEXUSZ_SUPABASE_SERVICE_ROLE_KEY//[$'\t\r\n ']}"
+          if [ "$STATUS" = "success" ]; then
+            FINAL_STATUS="concluido"
+            MSG="Coleta concluída com sucesso"
+          else
+            FINAL_STATUS="erro"
+            MSG="Coleta falhou — verifique os logs do GitHub Actions"
+          fi
+          curl -s -X PATCH "$SUPABASE_URL/rest/v1/sync_jobs?id=eq.${{ github.event.inputs.job_id }}" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"status\":\"$FINAL_STATUS\",\"progresso\":100,\"mensagem\":\"$MSG\",\"concluido_em\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /dev/null
