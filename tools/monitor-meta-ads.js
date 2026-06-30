@@ -9,7 +9,6 @@ const TOKEN_BR  = process.env.META_ACCESS_TOKEN_BR;
 const TOKEN_PEG = process.env.META_ACCESS_TOKEN_PEG;
 
 const CONTAS_META = [
-  { nome: 'BR PNEUS MARINGÁ',     id: process.env.META_ACCOUNT_BR_MARINGA,     recarga: 'saldo',  token: TOKEN_BR },
   { nome: 'BR PNEUS AMERICANA',   id: process.env.META_ACCOUNT_BR_AMERICANA,   recarga: 'saldo',  token: TOKEN_BR },
   { nome: 'BR PNEUS SÃO CARLOS',  id: process.env.META_ACCOUNT_BR_SAO_CARLOS,  recarga: 'saldo',  token: TOKEN_BR },
   { nome: 'BR PNEUS ARARAQUARA',  id: process.env.META_ACCOUNT_BR_ARARAQUARA,  recarga: 'fundos', token: TOKEN_BR },

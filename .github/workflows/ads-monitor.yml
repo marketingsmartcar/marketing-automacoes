@@ -39,7 +39,6 @@ jobs:
         run: |
           echo "META_ACCESS_TOKEN_BR=${{ secrets.META_ACCESS_TOKEN_BR }}"                         >> .env
           echo "META_ACCESS_TOKEN_PEG=${{ secrets.META_ACCESS_TOKEN_PEG }}"                       >> .env
-          echo "META_ACCOUNT_BR_MARINGA=${{ secrets.META_ACCOUNT_BR_MARINGA }}"                   >> .env
           echo "META_ACCOUNT_BR_AMERICANA=${{ secrets.META_ACCOUNT_BR_AMERICANA }}"               >> .env
           echo "META_ACCOUNT_BR_SAO_CARLOS=${{ secrets.META_ACCOUNT_BR_SAO_CARLOS }}"             >> .env
           echo "META_ACCOUNT_BR_ARARAQUARA=${{ secrets.META_ACCOUNT_BR_ARARAQUARA }}"             >> .env
@@ -52,7 +51,6 @@ jobs:
           echo "GOOGLE_ADS_LOGIN_CUSTOMER_ID=${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}"         >> .env
           echo "GOOGLE_ACCOUNT_BR_AMERICANA=${{ secrets.GOOGLE_ACCOUNT_BR_AMERICANA }}"           >> .env
           echo "GOOGLE_ACCOUNT_BR_ARARAQUARA=${{ secrets.GOOGLE_ACCOUNT_BR_ARARAQUARA }}"         >> .env
-          echo "GOOGLE_ACCOUNT_BR_MARINGA=${{ secrets.GOOGLE_ACCOUNT_BR_MARINGA }}"               >> .env
           echo "GOOGLE_ACCOUNT_BR_SAO_CARLOS=${{ secrets.GOOGLE_ACCOUNT_BR_SAO_CARLOS }}"         >> .env
           echo "GOOGLE_ACCOUNT_PEG_ARARAQUARA=${{ secrets.GOOGLE_ACCOUNT_PEG_ARARAQUARA }}"       >> .env
           echo "GOOGLE_ACCOUNT_PEG_SOROCABA=${{ secrets.GOOGLE_ACCOUNT_PEG_SOROCABA }}"           >> .env
