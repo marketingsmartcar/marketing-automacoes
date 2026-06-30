@@ -28,8 +28,32 @@ const LOJAS = [
   { key: 'PEG1', tokenVar: 'OI_TOKEN_PEG1_ARARAQUARA' },
 ];
 
-// Grupos a excluir explicitamente (não são pneus novos em estoque)
-const GRUPOS_EXCLUIR = new Set(['PNEU USADO', 'PNEUS NÃO VEIO', 'PNEUS NAO VEIO']);
+// Lista EXATA de grupos do OI a coletar (definida pelo usuário — não alterar sem autorização)
+// Fonte: imagem dos checkboxes marcados na tela "Análise de Estoque" do OI
+const GRUPOS_PNEU = new Set([
+  'PNEU IMPORTADO (CURVA A)',
+  'PNEU IMPORTADO (PROMOCIONAL)',
+  'PNEU IMPORTADO AGRICOLA',
+  'PNEU IMPORTADO ALL TERRAIN',
+  'PNEU IMPORTADO CAMIONETE',
+  'PNEU IMPORTADO CARGA LEVE',
+  'PNEU IMPORTADO CARGA PESADA',
+  'PNEU IMPORTADO INDUSTRIAL',
+  'PNEU IMPORTADO MOTO',
+  'PNEU IMPORTADO PASSEIO/SUV',
+  'PNEU IMPORTADO PERFIL BAIXO',
+  'PNEU IMPORTADO RUNFLAT',
+  'PNEU NACIONAL AGRICOLA',
+  'PNEU NACIONAL ALL TERRAIN',
+  'PNEU NACIONAL CAMIONETE',
+  'PNEU NACIONAL CARGA LEVE',
+  'PNEU NACIONAL CARGA PESADA',
+  'PNEU NACIONAL INDUSTRIAL',
+  'PNEU NACIONAL MOTO',
+  'PNEU NACIONAL PASSEIO/SUV',
+  'PNEU NACIONAL PERFIL BAIXO',
+  'PNEU NACIONAL RUNFLAT',
+]);
 
 // ── API OI ────────────────────────────────────────────────────────────────────
 
@@ -112,16 +136,12 @@ async function coletarLoja(lojaKey, tokenVar) {
   const produtos = parseXmlProducts(body);
   const agora    = new Date().toISOString();
 
-  // Filtra apenas pneus com estoque > 0
-  // Critério: descrição começa com "PNEU " E grupo não está na lista de exclusão
+  // Filtra apenas grupos da lista exata aprovada
   const rows = [];
   const gruposVistos = new Set();
 
   for (const p of produtos) {
-    const grupoUpper = p.grupo.toUpperCase().trim();
-    const descUpper  = p.descricao.toUpperCase().trim();
-    const isPneu = descUpper.startsWith('PNEU ') && !GRUPOS_EXCLUIR.has(grupoUpper);
-    if (!isPneu) continue;
+    if (!GRUPOS_PNEU.has(p.grupo.trim())) continue;
 
     gruposVistos.add(p.grupo);
 
