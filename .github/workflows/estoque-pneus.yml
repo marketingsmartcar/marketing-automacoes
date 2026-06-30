@@ -17,15 +17,13 @@ on:
 
 jobs:
   coletar:
-    # Runner local (Brasil) — OI bloqueia logins vindos de IPs do GitHub (EUA)
-    runs-on: self-hosted
-    timeout-minutes: 30
+    # API OI (ProdutoXML) — token-based, sem web scraping, sem dependência de IP brasileiro
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     env:
       NEXUSZ_SUPABASE_URL:              ${{ secrets.NEXUSZ_SUPABASE_URL }}
       NEXUSZ_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}
-      OI_EMAIL:                         ${{ secrets.OI_EMAIL }}
-      OI_SENHA:                         ${{ secrets.OI_SENHA }}
       OI_TOKEN_ALT_BR01_CENTRO:         ${{ secrets.OI_TOKEN_BR01 }}
       OI_TOKEN_ALT_BR03_AMERICANA:      ${{ secrets.OI_TOKEN_BR03 }}
       OI_TOKEN_BR04_SAO_CARLOS:         ${{ secrets.OI_TOKEN_BR04 }}
@@ -34,16 +32,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Adicionar Git bash ao PATH
-        shell: powershell
-        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
       - name: Instalar dependências
-        shell: bash
         run: npm ci
 
       - name: Coletar estoque
-        shell: bash
         run: |
           LOJA="${{ github.event.inputs.loja }}"
           JOB="${{ github.event.inputs.job_id }}"
