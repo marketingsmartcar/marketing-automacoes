@@ -2,10 +2,8 @@ name: Atualizar Vendas de Pneus (automático)
 
 on:
   schedule:
-    # De hora em hora, dias úteis 07h–19h BRT (10h–22h UTC), seg–sex
-    - cron: '0 10-22 * * 1-5'
-    # Sábado 08h BRT (11h UTC): coleta o sábado
-    - cron: '0 11 * * 6'
+    # A cada 10 minutos, 08h–19h BRT (11h–22h UTC), seg–sáb
+    - cron: '*/10 11-22 * * 1-6'
     # Domingo 08h BRT (11h UTC): recoleta a semana toda para garantir dados corretos
     - cron: '0 11 * * 0'
   workflow_dispatch:
