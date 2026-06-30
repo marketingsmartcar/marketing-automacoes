@@ -327,9 +327,9 @@ function sbQueryLoja(lojaKey) {
 function sbUpsert(rows) {
   return new Promise((res) => {
     const body = JSON.stringify(rows);
-    const url  = new URL(NEXUSZ_URL + '/rest/v1/estoque_pneus');
+    const url  = new URL(NEXUSZ_URL + '/rest/v1/estoque_pneus?on_conflict=loja,descricao');
     const req  = https.request({
-      hostname: url.hostname, path: url.pathname, method: 'POST',
+      hostname: url.hostname, path: url.pathname + url.search, method: 'POST',
       headers: { apikey: NEXUSZ_KEY, Authorization: 'Bearer ' + NEXUSZ_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Prefer: 'resolution=merge-duplicates,return=minimal' },
     }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => res({ status: r.statusCode, body: d })); });
     req.on('error', () => res({ status: 0, body: '' }));
