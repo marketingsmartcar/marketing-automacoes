@@ -22,7 +22,7 @@ const PASTAS_PEG = {
   'Sazonais Peg':         '11pfy9zvFioSDhuztqglpB50JqM16e-Ab',
 };
 
-// Campanha Arraia — Junho 2026
+// Campanha Arraia — Junho 2026 (histórico)
 const ARRAIA = {
   artes_br:  '1esrrmqnGK0bjZD6TAjxhe6N8bKnA3xTQ', // pasta BR Pneus 1080x1920
   artes_peg: '1OnCLs5CzcbHcdkOw-UbM57h7UPuSpF_e', // pasta Peg Pneus 1080x1920
@@ -36,4 +36,11 @@ const SAZONAIS = {
   peg: '11pfy9zvFioSDhuztqglpB50JqM16e-Ab',  // Videos Sazonais/Peg Pneus
 };
 
-module.exports = { PASTA_RAIZ, PASTAS_BR, PASTAS_PEG, ARRAIA, SAZONAIS };
+// Campanhas mensais — pasta padrão a partir de Julho 2026
+// Atualizar os IDs quando o conteúdo do mês mudar (artes e vídeos dentro de "Campanhas")
+const CAMPANHAS = {
+  artes_br:  '1zDVSGOj9OOyRTmwH3f2u06CCPJX5pAx9', // Campanhas/Artes/1080x1920
+  videos_br: '1DCT88iiD692PDXVaB966nLvUCfkHRXbn',  // Campanhas/Videos/BR Pneus
+};
+
+module.exports = { PASTA_RAIZ, PASTAS_BR, PASTAS_PEG, ARRAIA, SAZONAIS, CAMPANHAS };

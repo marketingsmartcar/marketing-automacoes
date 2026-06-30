@@ -17,7 +17,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const { listarPasta, listarPastas } = require('./drive-downloader');
-const { PASTAS_BR, PASTAS_PEG, ARRAIA, SAZONAIS } = require('./drive-config');
+const { PASTAS_BR, PASTAS_PEG, ARRAIA, SAZONAIS, CAMPANHAS } = require('./drive-config');
 
 const SCHEDULE_FILE = path.join(__dirname, '..', '..', 'data', 'stories-schedule.json');
 
@@ -83,22 +83,29 @@ async function main() {
 
   console.log(`\n📅 Planejando stories de ${startDate} até ${endDate}`);
 
+  // Junho 2026: usa ARRAIA; demais meses: usa CAMPANHAS (pasta padrão)
+  const [anoStart, mesStart] = startDate.split('-').map(Number);
+  const ehJunho2026 = anoStart === 2026 && mesStart === 6;
+  const fonteArtesBR   = ehJunho2026 ? ARRAIA.artes_br   : CAMPANHAS.artes_br;
+  const fonteVideosBR  = ehJunho2026 ? ARRAIA.videos_br   : CAMPANHAS.videos_br;
+  const fonteArtesPeg  = ehJunho2026 ? ARRAIA.artes_peg   : null;
+  const fonteVideosPeg = ehJunho2026 ? ARRAIA.videos_peg  : null;
+
   // ── Carregar vídeos do Drive ─────────────────────────────────────────────────
   console.log('\n📂 Carregando vídeos do Drive...');
   const [
     lojasBR, lojasPeg,
     artesBR, artesPeg,
     arrBR, arrPeg,
-    sazBR, sazPeg,
+    sazBR,
   ] = await Promise.all([
     listarPastas(PASTAS_BR,  ['.mp4', '.mov']),
     listarPastas(PASTAS_PEG, ['.mp4', '.mov']),
-    listarPasta(ARRAIA.artes_br,  ['.png', '.jpg']),
-    listarPasta(ARRAIA.artes_peg, ['.png', '.jpg']),
-    listarPasta(ARRAIA.videos_br,  ['.mp4', '.mov']),
-    listarPasta(ARRAIA.videos_peg, ['.mp4', '.mov']),
+    listarPasta(fonteArtesBR,  ['.png', '.jpg']),
+    fonteArtesPeg  ? listarPasta(fonteArtesPeg,  ['.png', '.jpg'])  : Promise.resolve([]),
+    listarPasta(fonteVideosBR,  ['.mp4', '.mov']),
+    fonteVideosPeg ? listarPasta(fonteVideosPeg, ['.mp4', '.mov']) : Promise.resolve([]),
     listarPasta(SAZONAIS.br,  ['.mp4', '.mov']),
-    listarPasta(SAZONAIS.peg, ['.mp4', '.mov']),
   ]);
 
   // Ordena artes numericamente (1.png, 2.png...)
@@ -111,8 +118,8 @@ async function main() {
 
   console.log(`  BR lojas: ${lojasBR.length} vídeos | Peg lojas: ${lojasPeg.length} vídeos`);
   console.log(`  BR artes: ${artesBRs.length} | Peg artes: ${artesPegs.length}`);
-  console.log(`  Arraia BR: ${arrBR.length} vídeos | Arraia Peg: ${arrPeg.length} vídeos`);
-  console.log(`  Sazonal BR: ${sazBR.length} | Sazonal Peg: ${sazPeg.length}`);
+  console.log(`  Campanha BR: ${arrBR.length} vídeos | Campanha Peg: ${arrPeg.length} vídeos`);
+  console.log(`  Sazonal BR: ${sazBR.length}`);
 
   // ── Dias úteis (Seg–Sáb) ─────────────────────────────────────────────────────
   const dias = [];
@@ -134,7 +141,6 @@ async function main() {
   const pegSlots = distribuir(pegEmbaralhados, dias.length, 3);
 
   // ── Montar plano dia a dia ───────────────────────────────────────────────────
-  const isJunho2026 = (d) => d.startsWith('2026-06');
   const isSegQuaSex = (dow) => [1, 3, 5].includes(dow);
   const isTerQuiSab = (dow) => [2, 4, 6].includes(dow);
 
@@ -149,20 +155,19 @@ async function main() {
   const schedule = {};
 
   dias.forEach((dia, i) => {
-    const dow   = dowOf(dia);
-    const junho = isJunho2026(dia);
-    const sqsf  = isSegQuaSex(dow);
-    const tqs   = isTerQuiSab(dow);
+    const dow  = dowOf(dia);
+    const sqsf = isSegQuaSex(dow);
+    const tqs  = isTerQuiSab(dow);
 
-    // Artes arraia
+    // Artes (sempre, todo mês que tiver artes configuradas)
     let arteBR = null, artePeg = null;
-    if (junho && artesBRs.length >= 1) {
+    if (artesBRs.length >= 1) {
       arteBR = {
         fixa:     { id: artesBRs[0].id, name: artesBRs[0].name },
         rotativa: artesBRs.length > 1 ? { id: artesBRs[arteBRIdx].id, name: artesBRs[arteBRIdx].name } : null,
       };
     }
-    if (junho && artesPegs.length >= 1) {
+    if (artesPegs.length >= 1) {
       artePeg = {
         fixa:     { id: artesPegs[0].id, name: artesPegs[0].name },
         rotativa: artesPegs.length > 1 ? { id: artesPegs[artePegIdx].id, name: artesPegs[artePegIdx].name } : null,
@@ -174,17 +179,18 @@ async function main() {
       br: {
         lojas: brSlots[i].map(v => ({ id: v.id, name: v.name, pasta: v.pasta })),
         arte:  arteBR,
-        arraia_video: junho && sqsf && arrBR.length > 0
+        // Vídeo de campanha: Seg/Qua/Sex (mesmo padrão do Arraia em junho)
+        arraia_video: sqsf && arrBR.length > 0
           ? { id: arrBR[arrBRIdx % arrBR.length].id, name: arrBR[arrBRIdx % arrBR.length].name }
           : null,
-        sazonal: junho && tqs && sazBR.length > 0
+        sazonal: tqs && sazBR.length > 0
           ? { id: sazBR[sazBRIdx % sazBR.length].id, name: sazBR[sazBRIdx % sazBR.length].name }
           : null,
       },
       peg: {
         lojas: pegSlots[i].map(v => ({ id: v.id, name: v.name, pasta: v.pasta })),
         arte:  artePeg,
-        arraia_video: junho && sqsf && arrPeg.length > 0
+        arraia_video: sqsf && arrPeg.length > 0
           ? { id: arrPeg[arrPegIdx % arrPeg.length].id, name: arrPeg[arrPegIdx % arrPeg.length].name }
           : null,
       },
@@ -193,8 +199,8 @@ async function main() {
     // Avança índices das rotações
     if (artesBRs.length > 1)  { arteBRIdx  = arteBRIdx  >= artesBRs.length  - 1 ? 1 : arteBRIdx  + 1; }
     if (artesPegs.length > 1) { artePegIdx = artePegIdx >= artesPegs.length - 1 ? 1 : artePegIdx + 1; }
-    if (junho && sqsf) { arrBRIdx++; arrPegIdx++; }
-    if (junho && tqs)  { sazBRIdx++; }
+    if (sqsf) { arrBRIdx++; arrPegIdx++; }
+    if (tqs)  { sazBRIdx++; }
   });
 
   // ── Salvar schedule ──────────────────────────────────────────────────────────

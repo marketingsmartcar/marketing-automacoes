@@ -205,8 +205,8 @@ async function publicarStories() {
       salvarEstado(estado);
     }
 
-    // ── Arte Arraia fixa (1.png) + arte rotativa ──────────────────────────────
-    if (isJunho2026() && (conta.pastaArraia || plano?.arte)) {
+    // ── Arte fixa (1.png) + arte rotativa ────────────────────────────────────
+    if (conta.pastaArraia || plano?.arte) {
       if (st.ultima_arte === hoje) {
         console.log(`  ⏭️  Artes Arraia já postadas hoje — pulando.`);
       } else {
