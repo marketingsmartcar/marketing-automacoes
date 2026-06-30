@@ -2,8 +2,8 @@ name: Estoque de Pneus — Coleta Horária
 
 on:
   schedule:
-    # Toda hora, seg–sáb 07h–19h BRT (10h–22h UTC)
-    - cron: '0 10-22 * * 1-6'
+    # A cada 30 min, seg–sáb 07h–19h BRT (10h–22h UTC)
+    - cron: '*/30 10-22 * * 1-6'
   workflow_dispatch:
     inputs:
       loja:
