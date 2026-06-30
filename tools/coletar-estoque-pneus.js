@@ -67,7 +67,7 @@ function parseXmlProducts(xml) {
     grupo:     xmlTag(item, 'DescricaoDoGrupo'),
     estoque:   parseInt(xmlTag(item, 'Estoque') || '0', 10) || 0,
     custo:     parseFloat(xmlTag(item, 'PrecoDeCusto') || '0') || null,
-    preco:     parseFloat(xmlTag(item, 'PrecoDeVenda') || '0') || null,
+    venda:     parseFloat(xmlTag(item, 'PrecoDeVenda') || '0') || null,
   }));
 }
 
@@ -135,7 +135,7 @@ async function coletarLoja(lojaKey, tokenVar) {
       marca:     extrairMarca(p.descricao),
       estoque:   p.estoque,
       custo:     p.custo || null,
-      preco:     p.preco || null,
+      venda:     p.venda || null,
       atualizado: agora,
     });
   }
