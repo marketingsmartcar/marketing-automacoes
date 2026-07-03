@@ -2,7 +2,7 @@
   "br": {
     "historico": {
       "1HbzrfUw0kEH8XWIsfsqcXQtDpr7kw0Nu": "2026-06-04",
-      "1J9HBQuX4UmLJxX-6SYJCILpeVkblVChm": "2026-06-25",
+      "1J9HBQuX4UmLJxX-6SYJCILpeVkblVChm": "2026-07-03",
       "1qiKNypo-m2obGcP1O7DbevDaCnAqAxym": "2026-06-22",
       "1ineJ8yZ3cGveaHPh7jptaj0FIDDDCSRs": "2026-06-29",
       "1jx0W7m35QhqNV2hpxdn9azl69WpiL51x": "2026-06-06",
@@ -18,7 +18,7 @@
       "14u2kH7NUibaZiXniKqcwOJOxdCNctbS_": "2026-06-24",
       "1VUXKhIDlqdblALt5P6pnxgb-0ghtgXxa": "2026-06-24",
       "1BuR4_nElHRrgDu5WlVdO5PI3FYZGI5H7": "2026-06-25",
-      "1QBmNK2es97jPSOFaHutL1Br0K3_hj_Kh": "2026-06-25",
+      "1QBmNK2es97jPSOFaHutL1Br0K3_hj_Kh": "2026-07-03",
       "1o4_VBpal2aYTT8wD7_ec7VvJ-wG2SYYK": "2026-06-26",
       "1rtAs0TY00QjZaB-B91V2ehJizaxkMw56": "2026-06-27",
       "12WIWVzbJm9UgwH6T0cd89kk8gAxP6WkF": "2026-06-27",
@@ -35,7 +35,7 @@
       "13jXfLivevOJ_74AiYAkIYqCi3xc4MN1y": "2026-06-20",
       "1koGFSwbdscZLBP0v2LAU1W6lZUAxW2Io": "2026-06-20",
       "1KvDe3V4j5X7RoIRqWfT4WOFVWg6EHxSt": "2026-06-20",
-      "1V3XCC_S9nVT_ws2Ya41sHNpbPGg9G_TD": "2026-06-22",
+      "1V3XCC_S9nVT_ws2Ya41sHNpbPGg9G_TD": "2026-07-03",
       "1eVlUcGadvIDjryYSHjfwl1gOnIRAXelE": "2026-06-23",
       "1OouY9icl3Sk_kD6EUVQfdBcVfNluHan9": "2026-07-02",
       "19j-muv3XlraFaigXyTkLC8LxDMiLAFsK": "2026-06-23",
@@ -44,10 +44,10 @@
     "arraia_arte_index": 3,
     "arraia_video_index": 0,
     "sazonal_index": 1,
-    "ultima_regular": "2026-07-02",
-    "ultima_arte": "2026-07-02",
+    "ultima_regular": "2026-07-03",
+    "ultima_arte": "2026-07-03",
     "ultimo_sazonal": "2026-07-02",
-    "ultimo_video_arr": "2026-07-01"
+    "ultimo_video_arr": "2026-07-03"
   },
   "peg": {
     "historico": {
