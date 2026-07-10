@@ -1,0 +1,47 @@
+name: CRM Clientes — Aniversariantes e Reativação
+
+on:
+  schedule:
+    # 8h BRT (11h UTC), segunda a sábado
+    - cron: '0 11 * * 1-6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  crm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}"                 >> .env
+          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}"           >> .env
+          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}"                 >> .env
+          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}"                 >> .env
+          echo "UAZAPI_TOKEN=${{ secrets.UAZAPI_TOKEN }}"                                         >> .env
+          echo "UAZAPI_INSTANCE=${{ secrets.UAZAPI_INSTANCE }}"                                   >> .env
+          echo "WHATSAPP_GRUPO_CRM_ID=${{ secrets.WHATSAPP_GRUPO_CRM_ID }}"                       >> .env
+          echo "WHATSAPP_GRUPO_ADS_ID=${{ secrets.WHATSAPP_GRUPO_ADS_ID }}"                       >> .env
+
+      - name: Coletar OS de hoje → atualizar clientes_oi
+        run: node tools/coletar-clientes-oi.js
+
+      - name: Enviar relatório CRM (aniversariantes + reativação)
+        run: node tools/aniversariantes-crm.js

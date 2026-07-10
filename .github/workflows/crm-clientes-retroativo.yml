@@ -1,0 +1,71 @@
+name: CRM Clientes — Retroativo (backfill histórico)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dias:
+        description: 'Quantos dias retroativos (máx 90 por execução)'
+        required: false
+        default: '90'
+      data_inicio:
+        description: 'Data início (YYYY-MM-DD) — opcional, override de "dias"'
+        required: false
+        default: ''
+      data_fim:
+        description: 'Data fim (YYYY-MM-DD) — opcional, padrão = ontem'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  retroativo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}"                 >> .env
+          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}"           >> .env
+          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}"                 >> .env
+          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}"                 >> .env
+
+      - name: Calcular intervalo de datas
+        id: datas
+        run: |
+          DIAS="${{ github.event.inputs.dias }}"
+          DATA_INICIO="${{ github.event.inputs.data_inicio }}"
+          DATA_FIM="${{ github.event.inputs.data_fim }}"
+
+          if [ -n "$DATA_INICIO" ]; then
+            # Modo data_inicio → data_fim
+            if [ -z "$DATA_FIM" ]; then
+              DATA_FIM=$(date -d "yesterday" +%Y-%m-%d)
+            fi
+            DIAS=$(( ($(date -d "$DATA_FIM" +%s) - $(date -d "$DATA_INICIO" +%s)) / 86400 + 1 ))
+            echo "DIAS_ARG=--dias=$DIAS" >> $GITHUB_OUTPUT
+            echo "Retroativo: $DIAS dias ($DATA_INICIO → $DATA_FIM)"
+          else
+            # Modo --dias N (retroativo a partir de hoje)
+            echo "DIAS_ARG=--dias=$DIAS" >> $GITHUB_OUTPUT
+            echo "Retroativo: últimos $DIAS dias"
+          fi
+
+      - name: Coletar clientes OI (retroativo)
+        run: node tools/coletar-clientes-oi.js ${{ steps.datas.outputs.DIAS_ARG }}
