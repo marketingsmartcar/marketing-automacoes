@@ -10,16 +10,16 @@
 | Código ERP | Rede | Cidade | Env Var Principal | WS Ativo |
 |-----------|------|--------|-------------------|----------|
 | BR01 CENTRO | BR Pneus | Araraquara (Loja 1) | `OI_TOKEN_BR01_CENTRO` | ✅ Sim |
-| BR03 | BR Pneus | Americana | `OI_TOKEN_BR03_AMERICANA` | ⚠️ Pendente habilitar |
-| BR04 | BR Pneus | São Carlos | `OI_TOKEN_BR04_SAO_CARLOS` | ⚠️ Pendente habilitar |
-| PEGI1 | Peg Pneus | Araraquara | `OI_TOKEN_PEG1_ARARAQUARA` | ⚠️ Pendente habilitar |
+| BR03 | BR Pneus | Americana | `OI_TOKEN_BR03_AMERICANA` | ✅ Sim |
+| BR04 | BR Pneus | São Carlos | `OI_TOKEN_BR04_SAO_CARLOS` | ✅ Sim |
+| PEGI1 | Peg Pneus | Araraquara | `OI_TOKEN_PEG1_ARARAQUARA` | ✅ Sim |
 | ~~BR02 VILA~~ | ~~BR Pneus~~ | ~~Araraquara 2~~ | ~~`OI_TOKEN_BR02_VILA`~~ | **ENCERRADA jul/2026** |
 | ~~BR05~~ | ~~BR Pneus~~ | ~~Maringá~~ | ~~`OI_TOKEN_BR05_MARINGA`~~ | **ENCERRADA jul/2026** |
 | ~~PEGI2~~ | ~~Peg Pneus~~ | ~~Sorocaba~~ | ~~`OI_TOKEN_PEG2_SOROCABA`~~ | **ENCERRADA jun/2026** |
 | ~~BR06~~ | ~~BR Pneus~~ | ~~Jaú~~ | ~~`OI_TOKEN_BR06_JAU`~~ | **ENCERRADA mai/2026** |
 | ~~BR08~~ | ~~BR Pneus~~ | ~~Ibitinga~~ | ~~`OI_TOKEN_BR08_IBITINGA`~~ | **ENCERRADA mai/2026** |
 
-> ⚠️ **Ação necessária para BR03, BR04 e PEG1:** Acessar o OI de cada loja → Configuração → Integração → marcar "Utiliza WebServices da Oficina Inteligente?" → Salvar. Sem isso, a API não responde para essas lojas.
+> ✅ **Todas as 4 lojas ativas têm WebServices habilitado** (confirmado jul/2026).
 
 Cada loja tem também um **Token Alternativo** (`OI_TOKEN_ALT_*`) para uso em integrações secundárias ou fallback.
 
@@ -72,26 +72,76 @@ O script `tools/oficina-inteligente.js` já lida com isso automaticamente.
 
 ---
 
+## BI — Perfil do Cliente (nativo no OI)
+
+O OI já tem um sistema de BI integrado em **Marketing → CRM → B.I. - Perfil do Cliente**. Não precisa de API ou script — é acesso direto pela interface.
+
+### Caminho de acesso
+```
+Menu Marketing → aba CRM → B.I. - Perfil do cliente
+```
+
+### Passo a passo (para qualquer consulta)
+
+1. **Selecionar a Empresa** (loja) no dropdown
+2. Marcar **"Somente com Venda"** (não usar "Total de Clientes")
+3. Clicar **"Carregar Base para o B.I."** — aguardar ~2 min
+4. Escolher o filtro desejado → configurar → clicar **"Incluir Filtro no B.I."**
+5. Clicar **"Gerar Excel"** para exportar os resultados
+
+### Filtro: Aniversariantes do dia
+
+| Campo | Valor |
+|-------|-------|
+| Filtro | `Dia/Mês do Aniversário` |
+| Tipo | `Dia/Mês Específico` |
+| Dia | dia atual (ex: `10`) |
+| Mês | mês atual (ex: `7`) |
+
+Resultado: lista todos os clientes que fazem aniversário hoje, com dados do veículo, cidade, etc.
+
+### Filtro: Última compra há X meses/anos
+
+| Campo | Valor |
+|-------|-------|
+| Filtro | `Data da última venda` |
+| Tipo | `Período` |
+| De | data exata no passado (ex: `10/07/2025` para 1 ano atrás) |
+| Até | mesma data (ex: `10/07/2025`) |
+
+Repetir para cada marco:
+- **1 ano atrás:** hoje − 365 dias
+- **9 meses atrás:** hoje − ~270 dias
+- **6 meses atrás:** hoje − ~180 dias
+- **3 meses atrás:** hoje − ~90 dias
+
+### ⚠️ Regras importantes
+
+1. **Sempre remover os filtros anteriores** antes de adicionar um novo — misturar filtros gera interseção dos resultados
+2. **Ao trocar de cidade:** sair completamente do menu B.I. e entrar novamente — sem fazer isso, os dados exibidos continuam sendo da loja anterior (bug do OI)
+3. Usar sempre **"Somente com Venda"** — o "Total de Clientes" inclui cadastros sem histórico de compra
+
+---
+
 ## Casos de Uso para Marketing
 
 ### 1. Reativação de Clientes (CRM)
-- Buscar clientes sem OS há mais de 6 meses
-- Disparar mensagem WhatsApp via Deskrio com oferta personalizada
-- Skill: `skills/crm-email/programa-indicacao.md`
+- Usar filtro "Data da última venda" no BI → períodos 3, 6, 9 e 12 meses atrás
+- Exportar Excel → disparar campanha WhatsApp/SMS
 
-### 2. Segmentação por Veículo
+### 2. Aniversariantes do Dia
+- Usar filtro "Dia/Mês do Aniversário" no BI com dia e mês atuais
+- Exportar Excel → enviar mensagem personalizada
+
+### 3. Segmentação por Veículo
 - Clientes com veículo cadastrado como SUV → campanha pneus SUV
 - Clientes com veículos pesados → campanha pneus caminhão
 - Integração: OI → filtro por tipo → lista Deskrio
 
-### 3. Pós-OS (avaliação + upsell)
+### 4. Pós-OS (avaliação + upsell)
 - Detectar OS fechada no dia → disparar mensagem de agradecimento
 - Solicitar avaliação no Google
 - Oferecer próximo serviço (ex: revisão em 6 meses)
-
-### 4. Aniversariantes do Mês
-- Puxar clientes com aniversário no mês corrente
-- Enviar mensagem especial com cupom ou oferta
 
 ---
 
