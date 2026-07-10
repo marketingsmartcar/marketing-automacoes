@@ -42,7 +42,6 @@ jobs:
           echo "META_ACCOUNT_BR_AMERICANA=${{ secrets.META_ACCOUNT_BR_AMERICANA }}"               >> .env
           echo "META_ACCOUNT_BR_SAO_CARLOS=${{ secrets.META_ACCOUNT_BR_SAO_CARLOS }}"             >> .env
           echo "META_ACCOUNT_BR_ARARAQUARA=${{ secrets.META_ACCOUNT_BR_ARARAQUARA }}"             >> .env
-          echo "META_ACCOUNT_PEG_SOROCABA=${{ secrets.META_ACCOUNT_PEG_SOROCABA }}"               >> .env
           echo "META_ACCOUNT_PEG_ARARAQUARA=${{ secrets.META_ACCOUNT_PEG_ARARAQUARA }}"           >> .env
           echo "GOOGLE_ADS_DEVELOPER_TOKEN=${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}"             >> .env
           echo "GOOGLE_ADS_CLIENT_ID=${{ secrets.GOOGLE_ADS_CLIENT_ID }}"                         >> .env
@@ -53,7 +52,6 @@ jobs:
           echo "GOOGLE_ACCOUNT_BR_ARARAQUARA=${{ secrets.GOOGLE_ACCOUNT_BR_ARARAQUARA }}"         >> .env
           echo "GOOGLE_ACCOUNT_BR_SAO_CARLOS=${{ secrets.GOOGLE_ACCOUNT_BR_SAO_CARLOS }}"         >> .env
           echo "GOOGLE_ACCOUNT_PEG_ARARAQUARA=${{ secrets.GOOGLE_ACCOUNT_PEG_ARARAQUARA }}"       >> .env
-          echo "GOOGLE_ACCOUNT_PEG_SOROCABA=${{ secrets.GOOGLE_ACCOUNT_PEG_SOROCABA }}"           >> .env
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}"           >> .env

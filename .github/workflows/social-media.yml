@@ -41,13 +41,10 @@ jobs:
           echo "META_ACCESS_TOKEN_PEG=${{ secrets.META_ACCESS_TOKEN_PEG }}"         >> .env
           echo "META_IG_ID_BR=${{ secrets.META_IG_ID_BR }}"                         >> .env
           echo "META_IG_ID_PEG_ARQ=${{ secrets.META_IG_ID_PEG_ARQ }}"               >> .env
-          echo "META_IG_ID_PEG_SOR=${{ secrets.META_IG_ID_PEG_SOR }}"               >> .env
           echo "META_PAGE_ID_BR=${{ secrets.META_PAGE_ID_BR }}"                     >> .env
           echo "META_PAGE_TOKEN_BR=${{ secrets.META_PAGE_TOKEN_BR }}"               >> .env
           echo "META_PAGE_ID_PEG_ARQ=${{ secrets.META_PAGE_ID_PEG_ARQ }}"           >> .env
           echo "META_PAGE_TOKEN_PEG_ARQ=${{ secrets.META_PAGE_TOKEN_PEG_ARQ }}"     >> .env
-          echo "META_PAGE_ID_PEG_SOR=${{ secrets.META_PAGE_ID_PEG_SOR }}"           >> .env
-          echo "META_PAGE_TOKEN_PEG_SOR=${{ secrets.META_PAGE_TOKEN_PEG_SOR }}"     >> .env
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"             >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
           echo "WHATSAPP_GRUPO_AUTOMACAO_ID=${{ secrets.WHATSAPP_GRUPO_AUTOMACAO_ID }}" >> .env
@@ -70,7 +67,7 @@ jobs:
 
       - name: Notificar erro
         if: failure()
-        run: node tools/notificar-automacao.js --nome "Monitor ADS" --status erro
+        run: node tools/notificar-automacao.js --nome "Social Media" --status erro
 
       - name: Marcar conclusão no Supabase
         if: always() && github.event.inputs.job_id != ''

@@ -17,8 +17,8 @@ require('dotenv').config();
 const { monitorarTodas: metaTodas,    CONTAS_META    } = require('./monitor-meta-ads');
 const { monitorarTodas: googleTodas,  CONTAS_GOOGLE  } = require('./monitor-google-ads');
 
-const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = (process.env.NEXUSZ_SUPABASE_URL || '').trim();
+const SUPABASE_KEY = (process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const GRAPH_BASE   = 'https://graph.facebook.com/v21.0';
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -35,15 +35,26 @@ const headers = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function inserir(tabela, rows) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}`, {
-    method:  'POST',
-    headers,
-    body:    JSON.stringify(rows),
-  });
+async function inserir(tabela, rows, tentativa = 1) {
+  const endpoint = `${SUPABASE_URL}/rest/v1/${tabela}`;
+  let res;
+  try {
+    res = await fetch(endpoint, {
+      method:  'POST',
+      headers,
+      body:    JSON.stringify(rows),
+    });
+  } catch (netErr) {
+    if (tentativa < 3) {
+      console.warn(`  ⚠️  Supabase ${tabela}: erro de rede (tentativa ${tentativa}/3) — ${netErr.message}. Aguardando 5s...`);
+      await new Promise(r => setTimeout(r, 5000));
+      return inserir(tabela, rows, tentativa + 1);
+    }
+    throw new Error(`Supabase ${tabela}: erro de rede após 3 tentativas — ${netErr.message}`);
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`Supabase INSERT ${tabela} falhou (${res.status}): ${body}`);
+    throw new Error(`Supabase INSERT ${tabela} falhou (${res.status}): ${body.slice(0, 300)}`);
   }
 }
 

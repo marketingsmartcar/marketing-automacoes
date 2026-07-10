@@ -34,22 +34,16 @@ function aproximarDataAvaliacao(timeText, agora) {
 const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY;
 
+// Lojas ativas jul/2026: BR01 (Araraquara), BR03 (Americana), BR04 (São Carlos), PEG1 (Araraquara)
+// Encerradas: BR02 Araraquara (jul/2026), BR05 Maringá (jul/2026), PEG Sorocaba (jun/2026)
 const LOJAS = [
   {
     key: 'BR_ARQ1', nome: 'BR Pneus Araraquara 1',
     placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA1,
-    // URL direta para o painel de avaliações (mais confiável que place_id para esta loja)
     mapsUrl: 'https://www.google.com/maps/place/BR+PNEUS+ARARAQUARA+LOJA+1/@-21.7984819,-48.1722341,19z/data=!4m16!1m9!4m8!1m0!1m6!1m2!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!2sBR+PNEUS+ARARAQUARA+LOJA+1,+Av.+Genaro+Vonno,+10+-+Vila+Furlan,+Araraquara+-+SP,+14807-008!2m2!1d-48.1710432!2d-21.7984819!3m5!1s0x94b8f3ecc056244d:0xbba9d8939ec7368e!8m2!3d-21.7984819!4d-48.1710432!16s%2Fg%2F11ddzh8ydv?entry=ttu&hl=pt-BR',
-  },
-  {
-    key: 'BR_ARQ2', nome: 'BR Pneus Araraquara 2',
-    placeId: process.env.GOOGLE_PLACE_ID_BR_ARARAQUARA2,
-    mapsUrl: 'https://www.google.com/maps/place/BR+PNEUS+ARARAQUARA+LOJA+2/@-21.785674,-48.1768369,17z/data=!4m16!1m9!4m8!1m0!1m6!1m2!1s0x94b8f3c6c4cfe799:0x49c00d4e480a7da1!2sBR+PNEUS+ARARAQUARA+LOJA+2,+Av.+Padre+Ant%C3%B4nio+Cezarino,+168+-+Santa+Luzia,+Araraquara+-+SP!2m2!1d-48.1768369!2d-21.785674!3m5!1s0x94b8f3c6c4cfe799:0x49c00d4e480a7da1!8m2!3d-21.785674!4d-48.1768369!16s%2Fg%2F11gy13h2hw?entry=ttu&hl=pt-BR',
   },
   { key: 'BR_SAO',  nome: 'BR Pneus São Carlos',   placeId: process.env.GOOGLE_PLACE_ID_BR_SAO_CARLOS  },
   { key: 'BR_AME',  nome: 'BR Pneus Americana',    placeId: process.env.GOOGLE_PLACE_ID_BR_AMERICANA   },
-  { key: 'BR_MAR',  nome: 'BR Pneus Maringá',      placeId: process.env.GOOGLE_PLACE_ID_BR_MARINGA     },
-  { key: 'PEG_SOR', nome: 'Peg Pneus Sorocaba',    placeId: process.env.GOOGLE_PLACE_ID_PEG_SOROCABA   },
   { key: 'PEG_ARQ', nome: 'Peg Pneus Araraquara',  placeId: process.env.GOOGLE_PLACE_ID_PEG_ARARAQUARA },
 ].filter(l => l.placeId || l.mapsUrl);
 
