@@ -1,25 +1,25 @@
 # Oficina Inteligente — Integração ERP
 
 > ERP utilizado por toda a rede BR Pneus & Peg Pneus para gestão de OS, estoque, clientes e financeiro.
-> Última atualização: 2026-04-22
+> Última atualização: 2026-07-10
 
 ---
 
-## Tokens por Loja
+## Tokens por Loja (Lojas Ativas — jul/2026)
 
 | Código ERP | Rede | Cidade | Env Var Principal | WS Ativo |
 |-----------|------|--------|-------------------|----------|
 | BR01 CENTRO | BR Pneus | Araraquara (Loja 1) | `OI_TOKEN_BR01_CENTRO` | ✅ Sim |
-| BR02 VILA | BR Pneus | Araraquara (Loja 2) | `OI_TOKEN_BR02_VILA` | ⚠️ Não |
-| BR03 | BR Pneus | Americana | `OI_TOKEN_BR03_AMERICANA` | ⚠️ Não |
-| BR04 | BR Pneus | São Carlos | `OI_TOKEN_BR04_SAO_CARLOS` | ⚠️ Não |
-| BR05 | BR Pneus | Maringá | `OI_TOKEN_BR05_MARINGA` | ⚠️ Não |
-| PEGI1 | Peg Pneus | Araraquara | `OI_TOKEN_PEG1_ARARAQUARA` | ⚠️ Não |
-| PEGI2 | Peg Pneus | Sorocaba | `OI_TOKEN_PEG2_SOROCABA` | ⚠️ Não |
-| ~~BR06~~ | ~~BR Pneus~~ | ~~Jaú~~ | ~~`OI_TOKEN_BR06_JAU`~~ | **ENCERRADA** |
-| ~~BR08~~ | ~~BR Pneus~~ | ~~Ibitinga~~ | ~~`OI_TOKEN_BR08_IBITINGA`~~ | **ENCERRADA** |
+| BR03 | BR Pneus | Americana | `OI_TOKEN_BR03_AMERICANA` | ⚠️ Pendente habilitar |
+| BR04 | BR Pneus | São Carlos | `OI_TOKEN_BR04_SAO_CARLOS` | ⚠️ Pendente habilitar |
+| PEGI1 | Peg Pneus | Araraquara | `OI_TOKEN_PEG1_ARARAQUARA` | ⚠️ Pendente habilitar |
+| ~~BR02 VILA~~ | ~~BR Pneus~~ | ~~Araraquara 2~~ | ~~`OI_TOKEN_BR02_VILA`~~ | **ENCERRADA jul/2026** |
+| ~~BR05~~ | ~~BR Pneus~~ | ~~Maringá~~ | ~~`OI_TOKEN_BR05_MARINGA`~~ | **ENCERRADA jul/2026** |
+| ~~PEGI2~~ | ~~Peg Pneus~~ | ~~Sorocaba~~ | ~~`OI_TOKEN_PEG2_SOROCABA`~~ | **ENCERRADA jun/2026** |
+| ~~BR06~~ | ~~BR Pneus~~ | ~~Jaú~~ | ~~`OI_TOKEN_BR06_JAU`~~ | **ENCERRADA mai/2026** |
+| ~~BR08~~ | ~~BR Pneus~~ | ~~Ibitinga~~ | ~~`OI_TOKEN_BR08_IBITINGA`~~ | **ENCERRADA mai/2026** |
 
-> ⚠️ **Ação necessária:** Para usar a API das lojas com WebServices inativo, acesse Configuração → Integração → marque "Utiliza WebServices da Oficina Inteligente?" e clique em Salvar.
+> ⚠️ **Ação necessária para BR03, BR04 e PEG1:** Acessar o OI de cada loja → Configuração → Integração → marcar "Utiliza WebServices da Oficina Inteligente?" → Salvar. Sem isso, a API não responde para essas lojas.
 
 Cada loja tem também um **Token Alternativo** (`OI_TOKEN_ALT_*`) para uso em integrações secundárias ou fallback.
 

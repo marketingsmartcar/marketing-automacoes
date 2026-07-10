@@ -63,19 +63,16 @@ pm2 logs leads-hoje                               # ver logs
 | Agendamento | **GitHub Actions** — todo dia às **20h BRT** (Seg–Sáb) |
 | Workflow | `.github/workflows/vendas-diarias.yml` |
 
-**7 Lojas ativas:**
+**4 Lojas ativas (jul/2026):**
 
 | Chave | Label OI | Cidade |
 |-------|----------|--------|
 | BR1 | BR01 CENTRO | Araraquara (Loja 1) |
-| BR2 | BR02 VILA | Araraquara (Loja 2) |
 | BR3 | BR03 AMERICANA | Americana |
 | BR4 | BR04 SAO CARLOS | São Carlos |
-| BR5 | BR05 MARINGA | Maringá |
 | PEG1 | PEG11 ARARAQUARA | Peg Pneus Araraquara |
-| PEG2 | PEG12 SOROCABA | Peg Pneus Sorocaba |
 
-> BR6 (Jaú) e BR7 (Ibitinga) removidas — lojas encerradas.
+> Lojas encerradas e removidas: BR2 (Araraquara Vila, jul/2026), BR5 (Maringá, jul/2026), PEG2 (Sorocaba, jun/2026), BR6 (Jaú, mai/2026), BR7 (Ibitinga, mai/2026).
 
 **Como rodar manualmente:**
 ```bash
@@ -115,7 +112,7 @@ node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
 - Grupo determinado por keywords na descrição + aspect ratio + marca nacional/importada
 - Delete + insert por loja/dia — reexecução é segura
 - Tokens: mesmos `OI_TOKEN_*` do `.env` (BR01 e BR03 usam token ALT)
-- Lojas cobertas: BR01, BR02, BR03, BR04, BR05, PEG1 (Araraquara), SOR1 (Sorocaba)
+- Lojas cobertas: BR01, BR03, BR04, PEG1 (4 lojas ativas — BR02, BR05, SOR1 encerradas)
 
 ---
 
@@ -132,11 +129,11 @@ node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
 **Horários seg–sex:** 8h, 9h, 10h, 11h, 12h, 13h, 14h, 15h, 16h, 17h, 17h30
 **Horários sábado:** 8h, 9h, 10h, 11h, 11h30
 
-**Contas monitoradas:**
-- Meta Ads: 6 contas (BR Pneus: Maringá, Americana, São Carlos, Araraquara + Peg Pneus: Sorocaba, Araraquara)
-- Google Ads: 6 contas (BR Pneus: Americana, Araraquara, Maringá, São Carlos + Peg Pneus: Araraquara, Sorocaba)
+**Contas monitoradas (jul/2026 — 8 contas ativas):**
+- Meta Ads: 4 contas (BR Pneus: Americana, São Carlos, Araraquara + Peg Pneus: Araraquara)
+- Google Ads: 4 contas (BR Pneus: Americana, Araraquara, São Carlos + Peg Pneus: Araraquara)
 
-> Jaú e Ibitinga removidas — lojas encerradas.
+> Removidas: Jaú, Ibitinga (mai/2026), Maringá (jul/2026), Sorocaba (jun/2026).
 
 **⚠️ REGRA CRÍTICA DE RECARGA META:**
 > **BR Pneus Araraquara → Pix nos FUNDOS** (não no Saldo)
@@ -294,9 +291,49 @@ node tools/stories/completar-stories-hoje.js # completa posts faltantes (BR Pneu
 
 ---
 
-## 5b. Stories Arraia — Campanha Junho 2026
+## 5c. Stories Cloud — GitHub Actions (SISTEMA ATUAL a partir de Jul/2026)
 
-**O que faz:** Publica stories da campanha Arraia em sequência para BR Pneus e Peg Pneus. Só roda em Junho 2026 — encerra automaticamente em julho.
+**O que faz:** Substitui os sistemas 5 e 5b. Publica stories diários no IG e FB para BR Pneus sem depender do PC local. Plano mensal pré-gerado por `agendar-mes.js` e salvo no git.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/stories/cloud-scheduler.js` |
+| Workflow | `.github/workflows/stories-diarios.yml` |
+| Horário | Todo dia às **06h BRT** (Seg–Sáb) |
+| Estado | `data/stories-cloud-state.json` (commitado automaticamente pelo workflow) |
+| Plano mensal | `data/stories-schedule.json` (commitado manualmente ao gerar novo mês) |
+
+**Regras de postagem:**
+- **3 vídeos das lojas** por dia (rotativos, cooldown 2 dias por vídeo)
+- **1.png** sempre fixa (todo dia)
+- **Arte rotativa** (2.png, 3.png… em sequência) — todo dia
+- **Vídeo de campanha** (Seg/Qua/Sex) — ex: Férias, promoção do mês
+- **Vídeo Sazonal** (Ter/Qui/Sáb) — se disponível na pasta Sazonais/BR Pneus
+- Peg Pneus: **pausado** (`paused: true` em `cloud-scheduler.js`)
+
+**Fontes de conteúdo (Google Drive):**
+
+| Tipo | Pasta Drive | ID |
+|------|-------------|-----|
+| Lojas BR | `PASTAS_BR` (5 pastas) | ver `drive-config.js` |
+| Artes | `Campanhas/Artes/1080x1920/` | `1zDVSGOj9OOyRTmwH3f2u06CCPJX5pAx9` |
+| Vídeos campanha | `Campanhas/Videos/BR Pneus/` | `1DCT88iiD692PDXVaB966nLvUCfkHRXbn` |
+| Sazonais | `Videos Sazonais/BR Pneus/` | `1MDS-_yrPOXiNOYewyiXjEOjVhncO2619` |
+
+**Como atualizar o mês:**
+```bash
+# 1. Atualizar conteúdo no Drive (Campanhas/Artes e Campanhas/Videos/BR Pneus)
+# 2. Gerar schedule:
+node tools/stories/agendar-mes.js 2026-MM-01
+# 3. Commitar e dar push:
+git add -f data/stories-schedule.json && git commit -m "chore: schedule stories MM/2026" && git push
+```
+
+---
+
+## 5b. Stories Arraia — Campanha Junho 2026 (ENCERRADO)
+
+**O que faz:** Publicou stories da campanha Arraia em sequência para BR Pneus e Peg Pneus. Encerrou em 30/06/2026 — substituído pelo sistema 5c (cloud).
 
 | Campo | Valor |
 |-------|-------|
@@ -570,17 +607,14 @@ node tools/scraper-oi-colaboradores.js --mes 5 --ano 2026
 node tools/scraper-oi-colaboradores.js --data-inicio 01/05/2026 --data-fim 31/05/2026
 ```
 
-**Lojas coletadas (7 lojas — mesmas das vendas diárias):**
+**Lojas coletadas (4 lojas ativas — jul/2026):**
 
 | Chave | Label OI |
 |-------|----------|
 | BR1 | BR01 CENTRO |
-| BR2 | BR02 VILA |
 | BR3 | BR03 AMERICANA |
 | BR4 | BR04 SAO CARLOS |
-| BR5 | BR05 MARINGA |
 | PEG1 | PEG11 ARARAQUARA |
-| PEG2 | PEG12 SOROCABA |
 
 **Lógica de cargo (detectado pelo nome entre parênteses):**
 - `(MECANICO *)` → cargo = `MECANICO`
@@ -698,9 +732,9 @@ node tools/coletar-social-video.js
 | Workflow | `.github/workflows/ads-monitor.yml` |
 | Env vars necessárias | `META_ACCESS_TOKEN_BR`, `META_ACCESS_TOKEN_PEG`, `META_ACCOUNT_BR_*` (4), `META_ACCOUNT_PEG_*` (2), `GOOGLE_ADS_*` (5 vars), `GOOGLE_ACCOUNT_BR_*` (4), `GOOGLE_ACCOUNT_PEG_*` (2), `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
 
-**Contas monitoradas (12 total):**
-- Meta Ads: BR Pneus Maringá, Americana, São Carlos, Araraquara + Peg Pneus Sorocaba, Araraquara
-- Google Ads: BR Pneus Americana, Araraquara, Maringá, São Carlos + Peg Pneus Araraquara, Sorocaba
+**Contas monitoradas (8 total — jul/2026):**
+- Meta Ads: BR Pneus Americana, São Carlos, Araraquara + Peg Pneus Araraquara
+- Google Ads: BR Pneus Americana, Araraquara, São Carlos + Peg Pneus Araraquara
 
 **⚠️ REGRA CRÍTICA META:** BR Pneus Araraquara → Pix nos **FUNDOS**. Todas as outras 5 contas Meta → Pix no **SALDO**.
 
@@ -883,12 +917,12 @@ node tools/setup-artes-storage.js
 |-------|-------|
 | Script | `tools/coletar-vendas-pneus.js` |
 | Tabela Supabase | `vendas_pneus` (NexusZ) |
-| Agendamento | **GitHub Actions** — toda hora das **07h–19h BRT** (seg–sáb) + coleta hoje+ontem |
+| Agendamento | **GitHub Actions** — **a cada 10 min** das **07h–19h BRT** (seg–sáb) + coleta hoje+ontem |
 | Workflow | `.github/workflows/vendas-auto-update.yml` |
 | Retroativo | `.github/workflows/collect-vendas-retroativo-range.yml` |
 | Manual (botão NexusZ) | Edge Function `trigger-vendas-sync` → `collect-vendas-manual.yml` |
 
-**Lojas coletadas:** BR01, BR02, BR03, BR04, BR05, PEG1, SOR1
+**Lojas coletadas:** BR01, BR03, BR04, PEG1 (4 lojas ativas — BR02, BR05, SOR1 encerradas)
 
 **Como rodar retroativo:**
 ```bash
@@ -912,11 +946,12 @@ Ambos agora rodam via GitHub Actions sem precisar do PC ligado.
 | Estado/fila | `data/stories-cloud-state.json` (commitado no repo) |
 | Vídeos | Google Drive — Service Account `br-pneus-sheets@claude-code-493711.iam.gserviceaccount.com` |
 
-**O que posta por dia:**
-- **Todo dia:** 3 vídeos aleatórios das lojas (BR + Peg) — cooldown 2 dias
-- **Todo dia (junho):** Arte Arraia fixa (1.png) + arte rotativa (2→3→...) — IG + FB
-- **Seg/Qua/Sex (junho):** Vídeo Arraia em sequência — IG + FB
-- **Ter/Qui/Sáb (junho):** Vídeo Sazonal BR em sequência — IG + FB
+**O que posta por dia (campanha Julho/Férias 2026):**
+- **Todo dia:** 3 vídeos aleatórios das lojas (BR Pneus) — cooldown 2 dias por vídeo
+- **Todo dia:** Arte fixa 1.png + arte rotativa (2.png, 3.png…) da campanha Férias — IG + FB
+- **Seg/Qua/Sex:** Vídeo de campanha Férias em sequência — IG + FB
+- **Ter/Qui/Sáb:** Vídeo Sazonal BR em sequência — IG + FB
+- **Peg Pneus:** pausado (`paused: true` em `cloud-scheduler.js`)
 
 **Pastas no Google Drive** (ID raiz: `19Xou0JBmu_U6yjR1C7Lz8nO-mp5mkLeI`):
 
@@ -953,7 +988,7 @@ node tools/renovar-token-fb-br.js TOKEN  # renovar só BR (precisa token do app 
 |-------|-------|
 | Script | `tools/coletar-estoque-pneus.js` |
 | Tabela Supabase | `estoque_pneus` (NexusZ) |
-| Agendamento | **GitHub Actions** — toda hora das **07h–19h BRT** (seg–sáb) |
+| Agendamento | **GitHub Actions** — **a cada 10 min** das **07h–19h BRT** (seg–sáb) |
 | Workflow | `.github/workflows/estoque-pneus.yml` |
 | Manual (botão NexusZ) | Edge Function `trigger-estoque-sync` |
 | PC necessário | ❌ Não (HTTP puro — sem Puppeteer) |
@@ -1043,4 +1078,52 @@ node tools/renovar-token-fb-br.js TOKEN  # renovar só BR (precisa token do app 
 
 ---
 
-*Última atualização: 12/06/2026 — v3: upload direto para Google Drive em todos os campos de mídia via botão "Drive"; v19 Edge Function com YouTube Studio completo (título, tags SEO, categoria, visibilidade, thumbnail, playlist), Meta completo (capa vídeo, alt text, privacidade FB), CAROUSEL, stories link CTA.*
+---
+
+## 21. CRM WhatsApp — NexusZ (UazAPI free)
+
+**O que faz:** Sistema de CRM para atendimento via WhatsApp integrado ao NexusZ. Recebe mensagens de clientes via webhook UazAPI, salva toda a conversa no Supabase e permite que a equipe responda diretamente pelo NexusZ. Toda mídia (áudio, imagem, vídeo, documento) — tanto recebida quanto enviada — é salva no Google Drive compartilhado do NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Instância UazAPI | `peg-araraquara` em `https://free.uazapi.com` |
+| Token instância | `f8937fb2-3b88-4e26-83b2-3d2586eeef1c` (salvo no `.env` do NexusZ) |
+| Webhook | Edge Function `crm-webhook-uazapi` (v10, `verify_jwt: false`) |
+| Envio de mensagens | Edge Function `crm-send-message` (v2) |
+| Upload de mídia | Edge Function `crm-upload-drive` (v1) |
+| Tabelas Supabase | `crm_contatos`, `crm_conversas`, `crm_mensagens`, `crm_integracoes`, `crm_webhook_debug` |
+| UI NexusZ | Menu CRM → `/crm` |
+| PC necessário | ❌ Não |
+
+**Fluxo de mensagem recebida:**
+1. UazAPI envia webhook → `crm-webhook-uazapi`
+2. Contato é criado/atualizado em `crm_contatos` (foto de perfil salva)
+3. Conversa é criada/aberta em `crm_conversas`
+4. Se for mídia: baixa do UazAPI → faz upload para Drive via `crm-upload-drive` → salva URL em `midia_url`
+5. Mensagem salva em `crm_mensagens`
+6. NexusZ atualiza em tempo real via realtime + polling 4s (mensagens) e 5s (conversas)
+
+**Fluxo de envio:**
+1. Usuário digita no NexusZ e clica enviar
+2. Mensagem salva otimisticamente no Supabase
+3. `crm-send-message` chama API UazAPI server-side (sem CORS)
+4. Para mídia: upload para Drive via `crm-upload-drive` primeiro, depois envia URL para UazAPI
+
+**Mídia no Google Drive:**
+- Estrutura: `CRM WhatsApp / Recebidos|Enviados / YYYY-MM / [nome do contato]`
+- Drive compartilhado: raiz `0ADYbsWZxLsqzUk9PVA`
+- Auth: `FIREBASE_SERVICE_ACCOUNT` (mesmo da edge function `upload-to-drive`)
+- Renderização: imagens via `uc?id=`, áudio/vídeo via `<iframe .../preview>` (player Google)
+
+**Regra importante:** Só cria contato/conversa se o chatid **não** for grupo (`@g.us`) e tiver número de telefone válido.
+
+**Formato webhook UazAPI free (confirmado):**
+- `body.EventType` = `"messages"` | `"messages_update"` | `"connection"`
+- `body.message.type` = `"text"` | `"media"`
+- `body.message.mediaType` = `"ptt"` | `"image"` | `"video"` | `"document"` | `""`
+- `body.message.content` = string (texto) ou objeto com `.URL`, `.mimetype`, `.mediaKey`
+- Download de mídia: `POST /message/downloadMedia/{instance}?token={token}` com `{ messageid, chatid }`
+
+---
+
+*Última atualização: 10/07/2026 — lojas encerradas removidas (BR02, BR05, PEG_SOR); frequências de coleta atualizadas (vendas pneus e estoque agora a cada 10 min); campanha Stories Julho/Férias 2026; CRM WhatsApp NexusZ adicionado (seção 21).*
