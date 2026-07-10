@@ -1126,4 +1126,52 @@ node tools/renovar-token-fb-br.js TOKEN  # renovar só BR (precisa token do app 
 
 ---
 
-*Última atualização: 10/07/2026 — lojas encerradas removidas (BR02, BR05, PEG_SOR); frequências de coleta atualizadas (vendas pneus e estoque agora a cada 10 min); campanha Stories Julho/Férias 2026; CRM WhatsApp NexusZ adicionado (seção 21).*
+---
+
+## 22. CRM Aniversariantes e Reativação (GitHub Actions)
+
+**O que faz:** Coleta dados de clientes das OS do OI, popula uma base dedupada (`clientes_oi`) no Supabase e envia diariamente via WhatsApp (UazAPI cloud) os aniversariantes do dia + clientes que completam 3, 6, 9 ou 12 meses sem comprar.
+
+### Workflow diário
+| Campo | Valor |
+|-------|-------|
+| Arquivo | `.github/workflows/crm-clientes-diario.yml` |
+| Horário | **8h BRT** (11h UTC), segunda a sábado |
+| Passo 1 | `node tools/coletar-clientes-oi.js` — coleta OS de hoje → upsert em `clientes_oi` |
+| Passo 2 | `node tools/aniversariantes-crm.js` — consulta BD → envia relatório WA |
+| Timeout | 10 min |
+
+### Workflow retroativo (disparo manual)
+| Campo | Valor |
+|-------|-------|
+| Arquivo | `.github/workflows/crm-clientes-retroativo.yml` |
+| Quando rodar | Actions → "CRM Clientes — Retroativo (backfill histórico)" → Run workflow |
+| Inputs | `dias` (padrão 90, máx recomendado 90 por execução), `data_inicio`, `data_fim` |
+| Timeout | 30 min |
+| Uso | Backfill do histórico anual: rodar 4× para cobrir 12 meses (3 meses por vez) |
+
+### Scripts
+| Script | Função |
+|--------|--------|
+| `tools/coletar-clientes-oi.js` | Lê `OrdemDeServicoJSON` de 4 lojas por data, extrai nome/celular/CPF/nascimento, upsert com MAX(ultima_compra) e MIN(primeira_compra) |
+| `tools/aniversariantes-crm.js` | Consulta `clientes_oi` e envia WA via UazAPI free (cloud, sem PC) |
+
+### Tabela Supabase
+```sql
+-- Executar via Supabase Dashboard → SQL Editor (NexusZ project)
+-- Arquivo: supabase/migrations/create_clientes_oi.sql
+```
+Campos: `chave` (PK, ex: `cpf:12345678900` ou `tel:16991234567`), `nome`, `celular`, `cpf_cnpj`, `data_nascimento`, `ultima_compra`, `primeira_compra`, `ultima_loja`.
+
+### Secrets necessários no GitHub
+| Secret | Descrição |
+|--------|-----------|
+| `UAZAPI_TOKEN` | Token da instância UazAPI |
+| `UAZAPI_INSTANCE` | Nome da instância (valor: `peg-araraquara`) |
+| `WHATSAPP_GRUPO_CRM_ID` | ID do grupo WA que recebe o relatório CRM (formato `1203...@g.us`) |
+
+Janela de reativação: ±7 dias em torno de cada marco (90/180/270/365 dias).
+
+---
+
+*Última atualização: 10/07/2026 — CRM Aniversariantes e Reativação adicionado (seção 22); lojas encerradas removidas (BR02, BR05, PEG_SOR); frequências de coleta atualizadas (vendas pneus e estoque agora a cada 10 min); campanha Stories Julho/Férias 2026; CRM WhatsApp NexusZ adicionado (seção 21).*
