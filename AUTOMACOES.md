@@ -1172,6 +1172,46 @@ Campos: `chave` (PK, ex: `cpf:12345678900` ou `tel:16991234567`), `nome`, `celul
 
 Janela de reativação: ±7 dias em torno de cada marco (90/180/270/365 dias).
 
+## 23. BI Aniversariantes OI — Puppeteer (Local)
+
+**O que faz:** Acessa o BI CRM do Oficina Inteligente via Puppeteer (headless Chrome), aplica o filtro "Dia/Mês do Aniversário" para o dia atual em cada loja ativa, baixa o Excel gerado pelo sistema e envia o relatório pelo bot do WhatsApp para o grupo de automações.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/bi-aniversariantes-oi.js` |
+| Execução | Manual ou via Task Scheduler local |
+| Dependências | `puppeteer`, `xlsx` (SheetJS), bot WA em `localhost:3099` |
+| Lojas | BR01 (469), BR03 (2202), BR04 (1524), PEG1 (3098) |
+
+**Variáveis de ambiente (`.env`):**
+- `OI_EMAIL` / `OI_SENHA` — credenciais do OI
+- `WHATSAPP_GRUPO_AUTOMACAO_ID` — grupo de destino
+
+**Como rodar:**
+```bash
+node tools/bi-aniversariantes-oi.js            # aniversariantes de hoje
+node tools/bi-aniversariantes-oi.js --dia=13 --mes=7   # data específica
+```
+
+**Fluxo por loja:**
+1. Login no OI → navega para `wfCRMBI.aspx`
+2. Seleciona loja em `#ctl00_cph_ddlUsuarioEmpresa` (AutoPostBack → `waitForNavigation`)
+3. Marca "Somente com Venda" → clica "Carregar Base" (aguarda navegação até 3 min)
+4. Seleciona filtro `Dia/Mês do Aniversário` → aguarda AJAX (2,5s) → preenche dia/mês via `page.type()`
+5. Clica "Incluir Filtro" → aguarda navegação; fallback: poll até o contador `TotalFiltrado` mudar (até 60s)
+6. Reconfigura CDP download → clica "Gerar Excel" via `page.evaluate` (evita "not clickable")
+7. Poll 60s por `CRMExcel.xls` na pasta `output/debug-bi/` (sem `.crdownload` = download completo)
+8. Renomeia → parseia com SheetJS (suporta BIFF8 nativo) → extrai nome + telefone SMS → monta relatório
+
+**Observações técnicas:**
+- NÃO roda no GitHub Actions (precisa do PC local + bot WA em localhost:3099)
+- `protocolTimeout: 120000` — evita timeouts em páginas ASP.NET lentas
+- Troca de loja usa `waitForNavigation` (AutoPostBack = reload completo, não AJAX)
+- Após "Incluir Filtro" para lojas grandes (BR01=15k, BR04=16k): OI usa UpdatePanel AJAX lento; poll do contador garante espera correta
+- SheetJS (xlsx) parseia BIFF8 — ExcelJS NÃO suporta `.xls` binário
+- Coluna "Telefone SMS" (índice 10) contém o celular preferencial no relatório OI
+- Debug: screenshots em `output/debug-bi/`, arquivos Excel em `output/debug-bi/aniv-{LOJA}-{ts}.xls`
+
 ---
 
-*Última atualização: 10/07/2026 — CRM Aniversariantes e Reativação adicionado (seção 22); lojas encerradas removidas (BR02, BR05, PEG_SOR); frequências de coleta atualizadas (vendas pneus e estoque agora a cada 10 min); campanha Stories Julho/Férias 2026; CRM WhatsApp NexusZ adicionado (seção 21).*
+*Última atualização: 13/07/2026 — Seção 23 validada: 130 aniversariantes extraídos em teste (BR01=37, BR03=33, BR04=51, PEG1=9); relatório enviado ao WA com sucesso. SheetJS substituiu ExcelJS; waitForNavigation na troca de loja.*
