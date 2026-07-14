@@ -163,6 +163,14 @@ client.on('ready', async () => {
   console.log('  !ajuda             → Lista de comandos');
   console.log('\n  Aguardando mensagens...\n');
 
+  if (GRUPO_ALERTAS_ID) {
+    try {
+      await client.sendMessage(GRUPO_ALERTAS_ID, '🤖 *Bot conectado!*\nWhatsApp Bot BR Pneus online e pronto para uso.');
+    } catch (e) {
+      console.error('Erro ao notificar grupo de automações:', e.message);
+    }
+  }
+
   // Loops de agendamento (avulso + recorrente)
   const { iniciarLoop } = require('./agendador-mensagens');
   const recorrente = require('./agendador-recorrente');
@@ -2462,6 +2470,23 @@ const apiServer = http.createServer((req, res) => {
         res.writeHead(500, CORS_HEADERS);
         res.end(JSON.stringify({ ok: false, erro: e.message }));
       }
+    });
+    return;
+  }
+
+  // Listar grupos
+  if (req.method === 'GET' && req.url === '/grupos') {
+    (async () => {
+      const chats = await client.getChats();
+      const grupos = chats
+        .filter(c => c.isGroup)
+        .map(c => ({ id: c.id._serialized, nome: c.name }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+      res.writeHead(200, CORS_HEADERS);
+      res.end(JSON.stringify(grupos, null, 2));
+    })().catch(e => {
+      res.writeHead(500, CORS_HEADERS);
+      res.end(JSON.stringify({ ok: false, erro: e.message }));
     });
     return;
   }

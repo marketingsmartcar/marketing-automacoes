@@ -1215,3 +1215,59 @@ node tools/bi-aniversariantes-oi.js --dia=13 --mes=7   # data específica
 ---
 
 *Última atualização: 13/07/2026 — Seção 23 validada: 130 aniversariantes extraídos em teste (BR01=37, BR03=33, BR04=51, PEG1=9); relatório enviado ao WA com sucesso. SheetJS substituiu ExcelJS; waitForNavigation na troca de loja.*
+
+---
+
+## 24. BI Reativação OI — Puppeteer (Local, Diário 7h)
+
+**O que faz:** Para cada loja ativa, acessa o BI CRM do OI via Puppeteer, gera e envia 5 Excel no grupo ☎️ Comercial do WhatsApp:
+- 🎂 Aniversariantes do dia (filtro 20 — Dia/Mês)
+- 🔄 Clientes com última venda há 3 meses (data exata)
+- 🔄 Clientes com última venda há 6 meses
+- 🔄 Clientes com última venda há 9 meses
+- 🔄 Clientes com última venda há 1 ano
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/bi-reativacao-oi.js` |
+| Bat | `tools/rodar-bi-reativacao.bat` |
+| Log | `logs/bi-reativacao.log` |
+| Agendamento | Diário às **7h** — Task Scheduler: `BI-Reativacao-OI` |
+| Grupo destino | ☎️ Comercial — `5516996337606-1627903605@g.us` |
+| Dependências | `puppeteer`, `xlsx` (SheetJS), `exceljs`, bot WA em `localhost:3099` |
+| Lojas | BR01 (469), BR03 (2202), BR04 (1524), PEG1 (3098) |
+
+**Variáveis de ambiente (`.env`):**
+- `OI_EMAIL` / `OI_SENHA` — credenciais do OI
+
+**Como rodar:**
+```bash
+node tools/bi-reativacao-oi.js               # todas as lojas
+node tools/bi-reativacao-oi.js --loja=BR01   # só BR01
+node tools/bi-reativacao-oi.js --loja=BR01 --dia=14 --mes=7  # data específica
+```
+
+**Lógica de datas (De = Até = data exata):**
+- Hoje 14/07/2026 → 3 meses = 14/04/2026 | 6 meses = 14/01/2026 | 9 meses = 14/10/2025 | 1 ano = 14/07/2025
+- OI aceita De=Até (mesma data) — retorna quem comprou exatamente naquele dia
+
+**Proteções anti-falha:**
+- **Deduplicação diária:** arquivo `output/debug-bi/estado-YYYY-MM-DD.json` garante que nada é reenviado se o script rodar duas vezes no mesmo dia
+- **Reenvia sem baixar:** se o xlsx já existir em disco (ex: bot caiu), pula o Puppeteer e reenvia direto
+- **Retry de envio:** 3 tentativas automáticas com 25s de espera se o bot estiver offline
+- **Guard de filtro:** se TotalFiltrado não mudar após Incluir Filtro, pula o relatório (não envia a base inteira)
+
+**Filtros OI BI:**
+- Aniversariantes: `ddlCRMFiltro='20'` → `ddlDiaMes='1'` → `txtDia` / `txtMes`
+- Última venda: `ddlCRMFiltro='7'` → `ddlData='1'` (Período) → `txtDe` / `txtAte` (preenchidos via click+type)
+
+**Excel gerado:**
+- Lido com SheetJS (`cellDates: true`) → formatado com ExcelJS
+- Header fundo `#1A1A1A` branco bold | Zebra branco/cinza | Código: inteiro (sem 1.9E+07) | Datas: `dd/mm/yyyy`
+
+**Caption no WhatsApp:**
+- `🎂 BR1 - Aniversariantes 14/07` ou `🔄 BR1 - 1 Ano` — sem texto adicional
+
+**Tempo estimado:** ~2,5 min/loja → ~10 min para as 4 lojas
+
+*Última atualização: 14/07/2026 — Validado em produção: 20 Excel enviados ao ☎️ Comercial (BR01+BR03+BR04+PEG1). Task Scheduler `BI-Reativacao-OI` criado para 7h diário.*
