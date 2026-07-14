@@ -275,6 +275,8 @@ npm run avaliacoes
 **Pasta de vídeos:** `C:\Users\Nick\Desktop\Projetos\Videos\Conteudo das lojas\`
 
 > **08/05/2026 — Jaú (BR6) e Ibitinga (BR7) removidas da fila:** 16 entradas removidas de `data/stories-state.json` (`br_60s` + `historico`). Lojas encerradas — vídeos dessas unidades não devem ser readicionados.
+>
+> **14/07/2026 — Araraquara Loja 2 (BR02) e Maringá (BR05) removidas da fila:** 5 entradas removidas da fila `br_60s` + 15 do `historico`. Lojas encerradas em jul/2026 — vídeos dessas unidades não devem ser readicionados.
 
 **Scripts de emergência:**
 ```bash
