@@ -17,12 +17,9 @@ const BASE_URL = 'https://www.oiapi.com.br/ws/v2/IntegracaoOficinaInteligente.as
 
 const LOJAS = {
   BR01_CENTRO:     { nome: 'BR Pneus Araraquara Centro', placa: 'BRP1102', rede: 'BR Pneus' },
-  BR02_VILA:       { nome: 'BR Pneus Araraquara Vila',   placa: 'BRP2202', rede: 'BR Pneus' },
   BR03_AMERICANA:  { nome: 'BR Pneus Americana',         placa: 'BRP3302', rede: 'BR Pneus' },
   BR04_SAO_CARLOS: { nome: 'BR Pneus São Carlos',        placa: 'BRP4402', rede: 'BR Pneus' },
-  BR05_MARINGA:    { nome: 'BR Pneus Maringá',           placa: 'BRP5502', rede: 'BR Pneus' },
   PEG1_ARARAQUARA: { nome: 'Peg Pneus Araraquara',       placa: 'PEG1102', rede: 'Peg Pneus' },
-  PEG2_SOROCABA:   { nome: 'Peg Pneus Sorocaba',         placa: 'PEG2202', rede: 'Peg Pneus' },
 };
 
 const TOKEN_ALT = new Set(['BR01_CENTRO', 'BR03_AMERICANA']);

@@ -1,719 +1,594 @@
 'use strict';
 /**
- * Gera 2 bots Kommo no formato exato para importação:
- * 1. output/kommo-preco-comentario.json — responde no comentário (3 rotações) → "confira a DM"
- * 2. output/kommo-preco-dm.json        — envia DM com botões cidade → WhatsApp
- *
+ * Gera 2 bots Kommo para importação (baseados nos templates exportados).
  * Uso: node tools/gerar-bot-kommo-preco.js
  */
 
-const fs   = require('fs');
-const path = require('path');
-const { randomUUID } = require('crypto');
+const fs     = require('fs');
+const path   = require('path');
+const crypto = require('crypto');
+const outDir = path.join(__dirname, '../output');
+fs.mkdirSync(outDir, { recursive: true });
 
-// Encoding mojibake: Kommo armazena/exporta em latin1, então precisamos
-// converter UTF-8 → latin1 ao gerar arquivos de importação.
-const moji = str => Buffer.from(str, 'utf8').toString('latin1');
+// ─── IDs Kommo ────────────────────────────────────────────────────────────────
+const USER_BRUNA   = 15342631;   // Bruna (comercial)
 
-// ─── PALAVRAS DE PREÇO (133 gatilhos) ───────────────────────────────────────
-const PALAVRAS = [
+// Funil Redes Sociais (Instagram, Facebook, TikTok)
+const STATUS_RS_CONTATO_BOT = 106784471; // Contanto Inicial Bot
+const STATUS_RS_HUMANO      = 106784475; // Transferido p/ Humano
+const STATUS_RS_RESPONDIDO  = 106784479; // Respondido pelo Bot
+
+// ─── PALAVRAS DE PREÇO (138 gatilhos) ────────────────────────────────────────
+const PALAVRAS_RAW = [
   'quanto','Quanto','QUANTO',
   'valor','Valor','VALOR',
-  'preço','Preço','PREÇO',
   'preco','Preco','PRECO',
   'custa','Custa','CUSTA',
   'custam','Custam',
   'fica','Fica',
   'sai','Sai',
-  'orçamento','Orçamento','ORÇAMENTO',
   'orcamento','Orcamento',
-  'orça','Orça','orca','Orca',
-  'cotação','Cotação','cotacao','Cotacao',
+  'orca','Orca',
+  'cotacao','Cotacao',
   'tabela','Tabela','TABELA',
-  'tabela de preço','Tabela de preço','tabela de preco',
-  'lista de preco','lista de preço','Lista de preços',
+  'tabela de preco','Tabela de preco',
+  'lista de preco',
   'qual o valor','Qual o valor','QUAL O VALOR',
-  'qual o preco','qual o preço','Qual o preço',
+  'qual o preco','Qual o preco',
   'quanto custa','Quanto custa','QUANTO CUSTA',
   'quanto custam','Quanto custam',
   'quanto fica','Quanto fica',
   'quanto sai','Quanto sai',
-  'quanto é','Quanto é',
   'quanto e','Quanto e',
-  'quanto ta','quanto tá','Quanto tá',
-  'qual o preco desse','qual o preço desse',
-  'qual o preco disso','qual o preço disso',
-  'manda o preço','manda o preco','Manda o preço',
-  'manda preco','manda preço',
-  'passa o preço','passa o preco','Passa o preço',
-  'me passa o preço','Me passa o preço',
-  'me manda o preço','Me manda o preço',
-  'me fala o preço','Me fala o preço',
-  'me fala o valor','Me fala o valor',
-  'preço do pneu','Preço do pneu','preco do pneu',
-  'preço dos pneus','Preço dos pneus',
+  'quanto ta',
+  'qual o preco desse',
+  'qual o preco disso',
+  'manda o preco','Manda o preco',
+  'manda preco',
+  'passa o preco','Passa o preco',
+  'me passa o preco',
+  'me manda o preco',
+  'me fala o preco',
+  'me fala o valor',
+  'preco do pneu','Preco do pneu',
+  'preco dos pneus',
   'valor do pneu','Valor do pneu',
-  'valor dos pneus','Valor dos pneus',
-  'qual o preco do jogo','qual o preço do jogo',
+  'valor dos pneus',
+  'qual o preco do jogo',
   'quanto o jogo','Quanto o jogo',
   'quanto o par','Quanto o par',
   'quanto o kit','Quanto o kit',
   'precinho','Precinho',
-  'me diz o preço','Me diz o preço',
+  'me diz o preco',
   'qual valor','Qual valor',
-  'quero orçamento','Quero orçamento',
-  'pede orçamento','faz orçamento',
-  'qual o preco minimo','qual o preço mínimo',
-  'preço atacado','Preço atacado','preco atacado',
+  'quero orcamento','Quero orcamento',
+  'pede orcamento','faz orcamento',
+  'qual o preco minimo',
+  'preco atacado','Preco atacado',
   'valor atacado','Valor atacado',
-  'preço para revenda','Preço para revenda',
-  'preço no atacado','Preço no atacado',
-  'preço varejo','Preço varejo',
+  'preco para revenda',
+  'preco no atacado',
+  'preco varejo',
   'custo','Custo','CUSTO',
-  'tem preço','Tem preço','tem preco',
+  'tem preco','Tem preco',
   'tem tabela','Tem tabela',
+  // Com acentos
+  'quanto é','Quanto é',
+  'quanto tá',
+  'orçamento','Orçamento','ORÇAMENTO',
+  'orça','Orça',
+  'cotação','Cotação',
+  'tabela de preço','Tabela de preço',
+  'lista de preço','Lista de preços',
+  'qual o preço','Qual o preço',
+  'manda o preço','Manda o preço',
+  'manda preço',
+  'passa o preço','Passa o preço',
+  'me passa o preço',
+  'me manda o preço',
+  'me fala o preço',
+  'preço do pneu','Preço do pneu',
+  'preço dos pneus','Preço dos pneus',
+  'qual o preço do jogo',
+  'preço atacado','Preço atacado',
+  'preço para revenda',
+  'preço no atacado',
+  'preço varejo',
+  'tem preço','Tem preço',
+  'me diz o preço',
+  'quero orçamento','Quero orçamento',
+  'qual o preço mínimo',
+  'preço','Preço','PREÇO',
 ];
+const PALAVRAS = [...new Set(PALAVRAS_RAW)];
 
-// ─── 3 RESPOSTAS NO COMENTÁRIO ───────────────────────────────────────────────
+// ─── AÇÕES CRM (handlers nativos Kommo: handler sempre "action") ──────────────
+const PIPELINE_RS = 13839039;  // Funil Redes Sociais
+
+const ACTION_CHANGE_RESP = {
+  params:  { name: 'change_responsible_user', params: { value: USER_BRUNA, type: 1, element_type: 1, contact_type: 'main' } },
+  handler: 'action',
+};
+
+// Etapas do funil Redes Sociais
+const ACTION_RS_CONTATO_BOT = {
+  params: { name: 'change_status', params: { value: STATUS_RS_CONTATO_BOT, pipeline_id: PIPELINE_RS } },
+  handler: 'action',
+};
+const ACTION_RS_RESPONDIDO = {
+  params: { name: 'change_status', params: { value: STATUS_RS_RESPONDIDO, pipeline_id: PIPELINE_RS } },
+  handler: 'action',
+};
+const ACTION_RS_HUMANO = {
+  params: { name: 'change_status', params: { value: STATUS_RS_HUMANO, pipeline_id: PIPELINE_RS } },
+  handler: 'action',
+};
+
+// Versão para positions (params aninhado)
+const POS_ACTION_RESP = {
+  links: [],
+  params: { params: { name: 'change_responsible_user', params: { value: USER_BRUNA, type: 'contact_main' } }, handler: 'action' },
+};
+const POS_ACTION_RS_CONTATO_BOT = {
+  links: [],
+  params: { params: { name: 'change_status', params: { value: STATUS_RS_CONTATO_BOT, pipeline_id: PIPELINE_RS } }, handler: 'action' },
+};
+const POS_ACTION_RS_RESPONDIDO = {
+  links: [],
+  params: { params: { name: 'change_status', params: { value: STATUS_RS_RESPONDIDO, pipeline_id: PIPELINE_RS } }, handler: 'action' },
+};
+const POS_ACTION_RS_HUMANO = {
+  links: [],
+  params: { params: { name: 'change_status', params: { value: STATUS_RS_HUMANO, pipeline_id: PIPELINE_RS } }, handler: 'action' },
+};
+
+// ─── TEXTOS DAS MENSAGENS (plain UTF-8 — sem mojibake) ───────────────────────
+const WA_MSG_PADRAO = encodeURIComponent('Oi, vim do instagram para saber mais sobre valores');
+
 const RESPOSTAS = [
   'Oi {{contact.first_name}} ! 😊 Te mandei uma DM com os detalhes, confere lá! 💚',
   'Olá {{contact.first_name}} ! 🔥 Mandei as informações no seu direct, é só conferir! ✅',
   '{{contact.first_name}} , já te mandei uma mensagem privada com tudo! 📩 Confere a DM! 😊',
 ];
 
-// ─── HELPER: condition step ───────────────────────────────────────────────────
-function makeConditions(palavras, gotoStep, withTip) {
-  return palavras.map((palavra, i) => {
-    const p = {
-      logic: 'and',
-      result: [{ params: { step: gotoStep, type: 'question' }, handler: 'goto' }],
-      conditions: [{
-        term1:      '{{comment}}',
-        term2:      moji(palavra),
-        operation:  'contains',
-        value_type: 'custom_value',
-      }],
-    };
-    if (withTip && i === 0) {
-      p.tipText        = moji('Defina uma palavra-chave — você pode alterá-la a qualquer momento!');
-      p.tipTitle       = moji('Sua palavra-chave aciona o bot');
-      p.tipImageSrc    = '/frontend/images/interface/wizard_influencers/tips/send_promo_code/condition_tip_pt.png';
-      p.tipFeatureName = '';
-    }
-    return { params: p, handler: 'conditions' };
-  });
+const DM_TEXTS = {
+  '23': 'Olá, {{contact.first_name}} ! Seja bem-vindo à Peg Pneus Atacarejo! 😊 \n\nPara te atender melhor, qual cidade fica mais perto de você?',
+  '17': 'Oi, {{contact.first_name}} ! 😊 Vi que você se interessou pela Peg Pneus!\n\nAinda posso te ajudar a encontrar o pneu ideal. \n\nQual cidade fica mais perto de você?',
+  '20': { text: 'Perfeito! Entre em contato no WhatsApp para um atendimento mais rápido e personalizado!', btn: '📞 (16) 3322-5634', url: `wa.me/551633225634?text=${WA_MSG_PADRAO}` },
+  '21': { text: 'Show! Entre pelo WhatsApp e receba um atendimento rápido e exclusivo!',                  btn: '📞 (15) 3191-1031', url: `wa.me/551531911031?text=${WA_MSG_PADRAO}` },
+  '22': 'Entendi! 😊 Para te atender melhor, qual das nossas unidades fica mais acessível para você?',
+};
+
+// ─── UTILIDADES ───────────────────────────────────────────────────────────────
+function readJsonNoBOM(filePath) {
+  const buf = fs.readFileSync(filePath);
+  const str = buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF
+    ? buf.slice(3).toString('utf8')
+    : buf.toString('utf8');
+  return JSON.parse(str);
 }
 
-// ─── HELPER: condition actions (positions) ────────────────────────────────────
-function makeCondActions(palavras, gotoBlock, startId, withTip) {
-  let id = startId;
-  return palavras.map((palavra, i) => {
-    const pp = {
+function buildConditions(palavras, gotoStep) {
+  const conds = palavras.map((palavra, i) => {
+    const params = {
       logic:  'and',
-      result: [],
-      conditions: [{
-        term1:      '{{comment}}',
-        term2:      moji(palavra),
-        operation:  'contains',
-        value_type: 'custom_value',
-      }],
+      result: [{ params: { step: gotoStep, type: 'question' }, handler: 'goto' }],
     };
-    if (withTip && i === 0) {
-      pp.tipText        = moji('Defina uma palavra-chave — você pode alterá-la a qualquer momento!');
-      pp.tipTitle       = moji('Sua palavra-chave aciona o bot');
-      pp.tipImageSrc    = '/frontend/images/interface/wizard_influencers/tips/send_promo_code/condition_tip_pt.png';
-      pp.tipFeatureName = '';
+    if (i === 0) {
+      params.tipText        = 'Defina uma palavra-chave — você pode alterá-la a qualquer momento!';
+      params.tipTitle       = 'Sua palavra-chave aciona o bot';
+      params.conditions     = [{ term1: '{{comment}}', term2: palavra, operation: 'contains', value_type: 'custom_value' }];
+      params.tipImageSrc    = '/frontend/images/interface/wizard_influencers/tips/send_promo_code/condition_tip_pt.png';
+      params.tipFeatureName = '';
+    } else {
+      params.conditions = [{ term1: '{{comment}}', term2: palavra, operation: 'contains', value_type: 'custom_value' }];
     }
-    return { id: id++, sort: i, links: [{ block: gotoBlock }], params: { params: pp, handler: 'conditions' } };
+    return { params, handler: 'conditions' };
   });
+  conds.push({ params: { step: gotoStep, type: 'question' }, handler: 'goto' });
+  return conds;
 }
 
+function buildCondActions(palavras, destBlock) {
+  return palavras.map((palavra, i) => ({
+    id:    200 + i,
+    sort:  i,
+    links: [{ block: destBlock }],
+    params: {
+      params: {
+        logic:  'and',
+        result: [],
+        ...(i === 0 ? {
+          tipText:        'Defina uma palavra-chave — você pode alterá-la a qualquer momento!',
+          tipTitle:       'Sua palavra-chave aciona o bot',
+          conditions:     [{ term1: '{{comment}}', term2: palavra, operation: 'contains', value_type: 'custom_value' }],
+          tipImageSrc:    '/frontend/images/interface/wizard_influencers/tips/send_promo_code/condition_tip_pt.png',
+          tipFeatureName: '',
+        } : {
+          conditions: [{ term1: '{{comment}}', term2: palavra, operation: 'contains', value_type: 'custom_value' }],
+        }),
+      },
+      handler: 'conditions',
+    },
+  }));
+}
 
 // ════════════════════════════════════════════════════════════════════════════════
-// BOT 1 — COMENTÁRIO (3 rotações → "confira a DM")
+// BOT 1 — COMENTÁRIO
 // ════════════════════════════════════════════════════════════════════════════════
 
-const C_UUID_COND = randomUUID();
-const C_UUID_DIST = randomUUID();
-const C_UUID_MSG1 = randomUUID();
-const C_UUID_MSG2 = randomUUID();
-const C_UUID_MSG3 = randomUUID();
-const C_UUID_SEED = randomUUID();
+const templateComent = readJsonNoBOM(path.join(outDir, 'exported-comentarios-preco.json'));
+const modelComent    = JSON.parse(templateComent.model.text);
+const posComent      = JSON.parse(templateComent.model.positions);
 
-const C_BLK_COND = 3;
-const C_BLK_DIST = 15;
-const C_BLK_MSG1 = 31;
-const C_BLK_MSG2 = 32;
-const C_BLK_MSG3 = 33;
+// Goto step do template (normalmente 6)
+const gotoComent = modelComent['0'].question.find(q => q.handler === 'goto').params.step;
 
-const comentModel = {
-  '0': {
-    question:   makeConditions(PALAVRAS, 6, true),
-    block_uuid: C_UUID_COND,
-  },
-  '6': {
-    question: [{
-      params: {
-        type:     'round_robin',
-        seed_id:  C_UUID_SEED,
-        variants: [
-          { step: 12, type: 'question' },
-          { step: 13, type: 'question' },
-          { step: 14, type: 'question' },
-        ],
-      },
-      handler: 'distribution',
-    }],
-    block_uuid: C_UUID_DIST,
-  },
-  '12': {
-    question: [{
-      params: {
-        text:                     moji(RESPOSTAS[0]),
-        recipient:                { type: 'all_contacts', way_of_communication: 'over_all' },
-        is_in_starting_block:     true,
-        send_to_all_chat_sources: true,
-      },
-      handler: 'send_comment',
-    }],
-    block_uuid: C_UUID_MSG1,
-  },
-  '13': {
-    question: [{
-      params: {
-        text:                     moji(RESPOSTAS[1]),
-        recipient:                { type: 'all_contacts', way_of_communication: 'over_all' },
-        is_in_starting_block:     true,
-        send_to_all_chat_sources: true,
-      },
-      handler: 'send_comment',
-    }],
-    block_uuid: C_UUID_MSG2,
-  },
-  '14': {
-    question: [{
-      params: {
-        text:                     moji(RESPOSTAS[2]),
-        recipient:                { type: 'all_contacts', way_of_communication: 'over_all' },
-        is_in_starting_block:     true,
-        send_to_all_chat_sources: true,
-      },
-      handler: 'send_comment',
-    }],
-    block_uuid: C_UUID_MSG3,
-  },
-  conversation: false,
+// Substitui conditions com 138 palavras
+modelComent['0'].question = buildConditions(PALAVRAS, gotoComent);
+
+// Adiciona ação CRM no step de distribuição (step 6): mover para "Respondido pelo Bot" (Redes Sociais)
+const distStepKey = String(gotoComent);
+const distStep    = modelComent[distStepKey];
+if (distStep && !distStep.question.find(q => q.handler === 'action')) {
+  distStep.question.push(ACTION_RS_RESPONDIDO);
+}
+
+// Atualiza textos das 3 respostas de comentário (steps 12, 13, 14)
+modelComent['12'].question[0].params.text = RESPOSTAS[0];
+modelComent['13'].question[0].params.text = RESPOSTAS[1];
+modelComent['14'].question[0].params.text = RESPOSTAS[2];
+
+// Positions — bloco conditions (step 0)
+const condBlockComent = posComent.find(b => b.step === 0);
+if (condBlockComent) {
+  const destBlock = condBlockComent.actions[0]?.links?.[0]?.block ?? 15;
+  condBlockComent.actions = buildCondActions(PALAVRAS, destBlock);
+  condBlockComent.height  = Math.max(400, PALAVRAS.length * 62 + 20);
+  condBlockComent.name    = 'Verificar palavra-chave';
+}
+
+// Positions — bloco distribuição (step 6): ação CRM → "Respondido pelo Bot"
+const distBlockPos = posComent.find(b => b.step === gotoComent);
+if (distBlockPos) {
+  distBlockPos.name = 'Respostas de comentários';
+  if (!distBlockPos.actions.find(a => a.params?.handler === 'action')) {
+    const nextId   = Math.max(...distBlockPos.actions.map(a => a.id),   0) + 1;
+    const nextSort = Math.max(...distBlockPos.actions.map(a => a.sort), 0) + 1;
+    distBlockPos.actions.push({ id: nextId, sort: nextSort, ...POS_ACTION_RS_RESPONDIDO });
+  }
+}
+
+// Positions — textos das respostas (steps 12, 13, 14)
+for (const [step, text] of [[12, RESPOSTAS[0]], [13, RESPOSTAS[1]], [14, RESPOSTAS[2]]]) {
+  const blk = posComent.find(b => b.step === step);
+  if (blk) {
+    blk.name = 'Comentar';
+    const act = blk.actions.find(a => a.params?.handler === 'send_comment');
+    if (act) act.params.params.text = text;
+  }
+}
+
+templateComent.model = {
+  text:      JSON.stringify(modelComent),
+  name:      'PRECO — Resposta Comentário',
+  positions: JSON.stringify(posComent),
+  type:      templateComent.model.type,
 };
-
-let cId = 1000;
-const cCondActions = makeCondActions(PALAVRAS, C_BLK_DIST, cId, true);
-cId += PALAVRAS.length;
-
-const condHeight = Math.max(200, PALAVRAS.length * 62 + 20);
-
-const comentPositions = [
-  {
-    x: -3, y: 65, z: 65,
-    id: 0,
-    goto: { block: C_BLK_COND },
-    step: -1,
-    type: 'start',
-    width: 170, height: 38,
-    actions: [{ id: -3, sort: 0, links: [], params: { params: [], handler: '_start' } }],
-    deletable: true,
-  },
-  {
-    x: -350, y: 0, z: 10,
-    id: -1,
-    code: 'trigger',
-    step: -1,
-    type: 'static',
-    width: 260, height: 0,
-    actions: [],
-    deletable: true,
-  },
-  {
-    x: 215, y: 65, z: 64,
-    id: C_BLK_COND,
-    goto: { block: C_BLK_DIST },
-    name: moji('Verificar palavra-chave'),
-    step: 0,
-    type: 'question',
-    width: 400, height: condHeight,
-    actions: cCondActions,
-    deletable: true,
-    block_uuid: C_UUID_COND,
-  },
-  {
-    x: 708, y: 65, z: 22,
-    id: C_BLK_DIST,
-    name: moji('Respostas de comentários'),
-    step: 6,
-    type: 'question',
-    width: 400, height: 187,
-    actions: [
-      { id: cId++, sort: 0, links: [{ block: C_BLK_MSG1 }], params: { params: { type: 'round_robin', variants: [] }, handler: 'distribution' } },
-      { id: cId++, sort: 1, links: [{ block: C_BLK_MSG2 }], params: { params: { type: 'round_robin', variants: [] }, handler: 'distribution' } },
-      { id: cId++, sort: 2, links: [{ block: C_BLK_MSG3 }], params: { params: { type: 'round_robin', variants: [] }, handler: 'distribution' } },
-    ],
-    seed_id:    C_UUID_SEED,
-    deletable:  true,
-    block_uuid: C_UUID_DIST,
-  },
-  {
-    x: 1273, y: 65, z: 69,
-    id: C_BLK_MSG1,
-    goto: null,
-    name: moji('Comentar'),
-    step: 12,
-    type: 'question',
-    width: 400, height: 124,
-    actions: [{
-      id: cId++, sort: 0, links: [],
-      params: { params: { text: moji(RESPOSTAS[0]), recipient: { type: 'all_contacts', way_of_communication: 'over_all' }, is_in_starting_block: true, send_to_all_chat_sources: true }, handler: 'send_comment' },
-    }],
-    deletable: true,
-    block_uuid: C_UUID_MSG1,
-  },
-  {
-    x: 1273, y: 272, z: 74,
-    id: C_BLK_MSG2,
-    goto: null,
-    name: moji('Comentar'),
-    step: 13,
-    type: 'question',
-    width: 400, height: 124,
-    actions: [{
-      id: cId++, sort: 0, links: [],
-      params: { params: { text: moji(RESPOSTAS[1]), recipient: { type: 'all_contacts', way_of_communication: 'over_all' }, is_in_starting_block: true, send_to_all_chat_sources: true }, handler: 'send_comment' },
-    }],
-    deletable: true,
-    block_uuid: C_UUID_MSG2,
-  },
-  {
-    x: 1273, y: 494, z: 77,
-    id: C_BLK_MSG3,
-    goto: null,
-    name: moji('Comentar'),
-    step: 14,
-    type: 'question',
-    width: 400, height: 124,
-    actions: [{
-      id: cId++, sort: 0, links: [],
-      params: { params: { text: moji(RESPOSTAS[2]), recipient: { type: 'all_contacts', way_of_communication: 'over_all' }, is_in_starting_block: true, send_to_all_chat_sources: true }, handler: 'send_comment' },
-    }],
-    deletable: true,
-    block_uuid: C_UUID_MSG3,
-  },
-];
-
-const comentBot = {
-  type_functionality: 0,
-  model:     { text: JSON.stringify(comentModel) },
-  name:      moji('PREÇO — Resposta Comentário'),
-  positions: JSON.stringify(comentPositions),
-  type:      2,
-};
-
-
-// ════════════════════════════════════════════════════════════════════════════════
-// BOT 2 — DM (cidade → WhatsApp)
-// ════════════════════════════════════════════════════════════════════════════════
-
-const D_UUID_COND  = randomUUID();
-const D_UUID_CITY  = randomUUID();
-const D_UUID_TIMER = randomUUID();
-const D_UUID_RETRY = randomUUID();
-const D_UUID_AQA   = randomUUID();
-const D_UUID_SOR   = randomUUID();
-const D_UUID_ELSE  = randomUUID();
-
-// Block IDs for positions
-const D_BLK_COND  = 3;
-const D_BLK_CITY  = 6;
-const D_BLK_AQA   = 37;
-const D_BLK_TIMER = 39;
-const D_BLK_RETRY = 40;
-const D_BLK_SOR   = 52;
-const D_BLK_ELSE  = 53;
-const D_BLK_FIN1  = 61;
-const D_BLK_FIN2  = 69;
-const D_BLK_FIN3  = 70;
-const D_BLK_FIN4  = 72;
-const D_BLK_FIN5  = 73;
-const D_BLK_FIN6  = 75;
-
-const cityButtons = [
-  { text: 'Araraquara', type: 'inline' },
-  { text: 'Sorocaba',   type: 'inline' },
-];
-
-const cityAnswer = [{
-  params: [
-    { value: 'Araraquara', params: [{ params: { step: 20, type: 'question' }, handler: 'goto' }], synonyms: ['araraquara', 'aqa'] },
-    { value: 'Sorocaba',   params: [{ params: { step: 21, type: 'question' }, handler: 'goto' }], synonyms: ['sorocaba', 'sor'] },
-    { type: 'else',        params: [{ params: { step: 22, type: 'question' }, handler: 'goto' }] },
-  ],
-  handler: 'buttons',
-}];
-
-const dmModel = {
-  '0': {
-    question:   makeConditions(PALAVRAS, 23, true),
-    block_uuid: D_UUID_COND,
-  },
-  '23': {
-    answer: cityAnswer,
-    question: [{
-      params: {
-        tag:  '',
-        text: moji('Olá, {{contact.first_name}} ! Seja bem-vindo à Peg Pneus Atacarejo! 😊 \n\nPara te atender melhor, qual cidade fica mais perto de você?'),
-        type: 'external',
-        buttons: cityButtons,
-        on_error: { params: { step: 17, type: 'question' }, handler: 'goto' },
-        recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-        is_in_starting_block:     true,
-        send_to_all_chat_sources: true,
-      },
-      handler: 'send_message',
-    }],
-    no_answer:  { params: { step: 16, type: 'question' }, handler: 'goto' },
-    block_uuid: D_UUID_CITY,
-  },
-  '16': {
-    question: [{
-      params: {
-        logic: 'or',
-        conditions: [{
-          event:  { delay: 900, action: 'ended', source: 'timer' },
-          action: { step: 17, type: 'question' },
-        }],
-      },
-      handler: 'waits',
-    }],
-    block_uuid: D_UUID_TIMER,
-  },
-  '17': {
-    answer: cityAnswer,
-    question: [{
-      params: {
-        tag:  '',
-        text: moji('Oi, {{contact.first_name}} ! 😊 Vi que você se interessou pela Peg Pneus!\n\nAinda posso te ajudar a encontrar o pneu ideal. \n\nQual cidade fica mais perto de você?'),
-        type: 'external',
-        buttons: cityButtons,
-        on_error: { params: { step: 31, type: 'finish' }, handler: 'goto' },
-        recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-        is_in_starting_block:     false,
-        send_to_all_chat_sources: true,
-      },
-      handler: 'send_message',
-    }],
-    block_uuid: D_UUID_RETRY,
-  },
-  '20': {
-    question: [
-      {
-        params: {
-          tag:  '',
-          text: moji('Perfeito! Entre em contato no WhatsApp para um atendimento mais rápido e personalizado!'),
-          type: 'external',
-          buttons: [{ url: 'wa.me/551633225634', text: moji('📞 (16) 3322-5634'), type: 'url' }],
-          on_error: { params: { step: 30, type: 'finish' }, handler: 'goto' },
-          recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-          is_in_starting_block:     false,
-          send_to_all_chat_sources: true,
-        },
-        handler: 'send_message',
-      },
-      { params: { step: 26, type: 'finish' }, handler: 'goto' },
-    ],
-    block_uuid: D_UUID_AQA,
-  },
-  '21': {
-    question: [
-      {
-        params: {
-          tag:  '',
-          text: moji('Show! Entre pelo WhatsApp e receba um atendimento rápido e exclusivo!'),
-          type: 'external',
-          buttons: [{ url: 'wa.me/551531911031', text: moji('📞 (15) 3191-1031'), type: 'url' }],
-          on_error: { params: { step: 27, type: 'finish' }, handler: 'goto' },
-          recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-          is_in_starting_block:     false,
-          send_to_all_chat_sources: true,
-        },
-        handler: 'send_message',
-      },
-      { params: { step: 25, type: 'finish' }, handler: 'goto' },
-    ],
-    block_uuid: D_UUID_SOR,
-  },
-  '22': {
-    answer: [{
-      params: [
-        { value: 'Araraquara', params: [{ params: { step: 20, type: 'question' }, handler: 'goto' }], synonyms: ['araraquara', 'aqa'] },
-        { value: 'Sorocaba',   params: [{ params: { step: 21, type: 'question' }, handler: 'goto' }], synonyms: ['sorocaba', 'sor'] },
-        { type: 'else',        params: [{ params: { step: 0,  type: 'question' }, handler: 'goto' }] },
-      ],
-      handler: 'buttons',
-    }],
-    question: [{
-      params: {
-        tag:  '',
-        text: moji('Entendi! 😊 Para te atender melhor, qual das nossas unidades fica mais acessível para você?'),
-        type: 'external',
-        buttons: cityButtons,
-        on_error: { params: { step: 29, type: 'finish' }, handler: 'goto' },
-        recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-        is_in_starting_block:     false,
-        send_to_all_chat_sources: true,
-      },
-      handler: 'send_message',
-    }],
-    block_uuid: D_UUID_ELSE,
-  },
-  conversation: false,
-};
-
-let dId = 200;
-const dCondActions = makeCondActions(PALAVRAS, D_BLK_CITY, dId, true);
-dId += PALAVRAS.length;
-
-const dmPositions = [
-  {
-    x: -3, y: 65, z: 65,
-    id: 0,
-    goto: { block: D_BLK_COND },
-    step: -1,
-    type: 'start',
-    width: 170, height: 38,
-    actions: [{ id: -3, sort: 0, links: [], params: { params: [], handler: '_start' } }],
-    deletable: true,
-  },
-  {
-    x: -350, y: 0, z: 10,
-    id: -1,
-    code: 'trigger',
-    step: -1,
-    type: 'static',
-    width: 260, height: 0,
-    actions: [],
-    deletable: true,
-  },
-  {
-    x: 215, y: 65, z: 64,
-    id: D_BLK_COND,
-    goto: { block: D_BLK_CITY },
-    name: moji('Verificar palavra-chave'),
-    step: 0,
-    type: 'question',
-    width: 400, height: condHeight,
-    actions: dCondActions,
-    deletable: true,
-    block_uuid: D_UUID_COND,
-  },
-  {
-    x: 708, y: 0, z: 71,
-    id: D_BLK_CITY,
-    goto: { block: D_BLK_ELSE },
-    name: moji('Mensagem'),
-    step: 23,
-    type: 'question',
-    width: 400, height: 343,
-    actions: [{
-      id: dId++, sort: 0,
-      links: [
-        { data: { regex: '/Araraquara/iu' }, block: D_BLK_AQA },
-        { data: { regex: '/Sorocaba/iu' },   block: D_BLK_SOR },
-      ],
-      params: {
-        params: {
-          tag:  '',
-          text: moji('Olá, {{contact.first_name}} ! Seja bem-vindo à Peg Pneus Atacarejo! 😊 \n\nPara te atender melhor, qual cidade fica mais perto de você?'),
-          type: 'external',
-          buttons: cityButtons,
-          recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-          is_in_starting_block:     true,
-          send_to_all_chat_sources: true,
-        },
-        handler: 'send_message',
-      },
-      synonyms: [['araraquara', 'aqa'], ['sorocaba', 'sor']],
-    }],
-    on_error:   { block: D_BLK_RETRY },
-    deletable:  true,
-    no_answer:  { block: D_BLK_TIMER },
-    block_uuid: D_UUID_CITY,
-  },
-  {
-    x: 1293, y: -231, z: 95,
-    id: D_BLK_AQA,
-    goto: { block: D_BLK_FIN5 },
-    name: moji('Enviar mensagem'),
-    step: 20,
-    type: 'question',
-    width: 400, height: 219,
-    actions: [{
-      id: dId++, sort: 0,
-      links: [],
-      params: {
-        params: {
-          tag:  '',
-          text: moji('Perfeito! Entre em contato no WhatsApp para um atendimento mais rápido e personalizado!'),
-          type: 'external',
-          buttons: [{ url: 'wa.me/551633225634', text: moji('📞 (16) 3322-5634'), type: 'url' }],
-          recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-          is_in_starting_block:     false,
-          send_to_all_chat_sources: true,
-        },
-        handler: 'send_message',
-      },
-      synonyms: [[]],
-    }],
-    on_error:   { block: D_BLK_FIN2 },
-    deletable:  true,
-    block_uuid: D_UUID_AQA,
-  },
-  {
-    x: 1293, y: 952, z: 67,
-    id: D_BLK_TIMER,
-    name: moji('Pausar'),
-    step: 16,
-    type: 'question',
-    width: 400, height: 0,
-    actions: [{
-      id: dId++, sort: 0,
-      links: [{ block: D_BLK_RETRY }],
-      params: { params: { event: { delay: 900, action: 'ended', source: 'timer' } }, handler: 'wait' },
-    }],
-    deletable:  true,
-    block_uuid: D_UUID_TIMER,
-  },
-  {
-    x: 1293, y: 1127, z: 37,
-    id: D_BLK_RETRY,
-    goto: { block: D_BLK_CITY },
-    name: moji('Enviar mensagem'),
-    step: 17,
-    type: 'question',
-    width: 400, height: 0,
-    actions: [{
-      id: dId++, sort: 0,
-      links: [
-        { data: { regex: '/Araraquara/iu' }, block: D_BLK_AQA },
-        { data: { regex: '/Sorocaba/iu' },   block: D_BLK_SOR },
-      ],
-      params: {
-        params: {
-          tag:  '',
-          text: moji('Oi, {{contact.first_name}} ! 😊 Vi que você se interessou pela Peg Pneus!\n\nAinda posso te ajudar a encontrar o pneu ideal. \n\nQual cidade fica mais perto de você?'),
-          type: 'external',
-          buttons: cityButtons,
-          recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-          is_in_starting_block:     false,
-          send_to_all_chat_sources: true,
-        },
-        handler: 'send_message',
-      },
-      synonyms: [['araraquara', 'aqa'], ['sorocaba', 'sor']],
-    }],
-    on_error:   { block: D_BLK_FIN6 },
-    deletable:  true,
-    block_uuid: D_UUID_RETRY,
-  },
-  {
-    x: 1293, y: 103, z: 28,
-    id: D_BLK_SOR,
-    goto: { block: D_BLK_FIN1 },
-    name: moji('Enviar mensagem'),
-    step: 21,
-    type: 'question',
-    width: 400, height: 199,
-    actions: [{
-      id: dId++, sort: 0,
-      links: [],
-      params: {
-        params: {
-          tag:  '',
-          text: moji('Show! Entre pelo WhatsApp e receba um atendimento rápido e exclusivo!'),
-          type: 'external',
-          buttons: [{ url: 'wa.me/551531911031', text: moji('📞 (15) 3191-1031'), type: 'url' }],
-          recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-          is_in_starting_block:     false,
-          send_to_all_chat_sources: true,
-        },
-        handler: 'send_message',
-      },
-      synonyms: [[], []],
-    }],
-    on_error:   { block: D_BLK_FIN3 },
-    deletable:  true,
-    block_uuid: D_UUID_SOR,
-  },
-  {
-    x: 1293, y: 493, z: 38,
-    id: D_BLK_ELSE,
-    goto: { block: D_BLK_CITY },
-    name: moji('Enviar mensagem'),
-    step: 22,
-    type: 'question',
-    width: 400, height: 303,
-    actions: [{
-      id: dId++, sort: 0,
-      links: [
-        { data: { regex: '/Araraquara/iu' }, block: D_BLK_AQA },
-        { data: { regex: '/Sorocaba/iu' },   block: D_BLK_SOR },
-      ],
-      params: {
-        params: {
-          tag:  '',
-          text: moji('Entendi! 😊 Para te atender melhor, qual das nossas unidades fica mais acessível para você?'),
-          type: 'external',
-          buttons: cityButtons,
-          recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
-          is_in_starting_block:     false,
-          send_to_all_chat_sources: true,
-        },
-        handler: 'send_message',
-      },
-      synonyms: [['araraquara', 'aqa'], ['sorocaba', 'sor']],
-    }],
-    on_error:   { block: D_BLK_FIN4 },
-    deletable:  true,
-    no_answer:  null,
-    block_uuid: D_UUID_ELSE,
-  },
-  // Finish blocks
-  { x: 1812, y: 168,  z: 98, id: D_BLK_FIN1, step: 25, type: 'finish', width: 374, height: 62, actions: [{ id: dId++, sort: 0, links: [], params: { params: [], handler: '_stop' } }], deletable: true },
-  { x: 1812, y: 1200, z: 61, id: D_BLK_FIN2, step: 30, type: 'finish', width: 374, height: 0,  actions: [{ id: dId++, sort: 0, links: [], params: { params: [], handler: '_stop' } }], deletable: true },
-  { x: 1812, y: 302,  z: 36, id: D_BLK_FIN3, step: 27, type: 'finish', width: 374, height: 62, actions: [{ id: dId++, sort: 0, links: [], params: { params: [], handler: '_stop' } }], deletable: true },
-  { x: 1812, y: 1275, z: 56, id: D_BLK_FIN4, step: 29, type: 'finish', width: 374, height: 0,  actions: [{ id: dId++, sort: 0, links: [], params: { params: [], handler: '_stop' } }], deletable: true },
-  { x: 1812, y: -166, z: 30, id: D_BLK_FIN5, step: 26, type: 'finish', width: 374, height: 62, actions: [{ id: dId++, sort: 0, links: [], params: { params: [], handler: '_stop' } }], deletable: true },
-  { x: 1812, y: 940,  z: 64, id: D_BLK_FIN6, step: 31, type: 'finish', width: 374, height: 0,  actions: [{ id: dId++, sort: 0, links: [], params: { params: [], handler: '_stop' } }], deletable: true },
-];
-
-const dmBot = {
-  type_functionality: 0,
-  model:     { text: JSON.stringify(dmModel) },
-  name:      moji('PREÇO — DM Cidade + WhatsApp'),
-  positions: JSON.stringify(dmPositions),
-  type:      2,
-};
-
-
-// ─── OUTPUT ──────────────────────────────────────────────────────────────────
-const outDir = path.join(__dirname, '../output');
-fs.mkdirSync(outDir, { recursive: true });
 
 const outComent = path.join(outDir, 'kommo-preco-comentario.json');
-const outDm     = path.join(outDir, 'kommo-preco-dm.json');
+fs.writeFileSync(outComent, '﻿' + JSON.stringify(templateComent, null, 2), 'utf8');
 
-fs.writeFileSync(outComent, JSON.stringify(comentBot, null, 2), 'latin1');
-fs.writeFileSync(outDm,     JSON.stringify(dmBot,     null, 2), 'latin1');
+// ════════════════════════════════════════════════════════════════════════════════
+// BOT 2 — DM  (apenas blocos 68 + 6; restante criado manualmente no Kommo)
+// ════════════════════════════════════════════════════════════════════════════════
 
+const templateDM = readJsonNoBOM(path.join(outDir, 'exported-dm-comentarios.json'));
+
+// ── Model: step 0 (conditions) + step 24 (ação: mover para etapa do funil)
+const modelDM = {
+  '0': {
+    question:   buildConditions(PALAVRAS, 24),
+    block_uuid: '6c561ba2-31dc-4323-b678-1ba27483cb9c',
+  },
+  '24': {
+    block_uuid: crypto.randomUUID(),
+    question: [
+      ACTION_RS_CONTATO_BOT,
+    ],
+  },
+  conversation: false,
+};
+
+// ── Positions: start, trigger, conditions (68) → bloco de ação (7)
+const posDM = [
+  {
+    x: -511, y: -166, z: 165, id: 0, goto: { block: 68 },
+    step: -1, type: 'start', width: 170, height: 38,
+    actions: [{ id: -3, sort: 0, links: [], params: { params: [], handler: '_start' } }],
+    deletable: true,
+  },
+  {
+    x: -584, y: -48, z: 164, id: -1, code: 'trigger',
+    step: -1, type: 'static', width: 260, height: 0,
+    actions: [], deletable: true,
+  },
+  {
+    x: -238, y: -314, z: 166, id: 68, goto: { block: 7 },
+    name: 'Verificar palavra-chave', step: 0, type: 'question',
+    width: 400, height: Math.max(400, PALAVRAS.length * 62 + 20),
+    actions: buildCondActions(PALAVRAS, 7),
+    deletable: true, block_uuid: '6c561ba2-31dc-4323-b678-1ba27483cb9c',
+  },
+  {
+    x: 333, y: -314, z: 199, id: 7, goto: null,
+    name: 'Mover para etapa', step: 24, type: 'question',
+    width: 400, height: 100,
+    actions: [
+      { id: 316, sort: 0, links: [], ...POS_ACTION_RS_CONTATO_BOT },
+    ],
+    deletable: true,
+  },
+];
+
+templateDM.model = {
+  text:      JSON.stringify(modelDM),
+  name:      'PRECO — DM Cidade + WhatsApp',
+  positions: JSON.stringify(posDM),
+  type:      templateDM.model.type,
+};
+
+const outDM = path.join(outDir, 'kommo-preco-dm.json');
+fs.writeFileSync(outDM, '﻿' + JSON.stringify(templateDM, null, 2), 'utf8');
+
+// ════════════════════════════════════════════════════════════════════════════════
+// BOT UNIFICADO — desativado (voltar aos 2 bots separados)
+// ════════════════════════════════════════════════════════════════════════════════
+if (false) {
+
+const tplC = readJsonNoBOM(path.join(outDir, 'exported-comentarios-preco.json'));
+const tplD = readJsonNoBOM(path.join(outDir, 'exported-dm-comentarios.json'));
+
+const mC = JSON.parse(tplC.model.text);
+const pC = JSON.parse(tplC.model.positions);
+const mD = JSON.parse(tplD.model.text);
+const pD = JSON.parse(tplD.model.positions);
+
+// Usa template de comentário como base; injeta steps do DM
+const modelU = JSON.parse(JSON.stringify(mC));
+
+// Copia steps 17, 20, 21, 22, 23 do modelo DM
+for (const key of ['17','20','21','22','23']) {
+  if (mD[key]) modelU[key] = JSON.parse(JSON.stringify(mD[key]));
+}
+modelU.conversation = mD.conversation ?? false;
+
+// ── step 0: conditions → step 6 (mesmo do comentário)
+const gotoU = modelU['0'].question.find(q => q.handler === 'goto').params.step;
+modelU['0'].question = buildConditions(PALAVRAS, gotoU);
+
+// ── step 6 (distribuição): mantém ACTION_RS_RESPONDIDO (comentário respondido)
+const distU = modelU[String(gotoU)];
+if (distU && !distU.question.find(q => q.handler === 'action')) {
+  distU.question.push(ACTION_RS_RESPONDIDO);
+}
+
+// ── steps 12/13/14: responde comentário + goto step 23 para iniciar DM
+for (const [key, text] of [['12', RESPOSTAS[0]], ['13', RESPOSTAS[1]], ['14', RESPOSTAS[2]]]) {
+  const s = modelU[key];
+  if (!s) continue;
+  const sendCmt = s.question.find(q => q.handler === 'send_comment');
+  if (sendCmt) sendCmt.params.text = text;
+  // Remove goto anterior (se houver) e adiciona goto para step 23
+  s.question = s.question.filter(q => q.handler !== 'goto');
+  s.question.push({ handler: 'goto', params: { step: 23, type: 'question' } });
+}
+
+// ── Corrige textos DM (mojibake cleanup)
+for (const [step, fix] of Object.entries(DM_TEXTS)) {
+  const stepData = modelU[step];
+  if (!stepData) continue;
+  const msgQ = stepData.question?.find(q => q.handler === 'send_message');
+  if (msgQ) {
+    msgQ.params.text = typeof fix === 'string' ? fix : fix.text;
+    if (fix.btn && msgQ.params.buttons?.length > 0) msgQ.params.buttons[0].text = fix.btn;
+    if (fix.url && msgQ.params.buttons?.length > 0) msgQ.params.buttons[0].url = fix.url;
+  }
+}
+
+// ── step 23: remove set_pipeline/set_responsible herdados, injeta ACTION_RS_CONTATO_BOT
+const s23u = modelU['23'];
+if (s23u) {
+  s23u.question = s23u.question.filter(q => q.handler !== 'set_pipeline' && q.handler !== 'set_responsible');
+  if (!s23u.question.find(q => q.handler === 'action')) s23u.question.push(ACTION_RS_CONTATO_BOT);
+  putActionsFirst(s23u);
+  setOnError(s23u, ON_ERR_FALLBACK);
+}
+
+// ── step 17: retry sem Bruna; on_error → step 31
+const s17u = modelU['17'];
+if (s17u) {
+  s17u.question = s17u.question.filter(q => q.handler !== 'action');
+  setOnError(s17u, ON_ERR_FALLBACK);
+}
+
+// ── steps 20/21: botão WA + ACTION_RS_RESPONDIDO; on_error → step 31
+for (const key of ['20','21']) {
+  const s = modelU[key];
+  if (s && !s.question.find(q => q.handler === 'action')) s.question.unshift(ACTION_RS_RESPONDIDO);
+  setOnError(modelU[key], ON_ERR_FALLBACK);
+}
+
+// ── step 22: on_error → step 31
+setOnError(modelU['22'], ON_ERR_FALLBACK);
+
+// ── steps 30/31: vendedor + fallback (UUIDs únicos para este bot)
+const UUID_VEND_U = crypto.randomUUID();
+const UUID_FALL_U = crypto.randomUUID();
+
+modelU[STEP_VENDEDOR] = {
+  question: [
+    ACTION_RS_HUMANO, ACTION_CHANGE_RESP,
+    { handler: 'send_message', params: {
+      tag: '', text: 'Perfeito! 😊 Vou te conectar com um de nossos vendedores agora mesmo! Em breve alguém vai falar com você por aqui. ✅',
+      type: 'external', buttons: [], on_error: null,
+      recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
+      is_in_starting_block: false, send_to_all_chat_sources: true,
+    }},
+  ],
+  block_uuid: UUID_VEND_U,
+};
+modelU[STEP_FALLBACK] = {
+  question: [
+    ACTION_RS_HUMANO, ACTION_CHANGE_RESP,
+    { handler: 'send_message', params: {
+      tag: '', text: 'Ops! Não conseguimos enviar a mensagem. 😔 Um atendente vai falar com você em breve!',
+      type: 'external', buttons: [], on_error: null,
+      recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
+      is_in_starting_block: false, send_to_all_chat_sources: true,
+    }},
+  ],
+  block_uuid: UUID_FALL_U,
+};
+
+// ── Injeta opção "vendedor" no answer de steps 23/17/22
+const VEND_ANS_U = {
+  value: 'Vendedor',
+  params: [{ params: { step: STEP_VENDEDOR, type: 'question' }, handler: 'goto' }],
+  synonyms: SINONIMOS_VENDEDOR,
+};
+for (const stepKey of ['23','17','22']) {
+  const stepData = modelU[stepKey];
+  if (!stepData?.answer) continue;
+  const bh = stepData.answer.find(a => a.handler === 'buttons');
+  if (!bh) continue;
+  const elseIdx = bh.params.findIndex(p => p.type === 'else');
+  if (elseIdx >= 0) bh.params.splice(elseIdx, 0, VEND_ANS_U);
+  else bh.params.push(VEND_ANS_U);
+}
+
+// ── POSITIONS: começa com posComent, adiciona blocos DM
+const posU = JSON.parse(JSON.stringify(pC));
+
+// ID do bloco step 23 no template DM (para setar goto nos blocos de comentário)
+const dmBlk23 = pD.find(b => b.step === 23);
+const dmBlk23Id = dmBlk23?.id;
+
+// Adiciona blocos DM relevantes (ignora steps 0/-1: conditions/trigger/start do DM)
+for (const blk of pD) {
+  if (![17,20,21,22,23].includes(blk.step)) continue;
+  const c = JSON.parse(JSON.stringify(blk));
+  c.name = 'Enviar mensagem';
+  // Corrige textos no positions
+  const fix = DM_TEXTS[String(blk.step)];
+  if (fix) {
+    const act = c.actions?.find(a => a.params?.handler === 'send_message');
+    if (act?.params?.params) {
+      act.params.params.text = typeof fix === 'string' ? fix : fix.text;
+      if (fix.btn && act.params.params.buttons?.length > 0) act.params.params.buttons[0].text = fix.btn;
+      if (fix.url && act.params.params.buttons?.length > 0) act.params.params.buttons[0].url = fix.url;
+    }
+  }
+  if (blk.step === 23) {
+    c.actions = c.actions.filter(a => a.params?.handler !== 'set_pipeline' && a.params?.handler !== 'set_responsible');
+    if (!c.actions.find(a => a.params?.handler === 'action')) {
+      const nId = Math.max(...c.actions.map(a => a.id), 0) + 1;
+      const nSt = Math.max(...c.actions.map(a => a.sort), 0) + 1;
+      c.actions.unshift({ id: nId, sort: nSt, ...POS_ACTION_RS_CONTATO_BOT });
+    }
+  }
+  if (blk.step === 17) {
+    c.actions = c.actions.filter(a => a.params?.handler !== 'action');
+  }
+  if (blk.step === 20 || blk.step === 21) {
+    if (!c.actions.find(a => a.params?.handler === 'action')) {
+      const nId = Math.max(...c.actions.map(a => a.id), 0) + 1;
+      const nSt = Math.max(...c.actions.map(a => a.sort), 0) + 1;
+      c.actions.unshift({ id: nId, sort: nSt, ...POS_ACTION_RS_RESPONDIDO });
+    }
+  }
+  posU.push(c);
+}
+
+// Blocos de comentário (steps 12/13/14): seta goto para bloco step 23 do DM + atualiza texto
+for (const [step, text] of [[12, RESPOSTAS[0]], [13, RESPOSTAS[1]], [14, RESPOSTAS[2]]]) {
+  const blk = posU.find(b => b.step === step);
+  if (!blk) continue;
+  blk.name = 'Comentar';
+  if (dmBlk23Id != null) blk.goto = { block: dmBlk23Id };
+  const act = blk.actions.find(a => a.params?.handler === 'send_comment');
+  if (act) act.params.params.text = text;
+}
+
+// Conditions block
+const condBlkU = posU.find(b => b.step === 0);
+if (condBlkU) {
+  const destBlock = condBlkU.actions[0]?.links?.[0]?.block ?? 15;
+  condBlkU.actions = buildCondActions(PALAVRAS, destBlock);
+  condBlkU.height  = Math.max(400, PALAVRAS.length * 62 + 20);
+  condBlkU.name    = 'Verificar palavra-chave';
+}
+
+// Distribution block
+const distBlkU = posU.find(b => b.step === gotoU);
+if (distBlkU && !distBlkU.actions.find(a => a.params?.handler === 'action')) {
+  const nId = Math.max(...distBlkU.actions.map(a => a.id), 0) + 1;
+  const nSt = Math.max(...distBlkU.actions.map(a => a.sort), 0) + 1;
+  distBlkU.actions.push({ id: nId, sort: nSt, ...POS_ACTION_RS_RESPONDIDO });
+}
+
+// Novos blocos step 30/31
+posU.push({
+  x: 1800, y: 900, z: 99,
+  id: BLOCK_VENDEDOR, step: STEP_VENDEDOR,
+  goto: null, name: 'Transferir para vendedor',
+  type: 'question', width: 400, height: 200,
+  deletable: true, block_uuid: UUID_VEND_U,
+  actions: [
+    { id: 950, sort: 0, ...POS_ACTION_RS_HUMANO },
+    { id: 951, sort: 1, ...POS_ACTION_RESP },
+    { id: 952, sort: 2, links: [], params: { params: {
+      text: 'Perfeito! 😊 Vou te conectar com um de nossos vendedores agora mesmo! Em breve alguém vai falar com você por aqui. ✅',
+      type: 'external', buttons: [], on_error: null,
+      recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
+      is_in_starting_block: false, send_to_all_chat_sources: true,
+    }, handler: 'send_message' }},
+  ],
+});
+posU.push({
+  x: 2100, y: 900, z: 99,
+  id: BLOCK_FALLBACK, step: STEP_FALLBACK,
+  goto: null, name: 'Fallback — Transferir p/ Humano',
+  type: 'question', width: 400, height: 180,
+  deletable: true, block_uuid: UUID_FALL_U,
+  actions: [
+    { id: 960, sort: 0, ...POS_ACTION_RS_HUMANO },
+    { id: 961, sort: 1, ...POS_ACTION_RESP },
+    { id: 962, sort: 2, links: [], params: { params: {
+      text: 'Ops! Não conseguimos enviar a mensagem. 😔 Um atendente vai falar com você em breve!',
+      type: 'external', buttons: [], on_error: null,
+      recipient: { type: 'all_contacts', way_of_communication: 'over_all' },
+      is_in_starting_block: false, send_to_all_chat_sources: true,
+    }, handler: 'send_message' }},
+  ],
+});
+
+const tplU = JSON.parse(JSON.stringify(tplC));
+tplU.model = {
+  text:      JSON.stringify(modelU),
+  name:      'PRECO — Comentário + DM (Unificado)',
+  positions: JSON.stringify(posU),
+  type:      tplC.model.type,
+};
+
+const outUnif = path.join(outDir, 'kommo-preco-unificado.json');
+fs.writeFileSync(outUnif, '﻿' + JSON.stringify(tplU, null, 2), 'utf8');
+} // fim if(false) — bot unificado desativado
+
+// ─── RESULTADO ────────────────────────────────────────────────────────────────
 console.log(`✅ Gerado: ${outComent}`);
-console.log(`✅ Gerado: ${outDm}`);
+console.log(`✅ Gerado: ${outDM}`);
 console.log(`   Palavras-gatilho: ${PALAVRAS.length}`);
-console.log(`   Bot 1: resposta no comentário (3 rotações)`);
-console.log(`   Bot 2: DM cidade → WhatsApp`);
-console.log(`\n📋 Kommo → Automações → Bots → IMPORTAR → selecione cada arquivo`);
+console.log(`   Funil Redes Sociais: respondido=${STATUS_RS_RESPONDIDO}, contato=${STATUS_RS_CONTATO_BOT}, humano=${STATUS_RS_HUMANO}`);
+console.log(`   Bruna: ${USER_BRUNA}`);
+console.log(`\n📋 Kommo → Automações → Bots → IMPORTAR`);

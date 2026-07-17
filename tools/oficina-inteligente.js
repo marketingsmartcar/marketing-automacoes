@@ -20,12 +20,9 @@ const BASE_URL = 'https://www.oiapi.com.br/ws/v2/IntegracaoOficinaInteligente.as
 
 const LOJAS = {
   BR01_CENTRO:      'BR Pneus Araraquara (Centro)',
-  BR02_VILA:        'BR Pneus Araraquara (Vila)',
   BR03_AMERICANA:   'BR Pneus Americana',
   BR04_SAO_CARLOS:  'BR Pneus São Carlos',
-  BR05_MARINGA:     'BR Pneus Maringá',
   PEG1_ARARAQUARA:  'Peg Pneus Araraquara',
-  PEG2_SOROCABA:    'Peg Pneus Sorocaba',
 };
 
 // BR01 e BR03 só funcionam com o Token Alternativo

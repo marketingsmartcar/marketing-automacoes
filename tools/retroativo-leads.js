@@ -14,17 +14,13 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-const LOJAS_ORDEM = ['Araraquara','S. Carlos','Americana','Jaú','Ibitinga','Maringá','Peg ARQ','Peg SOR'];
+const LOJAS_ORDEM = ['Araraquara','S. Carlos','Americana','Peg ARQ'];
 
 const LOJA_KEYS = {
   'Araraquara': 'ARQ',
   'S. Carlos':  'SAO_CARLOS',
   'Americana':  'AMERICANA',
-  'Jaú':        'JAU',
-  'Ibitinga':   'IBITINGA',
-  'Maringá':    'MARINGA',
   'Peg ARQ':    'PEG_ARQ',
-  'Peg SOR':    'PEG_SOR',
 };
 
 function criarAuth() {

@@ -33,11 +33,9 @@ const PASTAS_POR_CONTA = {
   br: [
     'Americana',
     'Araraquara Loja 1',
-    'Araraquara Loja 2',
-    'Maringá',
     'São Carlos',
   ],
-  peg_araraquara: ['Peg Pneus Araraquara', 'Peg Pneus Sorocaba'],
+  peg_araraquara: ['Peg Pneus Araraquara'],
 };
 
 function carregarEstado() {

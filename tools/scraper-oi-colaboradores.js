@@ -26,12 +26,9 @@ const SCREENSHOT_DIR = path.join(__dirname, '..', 'output', 'debug-oi');
 
 const LOJAS = [
   { key: 'BR1',  value: '469',  label: 'BR01 CENTRO'     },
-  { key: 'BR2',  value: '2201', label: 'BR02 VILA'        },
   { key: 'BR3',  value: '2202', label: 'BR03 AMERICANA'   },
   { key: 'BR4',  value: '1524', label: 'BR04 SAO CARLOS'  },
-  { key: 'BR5',  value: '2203', label: 'BR05 MARINGA'     },
   { key: 'PEG1', value: '3098', label: 'PEG11 ARARAQUARA' },
-  { key: 'PEG2', value: '3635', label: 'PEG12 SOROCABA'   },
 ];
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -199,8 +196,6 @@ async function coletarColaboradoresLoja(page, startStr, endStr) {
   // Chave = 4-char prefix (sem espaços, uppercase)
   const CARGO_OVERRIDE = new Map([
     ['GUIL', 'MONTADOR'], // GUILHERME (PEG Araraquara) — montador de pneus
-    ['JOAO', 'MONTADOR'], // JOÃO (PEG Sorocaba) — montador de pneus
-    ['MURI', 'ESTOQUE'],  // MURILO (PEG Sorocaba) — estoquista
   ]);
 
   // Mapa de prefixo (4 chars, sem espaço, uppercase) → cargo para lookup fuzzy

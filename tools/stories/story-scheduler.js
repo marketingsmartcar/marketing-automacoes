@@ -231,7 +231,6 @@ if (require.main === module) {
   const varsFaltando = [
     'META_PAGE_TOKEN_BR', 'META_PAGE_ID_BR', 'META_IG_ID_BR',
     'META_PAGE_TOKEN_PEG_ARQ', 'META_PAGE_ID_PEG_ARQ', 'META_IG_ID_PEG_ARQ',
-    'META_PAGE_TOKEN_PEG_SOR', 'META_PAGE_ID_PEG_SOR',
   ].filter(v => !process.env[v]);
 
   if (varsFaltando.length > 0) {

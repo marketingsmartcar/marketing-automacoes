@@ -40,17 +40,15 @@ Este repositório contém o sistema de automação de marketing do **Grupo BR Pn
 **BR Pneus & Oficina** é uma rede de franquias de pneus e serviços automotivos com origem na "Borracharia do Mazzaropi" em Araraquara-SP. Atende o público das classes B e C com foco em preço competitivo, variedade e serviços completos.
 
 ### Rede Atual
-**6 lojas em 5 cidades** (Araraquara possui 2 unidades)
+**3 lojas em 3 cidades**
 
-| Estado | Cidade | Loja | Telefone |
-|--------|--------|------|----------|
-| SP | Araraquara | Loja 1 | (16) 3190-2380 |
-| SP | Araraquara | Loja 2 | (16) 3190-2380 |
-| SP | São Carlos | Loja 4 | (16) 3376-0011 |
-| SP | Americana | Loja 3 | (16) 3397-5424 |
-| PR | Maringá | Loja 5 | (44) 3170-0441 |
+| Estado | Cidade | Loja | Código | Telefone |
+|--------|--------|------|--------|----------|
+| SP | Araraquara | Loja 1 | BR01 | (16) 3190-2380 |
+| SP | São Carlos | Loja 4 | BR04 | (16) 3376-0011 |
+| SP | Americana | Loja 3 | BR03 | (16) 3397-5424 |
 
-> **Lojas encerradas (mai/2026):** Loja 6 — Jaú e Loja 7 — Ibitinga. Não citar essas cidades em nenhum conteúdo ou campanha.
+> **Lojas encerradas:** Loja 2 — Araraquara 2 (BR02, jul/2026) | Loja 5 — Maringá (BR05, jul/2026) | Loja 6 — Jaú (mai/2026) | Loja 7 — Ibitinga (mai/2026). Não citar essas cidades em nenhum conteúdo ou campanha.
 
 **SAC / 0800 central:** 0800 942 4402
 
@@ -204,7 +202,7 @@ Continental, Pirelli, Michelin, Goodyear, Firestone, Bridgestone, Speedmax, Magn
 - Atende garagistas, autocenters, borracharias, frotas **e** consumidor final
 - Preços de atacado acessíveis a todos, desde a primeira unidade
 - Sistema **"Pegue e Leve"** — compra rápida, sem burocracia
-- **Montagem e balanceamento inclusos** na compra de pneus
+- Montagem e balanceamento disponíveis na loja (cobrados à parte)
 - Crediário próprio com aprovação na hora
 
 ### Linhas de Produto
@@ -226,7 +224,7 @@ Continental, Pirelli, Michelin, Goodyear, Firestone, Bridgestone, XBRI, West Lak
 ### Diferenciais Competitivos
 1. **Primeiro atacarejo de pneus do Brasil** — conceito único no mercado
 2. **Sistema Pegue e Leve** — compra direta sem espera
-3. **Montagem e Balanceamento inclusos** — conveniência total
+3. **Montagem e Balanceamento disponíveis** — cobrados à parte
 4. **MultiMarcas** — maior variedade em um só lugar
 5. **Crediário Próprio** — aprovação rápida, sem burocracia
 6. **5.0 no Google** — reputação impecável desde a abertura
@@ -303,6 +301,7 @@ Todos os arquivos ficam em `assets/imagens/logos-marcas/`.
 
 ### Regras Específicas — Peg Pneus Atacarejo
 1. **Nome oficial:** sempre "Peg Pneus Atacarejo" — nunca apenas "Peg Pneus" em documentos formais, nunca "PEGI"
+2. **Nunca usar "único" ou "maior"** — não afirmar que é o único ou maior atacarejo de pneus do Brasil; usar "primeiro" (pioneiro) quando quiser destacar o posicionamento de marca
 2. **Tagline:** "O primeiro atacarejo de pneus do Brasil!" — usar para posicionamento de marca
 3. **Logo em artes escuras:** usar `assets/imagens/logos-marcas/Logotipo-PEGPNEUS-Aplicações-Fundos_Prancheta 1 cópia 4.png` (branca total)
 4. **Logo em artes claras:** usar `assets/imagens/logos-marcas/Logotipo-PEGPNEUS-Aplicações-Fundos_Prancheta 1 cópia 2.png` (colorida verde + preto)

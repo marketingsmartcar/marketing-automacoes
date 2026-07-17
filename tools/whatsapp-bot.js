@@ -1,6 +1,6 @@
 'use strict';
 
-require('dotenv').config();
+require('dotenv').config({ override: true });
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode  = require('qrcode-terminal');
@@ -481,9 +481,7 @@ function agendarCobrancaVideos() {
       `Loja 2 - Araraquara ❌\n` +
       `Loja 3 - Americana ❌\n` +
       `Loja 4 - São Carlos ❌\n` +
-      `Loja 5 - Maringá ❌\n` +
-      `Peg 1 - Araraquara ❌\n` +
-      `Peg 2 - Sorocaba ❌\n\n` +
+      `Peg 1 - Araraquara ❌\n\n` +
       `⚠️⚠️⚠️⚠️`;
 
     try {
@@ -1156,7 +1154,7 @@ async function processarMensagem(msg) {
   if (estadoUsuario?.etapa === 'colab_cargo') {
     if (corpo === 'cancelar') { estadoConversas.delete(remetente); await responder(msg,'❌ Cancelado.'); return; }
     estadoConversas.set(remetente, { etapa: 'colab_cidade', dados: { ...estadoUsuario.dados, cargo: msg.body.trim() } });
-    await responder(msg,'📍 Agora envie a *cidade/loja*:\n\n_Ex: Araraquara, São Carlos, Maringá..._');
+    await responder(msg,'📍 Agora envie a *cidade/loja*:\n\n_Ex: Araraquara, São Carlos, Americana..._');
     return;
   }
 
@@ -1247,10 +1245,6 @@ async function processarMensagem(msg) {
       'centro':      { marca: 'brpneus',  loja: 'BR Pneus Centro' },
       'americana':   { marca: 'brpneus',  loja: 'BR Pneus Americana' },
       'sao carlos':  { marca: 'brpneus',  loja: 'BR Pneus São Carlos' },
-      'maringa':     { marca: 'brpneus',  loja: 'BR Pneus Maringá' },
-      'jau':         { marca: 'brpneus',  loja: 'BR Pneus Jaú' },
-      'ibitinga':    { marca: 'brpneus',  loja: 'BR Pneus Ibitinga' },
-      'sorocaba':    { marca: 'pegpneus', loja: 'Peg Pneus Sorocaba' },
       'peg':         { marca: 'pegpneus', loja: 'Peg Pneus Araraquara' },
       'peg pneus':   { marca: 'pegpneus', loja: 'Peg Pneus Araraquara' },
     };
@@ -1949,11 +1943,7 @@ $img.Dispose()
         `Loja 1 - Araraquara ❌\n` +
         `Loja 2 - Araraquara ❌\n` +
         `Loja 3 - Americana ❌\n` +
-        `Loja 4 - São Carlos ❌\n` +
-        `Loja 5 - Maringá ❌\n` +
-        `Loja 6 - Jaú ❌\n` +
-        `Loja 7 - Ibitinga ❌\n` +
-        `Peg 2 - Sorocaba ❌\n\n` +
+        `Loja 4 - São Carlos ❌\n\n` +
         `⚠️⚠️⚠️⚠️`;
 
       const media = MessageMedia.fromFilePath(pngPath);

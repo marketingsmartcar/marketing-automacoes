@@ -12,21 +12,17 @@ const TOKEN_PEG = process.env.META_ACCESS_TOKEN_PEG;
 const GRAPH_BASE = 'https://graph.facebook.com/v21.0';
 
 const CONTAS_META = [
-  { nome: 'BR PNEUS MARINGÁ',     id: process.env.META_ACCOUNT_BR_MARINGA,     token: TOKEN_BR },
   { nome: 'BR PNEUS AMERICANA',   id: process.env.META_ACCOUNT_BR_AMERICANA,   token: TOKEN_BR },
   { nome: 'BR PNEUS SÃO CARLOS',  id: process.env.META_ACCOUNT_BR_SAO_CARLOS,  token: TOKEN_BR },
   { nome: 'BR PNEUS ARARAQUARA',  id: process.env.META_ACCOUNT_BR_ARARAQUARA,  token: TOKEN_BR },
-  { nome: 'PEG PNEUS SOROCABA',   id: process.env.META_ACCOUNT_PEG_SOROCABA,   token: TOKEN_PEG },
   { nome: 'PEG PNEUS ARARAQUARA', id: process.env.META_ACCOUNT_PEG_ARARAQUARA, token: TOKEN_PEG },
 ].filter(c => c.id && c.token);
 
 const CONTAS_GOOGLE = [
   { nome: 'BR PNEUS AMERICANA',   id: process.env.GOOGLE_ACCOUNT_BR_AMERICANA },
   { nome: 'BR PNEUS ARARAQUARA',  id: process.env.GOOGLE_ACCOUNT_BR_ARARAQUARA },
-  { nome: 'BR PNEUS MARINGÁ',     id: process.env.GOOGLE_ACCOUNT_BR_MARINGA },
   { nome: 'BR PNEUS SÃO CARLOS',  id: process.env.GOOGLE_ACCOUNT_BR_SAO_CARLOS },
   { nome: 'PEG PNEUS ARARAQUARA', id: process.env.GOOGLE_ACCOUNT_PEG_ARARAQUARA },
-  { nome: 'PEG PNEUS SOROCABA',   id: process.env.GOOGLE_ACCOUNT_PEG_SOROCABA },
 ].filter(c => c.id);
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────

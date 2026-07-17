@@ -2,9 +2,9 @@
 // Sincroniza dados do OI com a tabela vendas_diarias_oi no Supabase (NexusZ)
 
 const LOJAS_LABELS = {
-  BR1: 'BR01 CENTRO', BR2: 'BR02 VILA', BR3: 'BR03 AMERICANA',
-  BR4: 'BR04 SAO CARLOS', BR5: 'BR05 MARINGA',
-  PEG1: 'PEG11 ARARAQUARA', PEG2: 'PEG12 SOROCABA',
+  BR1: 'BR01 CENTRO', BR3: 'BR03 AMERICANA',
+  BR4: 'BR04 SAO CARLOS',
+  PEG1: 'PEG11 ARARAQUARA',
 };
 
 async function syncVendasOI(date, lojaResults) {

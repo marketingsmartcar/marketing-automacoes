@@ -1,0 +1,6 @@
+{
+  "livePreview.defaultPreviewPath": "output/criativos",
+  "livePreview.portNumber": 3000,
+  "livePreview.autoRefreshPreview": "On All Changes in Editor",
+  "livePreview.openPreviewTarget": "sidePanel"
+}

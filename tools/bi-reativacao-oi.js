@@ -241,8 +241,8 @@ async function baixarComFiltro(page, loja, filtroFn, labelLog) {
 
   const totalFiltrado = await page.$eval('[id*="TotalFiltrado"]', el => el.textContent.replace(/\D/g,'')).catch(() => null);
   console.log(`  📊 ${labelLog}: ${totalFiltrado ?? '?'} clientes`);
-  if (totalFiltrado === '0' || totalFiltrado === '') {
-    console.log('  ℹ️  0 clientes — pulando download');
+  if (totalFiltrado === null || totalFiltrado === '0' || totalFiltrado === '') {
+    console.log('  ℹ️  0 ou indefinido — pulando download');
     return null;
   }
   // Se TotalFiltrado == base (filtro não aplicou), pula para evitar enviar base inteira
@@ -480,7 +480,7 @@ async function main() {
         },
         ...periodos.map(p => ({
           id:       p.id,
-          label:    `${loja.sigla} ${p.label}`,
+          label:    `${loja.sigla} ${p.label} ${String(dia).padStart(2,'0')}-${String(mes).padStart(2,'0')}`,
           labelLog: `Última venda ${p.label} (${p.de} a ${p.ate})`,
           filtro:   filtroUltimaVenda(p.de, p.ate),
           caption:  `🔄 ${loja.sigla} - ${p.label}`,
@@ -502,31 +502,47 @@ async function main() {
         const destXls  = path.join(DEBUG_DIR, `${nomeBase}.xls`);
         const destXlsx = path.join(DEBUG_DIR, `${nomeBase}.xlsx`);
 
-        // ── Se o xlsx já está no disco (ex: bot caiu), reenvia sem baixar ────
-        if (!fs.existsSync(destXlsx)) {
-          // Baixa do OI
-          await carregarBase(page, loja);
-          const excelPath = await baixarComFiltro(page, loja, tarefa.filtro, tarefa.labelLog);
-          if (!excelPath) continue; // 0 clientes ou filtro falhou
+        // ── Tenta até 3 vezes em caso de falha ────────────────────────────
+        let enviado = false;
+        for (let tentativa = 1; tentativa <= 3 && !enviado; tentativa++) {
+          if (tentativa > 1) {
+            console.log(`  🔁 Retry ${tentativa}/3 — aguardando 30s...`);
+            await SLEEP(30000);
+            // Apaga xlsx anterior para forçar novo download
+            if (fs.existsSync(destXlsx)) fs.unlinkSync(destXlsx);
+            if (fs.existsSync(destXls))  fs.unlinkSync(destXls);
+          }
 
-          if (fs.existsSync(destXls)) fs.unlinkSync(destXls);
-          fs.renameSync(excelPath, destXls);
+          // ── Se o xlsx já está no disco (ex: bot caiu), reenvia sem baixar ──
+          if (!fs.existsSync(destXlsx)) {
+            await carregarBase(page, loja);
+            const excelPath = await baixarComFiltro(page, loja, tarefa.filtro, tarefa.labelLog);
+            if (!excelPath) {
+              console.log(`  ⚠️  Filtro falhou na tentativa ${tentativa}`);
+              continue;
+            }
 
-          const linhas = parsearExcel(fs.readFileSync(destXls));
-          console.log(`  💾 Salvo: ${path.basename(destXls)} (${linhas} clientes)`);
+            if (fs.existsSync(destXls)) fs.unlinkSync(destXls);
+            fs.renameSync(excelPath, destXls);
 
-          await formatarExcel(destXls, destXlsx);
-          console.log(`  ✨ Formatado: ${path.basename(destXlsx)}`);
-        } else {
-          console.log(`  📂 xlsx já em disco — reenviando`);
+            const linhas = parsearExcel(fs.readFileSync(destXls));
+            console.log(`  💾 Salvo: ${path.basename(destXls)} (${linhas} clientes)`);
+
+            await formatarExcel(destXls, destXlsx);
+            console.log(`  ✨ Formatado: ${path.basename(destXlsx)}`);
+          } else {
+            console.log(`  📂 xlsx já em disco — reenviando`);
+          }
+
+          const nomeWA = `${tarefa.label}.xlsx`;
+          const ok = await enviarArquivoWA(destXlsx, nomeWA, tarefa.caption);
+          if (ok) {
+            marcarEnviado(estado, chaveDedup);
+            enviado = true;
+          }
         }
 
-        // ── Envia pelo WhatsApp (com retry automático) ─────────────────────
-        const nomeWA = `${tarefa.label}.xlsx`;
-        const ok = await enviarArquivoWA(destXlsx, nomeWA, tarefa.caption);
-        if (ok) {
-          marcarEnviado(estado, chaveDedup); // só marca se enviou com sucesso
-        }
+        if (!enviado) console.log(`  ❌ ${tarefa.labelLog} — falhou após 3 tentativas`);
         await SLEEP(2000);
       }
     }

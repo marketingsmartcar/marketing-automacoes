@@ -6,8 +6,6 @@ const { GoogleAdsApi } = require('google-ads-api');
 
 // ─── Configuração das contas ───────────────────────────────────────────────────
 
-// Lojas ativas jul/2026: BR01 (Araraquara), BR03 (Americana), BR04 (São Carlos), PEG1 (Araraquara)
-// Encerradas: PEG Sorocaba (jun/2026), BR Maringá (jul/2026)
 const CONTAS_GOOGLE = [
   { nome: 'BR PNEUS AMERICANA',   id: process.env.GOOGLE_ACCOUNT_BR_AMERICANA },
   { nome: 'BR PNEUS ARARAQUARA',  id: process.env.GOOGLE_ACCOUNT_BR_ARARAQUARA },

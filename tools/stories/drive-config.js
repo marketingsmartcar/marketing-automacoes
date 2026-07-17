@@ -9,16 +9,13 @@ const PASTA_RAIZ = '19Xou0JBmu_U6yjR1C7Lz8nO-mp5mkLeI';
 // Pastas de conteúdo das lojas (BR Pneus)
 const PASTAS_BR = {
   'Araraquara Loja 1': '1ZyKjqY8yn22Unb-N13CLQhaxuIJUgKz_',
-  'Araraquara Loja 2': '1pNEnVJcpepEAbUhuCjzytd82tq8cLWa3',
   'Americana':         '15OfBsgcgH7n3wFbf2-L3aPBv4EZrt1Ug',
   'São Carlos':        '1ekFbkGjc4_yHx6PUfC-1ykOz-ngQ1YS6',
-  'Maringá':           '1oQK0e2lELt3FSRZKo1UfqtIzWiERO2KO',
 };
 
 // Pastas de conteúdo das lojas (Peg Pneus)
 const PASTAS_PEG = {
   'Peg Pneus Araraquara': '1eQSEOBFCtnvjJQiEROuc6DDLmbjFC9tZ',
-  'Peg Pneus Sorocaba':   '1D8zvQM4jW_XywWE5IRlVa8HHLfAcvkQn',
   'Sazonais Peg':         '11pfy9zvFioSDhuztqglpB50JqM16e-Ab',
 };
 

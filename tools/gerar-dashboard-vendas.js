@@ -9,12 +9,9 @@ const PASTA_SAIDA = path.join(__dirname, '..', 'output', 'relatorios');
 
 const LOJAS_LABEL = {
   BR1:  'BR01 Centro',
-  BR2:  'BR02 Vila',
   BR3:  'BR03 Americana',
   BR4:  'BR04 S. Carlos',
-  BR5:  'BR05 Maringá',
   PEG1: 'Peg Araraquara',
-  PEG2: 'Peg Sorocaba',
 };
 const STORE_KEYS = ['BR1','BR2','BR3','BR4','BR5','PEG1','PEG2'];
 
@@ -103,7 +100,7 @@ function gerarHTML(oiData, periodoStr, geradoEm) {
                                               $R0(totalOS>0?totalLB/totalOS:null)], 'r-avg');
   const rowPneus = row('Pneus Vendidos', [...keys.map(k=>$N(fv(k,'pneuVendidos'))),      `<strong>${totalPneus||'-'}</strong>`], 'r-pneus');
 
-  const colHeaders = ['BR01','BR02','BR03','BR04','BR05','Peg ARQ','Peg SOR','TOTAL']
+  const colHeaders = ['BR01','BR03','BR04','Peg ARQ','TOTAL']
     .map((l,i) => `<th${i===7?' class="th-tot"':''}>${l}</th>`).join('');
 
   return `<!DOCTYPE html>

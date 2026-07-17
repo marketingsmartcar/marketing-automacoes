@@ -39,12 +39,6 @@ const TOKENS = [
     appIdEnv:  'META_APP_ID_PEG',
     secretEnv: 'META_APP_SECRET_PEG',
   },
-  {
-    nome:      'Peg Pneus Sorocaba — Pages (META_PAGE_TOKEN_PEG_SOR)',
-    tokenEnv:  'META_PAGE_TOKEN_PEG_SOR',
-    appIdEnv:  'META_APP_ID_PEG',
-    secretEnv: 'META_APP_SECRET_PEG',
-  },
 ];
 
 const AVISO_DIAS = 7; // avisar quando faltar ≤ 7 dias

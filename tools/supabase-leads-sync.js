@@ -8,9 +8,7 @@ const LOJA_KEYS = {
   'Araraquara': 'ARQ',
   'S. Carlos':  'SAO_CARLOS',
   'Americana':  'AMERICANA',
-  'Maringá':    'MARINGA',
   'Peg ARQ':    'PEG_ARQ',
-  'Peg SOR':    'PEG_SOR',
 };
 
 function getSupabaseConfig() {

@@ -21,12 +21,6 @@ const CONTAS = [
     ig:      { userId: process.env.META_IG_ID_PEG_ARQ,  token: process.env.META_PAGE_TOKEN_PEG_ARQ },
     fb:      { pageId: process.env.META_PAGE_ID_PEG_ARQ, token: process.env.META_PAGE_TOKEN_PEG_ARQ },
   },
-  {
-    key:     'peg_sorocaba',
-    nome:    'Peg Pneus Sorocaba',
-    ig:      null,
-    fb:      { pageId: process.env.META_PAGE_ID_PEG_SOR, token: process.env.META_PAGE_TOKEN_PEG_SOR },
-  },
 ];
 
 const STATE_FILE = path.join(__dirname, '..', '..', 'data', 'stories-state.json');

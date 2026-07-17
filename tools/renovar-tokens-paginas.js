@@ -37,7 +37,6 @@ const GRUPOS = [
     appSecretEnv: 'META_APP_SECRET_PEG',
     pages: [
       { envKey: 'META_PAGE_TOKEN_PEG_ARQ', pageIdEnv: 'META_PAGE_ID_PEG_ARQ', nome: 'Peg Pneus Araraquara' },
-      { envKey: 'META_PAGE_TOKEN_PEG_SOR', pageIdEnv: 'META_PAGE_ID_PEG_SOR', nome: 'Peg Pneus Sorocaba' },
     ],
   },
 ];

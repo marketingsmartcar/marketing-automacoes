@@ -31,15 +31,13 @@ const LOJA_MAP = {
   'Araraquara 🛞':          'Araraquara',
   'São Carlos 🛞':          'S. Carlos',
   'Americana 🛞':           'Americana',
-  'Maringa 🛞':             'Maringá',
   'Peg Pneus - Araraquara': 'Peg ARQ',
-  'Peg Pneus - Sorocaba':   'Peg SOR',
 };
-const LOJAS_ORDEM = ['Araraquara', 'S. Carlos', 'Americana', 'Maringá', 'Peg ARQ', 'Peg SOR'];
+const LOJAS_ORDEM = ['Araraquara', 'S. Carlos', 'Americana', 'Peg ARQ'];
 
 const LOJA_KEYS_MAP = {
   'Araraquara': 'ARQ', 'S. Carlos': 'SAO_CARLOS', 'Americana': 'AMERICANA',
-  'Maringá': 'MARINGA', 'Peg ARQ': 'PEG_ARQ', 'Peg SOR': 'PEG_SOR',
+  'Peg ARQ': 'PEG_ARQ',
 };
 
 // Cores das lojas (pastéis) — mesmas do relatorio-mensal-sheets.js
@@ -47,9 +45,7 @@ const LOJA_COLORS_DAT = [
   { red:0.859, green:0.906, blue:0.996 },  // Araraquara — azul
   { red:0.859, green:0.976, blue:0.906 },  // S. Carlos  — verde
   { red:0.800, green:0.984, blue:0.945 },  // Americana  — teal
-  { red:1.000, green:0.929, blue:0.843 },  // Maringá    — laranja claro
   { red:0.878, green:0.949, blue:0.996 },  // Peg ARQ    — céu
-  { red:1.000, green:0.894, blue:0.902 },  // Peg SOR    — rosa
 ];
 
 const COR_LARANJA = { red: 0.961, green: 0.651, blue: 0.137 };
