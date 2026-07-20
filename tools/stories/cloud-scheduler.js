@@ -37,6 +37,9 @@ function carregarSchedule() {
 
 // ─── Configuração das contas ──────────────────────────────────────────────────
 
+// Lojas encerradas — nunca postar vídeos destas pastas, mesmo que estejam no schedule
+const LOJAS_FECHADAS = new Set(['Araraquara Loja 2', 'Maringá', 'Peg Pneus Sorocaba']);
+
 const CONTAS = [
   {
     key: 'br', nome: 'BR Pneus',
@@ -190,10 +193,20 @@ async function publicarStories() {
       st.ultima_regular = hoje;
       salvarEstado(estado);
 
-      // Se há plano para hoje: usa vídeos pré-definidos; senão: sorteia
-      const videos = plano
-        ? plano.lojas  // já tem {id, name}
-        : await proxVideosLojas(conta, st, conta.videosPorDia);
+      // Se há plano para hoje: usa vídeos pré-definidos (filtrando lojas fechadas); senão: sorteia
+      let videos;
+      if (plano) {
+        videos = plano.lojas.filter(v => !LOJAS_FECHADAS.has(v.pasta));
+        if (videos.length === 0) {
+          console.log(`  ⚠️  Todos os vídeos do plano são de lojas fechadas — usando modo aleatório.`);
+          videos = await proxVideosLojas(conta, st, conta.videosPorDia);
+        } else if (videos.length < plano.lojas.length) {
+          const removidos = plano.lojas.length - videos.length;
+          console.log(`  ⚠️  ${removidos} vídeo(s) de loja(s) fechada(s) removido(s) do plano.`);
+        }
+      } else {
+        videos = await proxVideosLojas(conta, st, conta.videosPorDia);
+      }
 
       for (const v of videos) {
         const local = await baixarArquivo(v.id, v.name);
