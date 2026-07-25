@@ -129,14 +129,11 @@ function _tentarEnviarArquivoWA(filePath, nomeWA, caption) {
   return new Promise(resolve => {
     if (!GRUPO_ID) { console.log('  ⚠️  WHATSAPP_GRUPO_AUTOMACAO_ID não definido'); return resolve(false); }
     const data = fs.readFileSync(filePath).toString('base64');
-    const mimetype = nomeWA.endsWith('.pdf')
-      ? 'application/pdf'
-      : nomeWA.endsWith('.xlsx')
-        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        : 'application/vnd.ms-excel';
     const body = JSON.stringify({
       chatId: GRUPO_ID,
-      media: { mimetype, data, filename: nomeWA },
+      media: { mimetype: nomeWA.endsWith('.xlsx')
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'application/vnd.ms-excel', data, filename: nomeWA },
       caption: caption || '',
     });
     const req = http.request(`${BOT_URL}/send-media`, {
@@ -348,60 +345,76 @@ function parsearExcel(buffer) {
   return Math.max(0, rows.length - 1);
 }
 
-// Converte .xls bruto → PDF via Puppeteer (nova página no browser já aberto)
-async function gerarPDF(browser, xlsPath, pdfPath, titulo) {
+// Converte .xls bruto → .xlsx formatado usando ExcelJS
+async function formatarExcel(xlsPath, xlsxPath) {
   const wb = XLSX.read(fs.readFileSync(xlsPath), { type: 'buffer', cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
-  if (!ws) return false;
+  if (!ws) return;
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-  if (!rows.length) return false;
+  if (!rows.length) return;
+
+  const wbEx = new ExcelJS.Workbook();
+  const sheet = wbEx.addWorksheet('Clientes', { views: [{ state: 'frozen', ySplit: 1 }] });
 
   const header = rows[0];
-  const data   = rows.slice(1);
 
-  const fmtVal = v => {
-    if (v instanceof Date) return v.toLocaleDateString('pt-BR');
-    return String(v ?? '');
-  };
+  const widths = header.map(h => {
+    const s = String(h).toLowerCase();
+    if (s.includes('nome'))       return 32;
+    if (s.includes('email') || s.includes('e-mail')) return 30;
+    if (s.includes('endereço') || s.includes('endereco')) return 36;
+    if (s.includes('complemento')) return 20;
+    if (s.includes('telefone') || s.includes('celular') || s.includes('sms')) return 16;
+    if (s.includes('data'))       return 14;
+    if (s.includes('código') || s.includes('codigo')) return 12;
+    if (s.includes('sexo') || s.includes('física') || s.includes('juridica')) return 10;
+    return 14;
+  });
 
-  const thHtml   = header.map(h => `<th>${h}</th>`).join('');
-  const rowsHtml = data.map((row, i) => {
-    const bg    = i % 2 === 0 ? '#FAFAFA' : '#F0F0F0';
-    const cells = header.map((_, ci) => `<td>${fmtVal(row[ci] ?? '')}</td>`).join('');
-    return `<tr style="background:${bg}">${cells}</tr>`;
-  }).join('');
+  sheet.columns = widths.map((w, i) => ({ key: String(i), width: w }));
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>
-  body { font-family: Calibri, Arial, sans-serif; font-size: 8pt; margin: 10px; }
-  h2   { font-size: 11pt; color: #1A1A1A; margin: 0 0 8px 0; }
-  p.sub{ font-size: 8pt; color: #555; margin: 0 0 10px 0; }
-  table{ border-collapse: collapse; width: 100%; }
-  th   { background: #1A1A1A; color: #fff; font-size: 8pt; padding: 5px 6px;
-         text-align: center; border: 1px solid #444; white-space: nowrap; }
-  td   { font-size: 7.5pt; padding: 3px 6px; border: 1px solid #CCC; }
-  .rodape { margin-top: 8px; font-size: 7pt; color: #888; }
-</style></head><body>
-<h2>${titulo}</h2>
-<p class="sub">${data.length} cliente(s) encontrado(s)</p>
-<table><thead><tr>${thHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>
-<p class="rodape">Gerado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
-</body></html>`;
+  const headerRow = sheet.addRow(header);
+  headerRow.height = 22;
+  headerRow.eachCell(cell => {
+    cell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1A1A' } };
+    cell.font   = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: false };
+    cell.border = {
+      top:    { style: 'thin', color: { argb: 'FF444444' } },
+      bottom: { style: 'thin', color: { argb: 'FF444444' } },
+      left:   { style: 'thin', color: { argb: 'FF444444' } },
+      right:  { style: 'thin', color: { argb: 'FF444444' } },
+    };
+  });
 
-  const pdfPage = await browser.newPage();
-  try {
-    await pdfPage.setContent(html, { waitUntil: 'networkidle0' });
-    await pdfPage.pdf({
-      path: pdfPath,
-      format: 'A4',
-      landscape: true,
-      printBackground: true,
-      margin: { top: '10mm', bottom: '10mm', left: '8mm', right: '8mm' },
+  const iCodigo = header.findIndex(h => String(h).toLowerCase().includes('digo'));
+
+  rows.slice(1).forEach((rowData, rowIdx) => {
+    const dataRow = sheet.addRow(rowData.map((v, ci) => {
+      if (ci === iCodigo && v !== '') return typeof v === 'number' ? Math.round(v) : String(v);
+      return v;
+    }));
+    dataRow.height = 18;
+    const bgColor = rowIdx % 2 === 0 ? 'FFFAFAFA' : 'FFF0F0F0';
+    dataRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      if (colNum === iCodigo + 1) {
+        cell.numFmt = '0';
+      } else if (cell.value instanceof Date) {
+        cell.numFmt = 'dd/mm/yyyy';
+      }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+      cell.font = { size: 9, name: 'Calibri' };
+      cell.alignment = { vertical: 'middle', wrapText: false };
+      cell.border = {
+        top:    { style: 'hair', color: { argb: 'FFCCCCCC' } },
+        bottom: { style: 'hair', color: { argb: 'FFCCCCCC' } },
+        left:   { style: 'hair', color: { argb: 'FFCCCCCC' } },
+        right:  { style: 'hair', color: { argb: 'FFCCCCCC' } },
+      };
     });
-    return true;
-  } finally {
-    await pdfPage.close();
-  }
+  });
+
+  await wbEx.xlsx.writeFile(xlsxPath);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -482,7 +495,7 @@ async function main() {
 
         const nomeBase = tarefa.label.replace(/\//g, '-');
         const destXls  = path.join(DEBUG_DIR, `${nomeBase}.xls`);
-        const destPdf  = path.join(DEBUG_DIR, `${nomeBase}.pdf`);
+        const destXlsx = path.join(DEBUG_DIR, `${nomeBase}.xlsx`);
 
         // ── Tenta até 3 vezes em caso de falha ────────────────────────────
         let enviado = false;
@@ -490,13 +503,12 @@ async function main() {
           if (tentativa > 1) {
             console.log(`  🔁 Retry ${tentativa}/3 — aguardando 30s...`);
             await SLEEP(30000);
-            // Apaga pdf anterior para forçar novo download
-            if (fs.existsSync(destPdf)) fs.unlinkSync(destPdf);
-            if (fs.existsSync(destXls)) fs.unlinkSync(destXls);
+            if (fs.existsSync(destXlsx)) fs.unlinkSync(destXlsx);
+            if (fs.existsSync(destXls))  fs.unlinkSync(destXls);
           }
 
-          // ── Se o PDF já está no disco (ex: bot caiu), reenvia sem baixar ──
-          if (!fs.existsSync(destPdf)) {
+          // ── Se o xlsx já está no disco (ex: bot caiu), reenvia sem baixar ──
+          if (!fs.existsSync(destXlsx)) {
             await carregarBase(page, loja);
             const excelPath = await baixarComFiltro(page, loja, tarefa.filtro, tarefa.labelLog);
             if (!excelPath) {
@@ -510,15 +522,14 @@ async function main() {
             const linhas = parsearExcel(fs.readFileSync(destXls));
             console.log(`  💾 Salvo: ${path.basename(destXls)} (${linhas} clientes)`);
 
-            const pdfOk = await gerarPDF(browser, destXls, destPdf, tarefa.caption);
-            if (!pdfOk) { console.log(`  ⚠️  Falha ao gerar PDF`); continue; }
-            console.log(`  📄 PDF gerado: ${path.basename(destPdf)}`);
+            await formatarExcel(destXls, destXlsx);
+            console.log(`  ✨ Formatado: ${path.basename(destXlsx)}`);
           } else {
-            console.log(`  📂 PDF já em disco — reenviando`);
+            console.log(`  📂 xlsx já em disco — reenviando`);
           }
 
-          const nomeWA = `${tarefa.label}.pdf`;
-          const ok = await enviarArquivoWA(destPdf, nomeWA, tarefa.caption);
+          const nomeWA = `${tarefa.label}.xlsx`;
+          const ok = await enviarArquivoWA(destXlsx, nomeWA, tarefa.caption);
           if (ok) {
             marcarEnviado(estado, chaveDedup);
             enviado = true;
