@@ -27,7 +27,8 @@ const BASE_URL  = 'https://sistemaoficinainteligente.com.br';
 const LOGIN_URL = `${BASE_URL}/Entrar.aspx?sair=1`;
 const BI_URL    = `${BASE_URL}/wfCRMBI.aspx`;
 const BOT_URL   = 'http://127.0.0.1:3099';
-const GRUPO_ID  = '5516996337606-1627903605@g.us'; // ☎️ Comercial
+const GRUPO_ID       = '5516996337606-1627903605@g.us'; // ☎️ Comercial
+const GRUPO_AUTOMACAO_ID = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID || '120363407521841023@g.us';
 const DEBUG_DIR = path.join(__dirname, '..', 'output', 'debug-bi');
 const SLEEP     = ms => new Promise(r => setTimeout(r, ms));
 
@@ -543,6 +544,23 @@ async function main() {
   } finally {
     await browser.close();
   }
+
+  // ── Notificação de conclusão no grupo automações ──────────────────────────
+  const enviados = Object.keys(carregarEstado()).length;
+  const total    = lojas.length * 5; // 5 relatórios por loja
+  const dataBI   = `${dStr}/${mStr}`;
+  const msg = `✅ *BI Reativação OI — ${dataBI}*\n${enviados}/${total} relatórios enviados no grupo Comercial`;
+  await new Promise(resolve => {
+    if (!GRUPO_AUTOMACAO_ID) return resolve();
+    const body = JSON.stringify({ chatId: GRUPO_AUTOMACAO_ID, message: msg });
+    const req = http.request(`${BOT_URL}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, res => { res.resume(); resolve(); });
+    req.on('error', () => resolve());
+    req.setTimeout(10000, () => { req.destroy(); resolve(); });
+    req.write(body); req.end();
+  });
 
   console.log('\n✅ Concluído!');
 }
