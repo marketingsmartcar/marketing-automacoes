@@ -465,6 +465,7 @@ BRPneus-MonitorAds-15h00     → seg–sáb 15h
 BRPneus-MonitorAds-16h00     → seg–sáb 16h
 BRPneus-MonitorAds-17h00     → seg–sáb 17h
 BRPneus-MonitorAds-17h30     → seg–sáb 17h30
+BRPneus-ComparativoPrecos   → toda segunda às 8h
 ```
 
 **PM2 (sempre ativos):**
@@ -1273,3 +1274,47 @@ node tools/bi-reativacao-oi.js --loja=BR01 --dia=14 --mes=7  # data específica
 **Tempo estimado:** ~2,5 min/loja → ~10 min para as 4 lojas
 
 *Última atualização: 14/07/2026 — Validado em produção: 20 Excel enviados ao ☎️ Comercial (BR01+BR03+BR04+PEG1). Task Scheduler `BI-Reativacao-OI` criado para 7h diário.*
+
+---
+
+## 25. Comparativo de Preços — Pneu Store vs BR Pneus (Semanal)
+
+**O que faz:** Toda segunda-feira às 8h, faz scraping do site Pneu Store (`pneustore.com.br`) para buscar o menor preço de cada medida da tabela de preços da BR Pneus. Gera Excel local e atualiza duas abas no Google Sheets com o comparativo.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/comparar-precos-pneustore.js` |
+| Agendamento | Toda **segunda-feira às 8h** — Task Scheduler: `BRPneus-ComparativoPrecos` |
+| Log | `logs/comparativo-precos.log` |
+| Cache diário | `output/debug-bi/pneustore-cache.json` |
+| Excel local | `output/relatorios/comparativo-precos-YYYY-MM-DD.xlsx` |
+| Google Sheets | Planilha `GOOGLE_SHEETS_SPREADSHEET_ID` — abas "Comparativo Pneu Store" e "Resumo Pneu Store" |
+| Dependências | `puppeteer`, `exceljs`, `googleapis` |
+
+**Variáveis de ambiente (`.env`):**
+- `GOOGLE_SERVICE_ACCOUNT_KEY` — caminho do JSON da service account (ou `GOOGLE_SERVICE_ACCOUNT_JSON`)
+- `GOOGLE_SHEETS_SPREADSHEET_ID` — ID da planilha (ou `COMPARATIVO_SHEETS_ID` para planilha exclusiva)
+- Fonte de dados: `knowledge/tabela-precos.json` (186 medidas, tab1/tab2/tab3)
+
+**Como rodar:**
+```bash
+npm run comparar-precos              # roda completo (todas as 186 medidas)
+npm run comparar-precos:teste        # só 5 medidas de carro (teste rápido)
+npm run comparar-precos:limpar       # limpa cache e re-scrapa
+npm run comparar-precos:sheets       # só atualiza o Sheets (usa cache do dia)
+npm run comparar-precos:agendar      # reagenda o Task Scheduler
+```
+
+**Status por medida:**
+- ✅ Mais barato — Tab1 ≤ preço Pneu Store
+- 🟡 Similar — Tab1 até 5% acima do Pneu Store
+- 🔴 Mais caro — Tab1 mais de 5% acima do Pneu Store
+- — Não encontrado — medida não apareceu nos resultados da Pneu Store (comum em moto/perfis raros)
+
+**Regras importantes:**
+- Cache diário evita re-scraping da mesma medida na mesma execução
+- Pneus de moto (`100/80-14` format) frequentemente não são encontrados (URL não filtra corretamente)
+- A planilha Google Sheets usa abas nomeadas — nunca toca em outras abas da planilha
+- Scraping com delay de 1,5s entre medidas para não sobrecarregar o site
+
+*Criado: 30/07/2026*

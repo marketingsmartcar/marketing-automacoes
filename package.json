@@ -48,7 +48,13 @@
     "ads:supabase": "node tools/coletar-ads-supabase.js",
     "ads:supabase:meta": "node tools/coletar-ads-supabase.js --meta",
     "ads:supabase:google": "node tools/coletar-ads-supabase.js --google",
-    "avaliacoes": "node tools/coletar-avaliacoes.js"
+    "avaliacoes": "node tools/coletar-avaliacoes.js",
+    "comparar-precos": "node tools/comparar-precos-pneustore.js",
+    "comparar-precos:teste": "node tools/comparar-precos-pneustore.js --teste",
+    "comparar-precos:limpar": "node tools/comparar-precos-pneustore.js --limpar",
+    "comparar-precos:sheets": "node tools/comparar-precos-pneustore.js --sheets",
+    "comparar-precos:agendar": "node tools/agendar-comparativo-precos.js",
+    "comparar-precos:desagendar": "node tools/agendar-comparativo-precos.js --remover"
   },
   "keywords": [],
   "author": "",
@@ -69,6 +75,7 @@
     "get-video-duration": "^5.0.0",
     "google-ads-api": "^23.0.0",
     "googleapis": "^171.4.0",
+    "imap-simple": "^5.1.0",
     "node-cron": "^4.2.1",
     "open": "^11.0.0",
     "openai": "^6.34.0",
