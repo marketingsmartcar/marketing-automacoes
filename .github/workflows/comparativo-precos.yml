@@ -2,8 +2,8 @@ name: Comparativo Preços — Pneu Store vs BR Pneus
 
 on:
   schedule:
-    # 08:00 BRT (UTC-3) = 11:00 UTC — toda segunda-feira
-    - cron: '0 11 * * 1'
+    # 08:30 BRT (UTC-3) = 11:30 UTC — toda segunda-feira
+    - cron: '30 11 * * 1'
   workflow_dispatch:
 
 permissions:
