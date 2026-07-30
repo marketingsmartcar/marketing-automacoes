@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           echo "GOOGLE_SERVICE_ACCOUNT_JSON=${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}"             >> .env
-          echo "GOOGLE_SHEETS_SPREADSHEET_ID=${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}"           >> .env
+          echo "COMPARATIVO_SHEETS_ID=${{ secrets.COMPARATIVO_SHEETS_ID }}"                         >> .env
 
       - name: Rodar comparativo
         shell: bash
