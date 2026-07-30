@@ -52,7 +52,7 @@ const LOJAS_CONFIG = [
   { key: 'BR01', value: '469',  nome: 'BR Pneus Araraquara', sigla: 'BR1' },
   { key: 'BR03', value: '2202', nome: 'BR Pneus Americana',  sigla: 'BR3' },
   { key: 'BR04', value: '1524', nome: 'BR Pneus São Carlos', sigla: 'BR4' },
-  { key: 'PEG1', value: '3098', nome: 'Peg Pneus Araraquara',sigla: 'PEG1'},
+  { key: 'PEG1', value: '3098', nome: 'Peg Pneus Araraquara',sigla: 'PEG1', periodos: ['3m'] },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -474,13 +474,15 @@ async function main() {
           filtro:   filtroAniversario(dia, mes),
           caption:  `🎂 ${loja.sigla} - Aniversariantes ${dataLabel}`,
         },
-        ...periodos.map(p => ({
-          id:       p.id,
-          label:    `${loja.sigla} ${p.label} ${String(dia).padStart(2,'0')}-${String(mes).padStart(2,'0')}`,
-          labelLog: `Última venda ${p.label} (${p.de} a ${p.ate})`,
-          filtro:   filtroUltimaVenda(p.de, p.ate),
-          caption:  `🔄 ${loja.sigla} - ${p.label}`,
-        })),
+        ...periodos
+          .filter(p => !loja.periodos || loja.periodos.includes(p.id))
+          .map(p => ({
+            id:       p.id,
+            label:    `${loja.sigla} ${p.label} ${String(dia).padStart(2,'0')}-${String(mes).padStart(2,'0')}`,
+            labelLog: `Última venda ${p.label} (${p.de} a ${p.ate})`,
+            filtro:   filtroUltimaVenda(p.de, p.ate),
+            caption:  `🔄 ${loja.sigla} - ${p.label}`,
+          })),
       ];
 
       for (const tarefa of tarefas) {
@@ -547,7 +549,7 @@ async function main() {
 
   // ── Notificação de conclusão no grupo automações ──────────────────────────
   const enviados = Object.keys(carregarEstado()).length;
-  const total    = lojas.length * 5; // 5 relatórios por loja
+  const total    = lojas.reduce((acc, l) => acc + 1 + (l.periodos ? l.periodos.length : 4), 0);
   const dataBI   = `${dStr}/${mStr}`;
   const msg = `✅ *BI Reativação OI — ${dataBI}*\n${enviados}/${total} relatórios enviados no grupo Comercial`;
   await new Promise(resolve => {
