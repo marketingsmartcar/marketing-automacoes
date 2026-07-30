@@ -1,183 +1,16 @@
 {
-  "_tabelas": {
-    "tab1": {
-      "nome": "Tab 1",
-      "descricao": "COMBO PROMOCIONAL — compra de 4+ pneus do mesmo grupo",
-      "pagamento": "À Vista: Dinheiro / Pix / Cartão Débito",
-      "observacao": "Melhor preço. Válido para qualquer grupo de pneu."
-    },
-    "tab2": {
-      "nome": "Tab 2",
-      "descricao_pf": "RETIRA ou FORA COMBO — Cliente Final (PF)",
-      "descricao_pj": "RETIRA ou FORA COMBO — Cliente Revenda/CNPJ (Inclusive Promocional e Curva A)",
-      "pagamento_debito": "À Vista: Dinheiro / Pix / Cartão Débito",
-      "pagamento_credito": "Crédito à vista ou até 10x / Cartão Crédito",
-      "pagamento_boleto_pj": "Boleto: 7, 15 ou 30 dias (direto)"
-    },
-    "tab3": {
-      "nome": "Tab 3",
-      "descricao_pf": "RETIRA ou FORA COMBO — Todo grupo de pneu (PF)",
-      "descricao_pj": "RETIRA ou FORA COMBO — Todo grupo de pneu (Revenda/CNPJ)",
-      "pagamento_pf": "6x a 10x / Cartão Crédito",
-      "pagamento_boleto_pj": "Boleto: 15/30-20/40-30/60 dias"
-    }
-  },
-  "_gerado": "2026-04-22T19:00:56.347Z",
-  "_fonte": "Planilha Google Sheets: 12Ta-tSRYF62g4K78rzLvms1P4N_R9LOnvOTwd6pi5BU",
   "entradas": [
     {
-      "medida": "100/80-14",
-      "ref": "1008014",
-      "modelo": "Rinaldi SS-48 Sport  (Diant Tubeless)",
-      "tab1": 239,
-      "tab2": 259,
-      "tab3": 269
-    },
-    {
-      "medida": "100/80-17",
-      "ref": "1008017",
-      "modelo": "Importado Sport  (Diant Tubeless)",
-      "tab1": 149,
-      "tab2": 159,
-      "tab3": 169
-    },
-    {
-      "medida": "100/90-10",
-      "ref": "1009010",
-      "modelo": "Rinaldi HB-37 Sport  (Diant/Tras Tubeless)",
+      "categoria": "PASSEIO",
+      "medida": "155 R 12",
+      "ref": "155R12",
+      "modelo": "Importado Carga Leve",
       "tab1": 229,
-      "tab2": 239,
-      "tab3": 249
-    },
-    {
-      "medida": "110/70-17",
-      "ref": "1107017",
-      "modelo": "Importado Sport  (Diant Tubeless)",
-      "tab1": 199,
-      "tab2": 209,
-      "tab3": 219
-    },
-    {
-      "medida": "110/90-17",
-      "ref": "1109017",
-      "modelo": "Rinaldi R-34 Trail  (Tras Tubetype)",
-      "tab1": 279,
-      "tab2": 289,
-      "tab3": 309
-    },
-    {
-      "medida": "12/4-24",
-      "ref": "12424",
-      "modelo": "Importado 12PR (Tras Trator)",
-      "tab1": 1499,
-      "tab2": 1589,
-      "tab3": 1679
-    },
-    {
-      "medida": "120/70-13",
-      "ref": "1207013",
-      "modelo": "Rinaldi HB-37 Sport  (Diant/Tras Tubeless)",
-      "tab1": 249,
       "tab2": 259,
-      "tab3": 269
+      "tab3": 279
     },
     {
-      "medida": "120/70-14",
-      "ref": "1207014",
-      "modelo": "Rinaldi SS-48 Sport  (Tras Tubeless)",
-      "tab1": 229,
-      "tab2": 249,
-      "tab3": 259
-    },
-    {
-      "medida": "130/70-12",
-      "ref": "1307012",
-      "modelo": "Rinaldi HB-37 Sport  (Diant/Tras Tubeless)",
-      "tab1": 249,
-      "tab2": 259,
-      "tab3": 269
-    },
-    {
-      "medida": "130/70-13",
-      "ref": "1307013",
-      "modelo": "",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
-      "medida": "130/70-17",
-      "ref": "1307017",
-      "modelo": "Importado Sport  (Tras Tubeless)",
-      "tab1": 239,
-      "tab2": 249,
-      "tab3": 269
-    },
-    {
-      "medida": "14/9-24",
-      "ref": "14924",
-      "modelo": "Importado 12PR (Tras Trator)",
-      "tab1": 1749,
-      "tab2": 1859,
-      "tab3": 1959
-    },
-    {
-      "medida": "14/9-28",
-      "ref": "14928",
-      "modelo": "Importado 12PR (Tras Trator)",
-      "tab1": 2499,
-      "tab2": 2649,
-      "tab3": 2799
-    },
-    {
-      "medida": "140/70-17",
-      "ref": "1407017",
-      "modelo": "Importado Sport  (Tras Tubeless)",
-      "tab1": 289,
-      "tab2": 299,
-      "tab3": 319
-    },
-    {
-      "medida": "140/80-18",
-      "ref": "1408018",
-      "modelo": "Rinaldi SW-43 Off-Road  (Tras Tubetype)",
-      "tab1": 379,
-      "tab2": 399,
-      "tab3": 419
-    },
-    {
-      "medida": "165/35 R 18",
-      "ref": "1653518",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
-      "medida": "165/40 R 17",
-      "ref": "1654017",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
-      "medida": "165/40 R 18",
-      "ref": "1654018",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
-      "medida": "165/50 R 15",
-      "ref": "1655015",
-      "modelo": "Importado",
-      "tab1": 289,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "165/70 R 13",
       "ref": "1657013",
       "modelo": "Importado",
@@ -186,62 +19,25 @@
       "tab3": 309
     },
     {
-      "medida": "165/70 R 14",
-      "ref": "1657014",
-      "modelo": "Importado",
-      "tab1": 309,
-      "tab2": 329,
-      "tab3": 349
+      "categoria": "PASSEIO",
+      "medida": "165/70 R 13",
+      "ref": "1657013",
+      "modelo": "Goodyear Kelly Edge 2",
+      "tab1": 339,
+      "tab2": 359,
+      "tab3": 379
     },
     {
-      "medida": "17.5-25",
-      "ref": "17525",
-      "modelo": "Tratores industriais",
-      "tab1": 2989,
-      "tab2": 3169,
-      "tab3": 3349
-    },
-    {
-      "medida": "175/55 R 16",
-      "ref": "1755516",
-      "modelo": "importado",
-      "tab1": 459,
-      "tab2": 489,
-      "tab3": 519
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "175/60 R 13",
       "ref": "1756013",
       "modelo": "Importado",
-      "tab1": 189,
+      "tab1": 199,
       "tab2": 249,
       "tab3": 259
     },
     {
-      "medida": "175/60 R 14",
-      "ref": "1756014",
-      "modelo": "Importado",
-      "tab1": 209,
-      "tab2": 259,
-      "tab3": 269
-    },
-    {
-      "medida": "175/65 R 14",
-      "ref": "1756514",
-      "modelo": "Importado",
-      "tab1": 289,
-      "tab2": 309,
-      "tab3": 319
-    },
-    {
-      "medida": "175/65 R 15",
-      "ref": "1756515",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "175/70 R 13",
       "ref": "1757013",
       "modelo": "Importado",
@@ -250,14 +46,25 @@
       "tab3": 319
     },
     {
-      "medida": "175/70 R 14",
-      "ref": "1757014",
-      "modelo": "Importado",
-      "tab1": 289,
-      "tab2": 319,
-      "tab3": 339
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 13",
+      "ref": "1757013",
+      "modelo": "Dunlop Touring R-1",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 13",
+      "ref": "1757013",
+      "modelo": "Goodyear Kelly Edge 2",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "175/75 R 13",
       "ref": "1757513",
       "modelo": "Importado",
@@ -266,102 +73,7 @@
       "tab3": 269
     },
     {
-      "medida": "175/75 R 14",
-      "ref": "1757514",
-      "modelo": "Importado",
-      "tab1": 259,
-      "tab2": 279,
-      "tab3": 289
-    },
-    {
-      "medida": "175/80 R 14",
-      "ref": "1758014",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
-      "medida": "18/4-30",
-      "ref": "18430",
-      "modelo": "Importado 12PR (Tras Trator)",
-      "tab1": 3109,
-      "tab2": 3299,
-      "tab3": 3489
-    },
-    {
-      "medida": "18/4-34",
-      "ref": "18434",
-      "modelo": "Importado 12PR (Tras Trator)",
-      "tab1": 3299,
-      "tab2": 3499,
-      "tab3": 3699
-    },
-    {
-      "medida": "185/35 R 17",
-      "ref": "1853517",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
-      "medida": "185/35 R 18",
-      "ref": "1853518",
-      "modelo": "Importado",
-      "tab1": 309,
-      "tab2": 329,
-      "tab3": 349
-    },
-    {
-      "medida": "185/55 R 14",
-      "ref": "1855514",
-      "modelo": "Importado",
-      "tab1": 229,
-      "tab2": 239,
-      "tab3": 249
-    },
-    {
-      "medida": "185/55 R 16",
-      "ref": "1855516",
-      "modelo": "Importado",
-      "tab1": 309,
-      "tab2": 329,
-      "tab3": 349
-    },
-    {
-      "medida": "185/60 R 14",
-      "ref": "1856014",
-      "modelo": "Importado",
-      "tab1": 239,
-      "tab2": 259,
-      "tab3": 269
-    },
-    {
-      "medida": "185/60 R 15",
-      "ref": "1856015",
-      "modelo": "Importado",
-      "tab1": 249,
-      "tab2": 299,
-      "tab3": 319
-    },
-    {
-      "medida": "185/65 R 14",
-      "ref": "1856514",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 329,
-      "tab3": 349
-    },
-    {
-      "medida": "185/65 R 15",
-      "ref": "1856515",
-      "modelo": "Importado",
-      "tab1": 279,
-      "tab2": 299,
-      "tab3": 309
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "185/70 R 13",
       "ref": "1857013",
       "modelo": "Dunlop Touring R-1",
@@ -370,6 +82,241 @@
       "tab3": 409
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "165/70 R 14",
+      "ref": "1657014",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/60 R 14",
+      "ref": "1756014",
+      "modelo": "Importado",
+      "tab1": 219,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Importado",
+      "tab1": 289,
+      "tab2": 309,
+      "tab3": 319
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Dunlop Touring R-1",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Firestone F-700",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Goodyear Kelly Edge 2",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Goodyear Assurance Maxlife",
+      "tab1": 379,
+      "tab2": 399,
+      "tab3": 419
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 359,
+      "tab2": 379,
+      "tab3": 399
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 14",
+      "ref": "1756514",
+      "modelo": "Pirelli P-400 Evo",
+      "tab1": 359,
+      "tab2": 379,
+      "tab3": 399
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Importado",
+      "tab1": 289,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Importado Carga Leve",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 489,
+      "tab2": 519,
+      "tab3": 549
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Dunlop Touring R-1",
+      "tab1": 389,
+      "tab2": 409,
+      "tab3": 439
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Firestone F-700",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Goodyear Kelly Edge 2",
+      "tab1": 399,
+      "tab2": 439,
+      "tab3": 469
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Goodyear Assurance Maxlife",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/70 R 14",
+      "ref": "1757014",
+      "modelo": "Pirelli P-400 Evo",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/75 R 14",
+      "ref": "1757514",
+      "modelo": "Importado",
+      "tab1": 259,
+      "tab2": 279,
+      "tab3": 289
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/80 R 14",
+      "ref": "1758014",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/80 R 14",
+      "ref": "1758014",
+      "modelo": "Importado AT",
+      "tab1": 359,
+      "tab2": 379,
+      "tab3": 399
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/80 R 14",
+      "ref": "1758014",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 429,
+      "tab2": 459,
+      "tab3": 479
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/80 R 14",
+      "ref": "1758014",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/55 R 14",
+      "ref": "1855514",
+      "modelo": "Importado",
+      "tab1": 229,
+      "tab2": 239,
+      "tab3": 249
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/60 R 14",
+      "ref": "1856014",
+      "modelo": "Importado",
+      "tab1": 239,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/65 R 14",
+      "ref": "1856514",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "185/70 R 14",
       "ref": "1857014",
       "modelo": "Importado",
@@ -378,30 +325,178 @@
       "tab3": 349
     },
     {
-      "medida": "195/35 R 18",
-      "ref": "1953518",
-      "modelo": "Importado",
-      "tab1": 319,
-      "tab2": 359,
-      "tab3": 389
+      "categoria": "PASSEIO",
+      "medida": "185/70 R 14",
+      "ref": "1857014",
+      "modelo": "Dunlop Touring R-1",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
     },
     {
-      "medida": "195/40 R 17",
-      "ref": "1954017",
-      "modelo": "Importado",
-      "tab1": 329,
-      "tab2": 349,
+      "categoria": "PASSEIO",
+      "medida": "185/70 R 14",
+      "ref": "1857014",
+      "modelo": "Firestone F-700",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/70 R 14",
+      "ref": "1857014",
+      "modelo": "Goodyear Assurance Maxlife",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/70 R 14",
+      "ref": "1857014",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185 R 14",
+      "ref": "185R14",
+      "modelo": "Importado Carga Leve",
+      "tab1": 339,
+      "tab2": 359,
       "tab3": 379
     },
     {
-      "medida": "195/45 R 17",
-      "ref": "1954517",
-      "modelo": "Importado",
-      "tab1": 329,
-      "tab2": 349,
-      "tab3": 369
+      "categoria": "PASSEIO",
+      "medida": "195 R 14",
+      "ref": "195R14",
+      "modelo": "Importado Carga Leve",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "205 R 14",
+      "ref": "205R14",
+      "modelo": "Importado Carga Leve",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "165/50 R 15",
+      "ref": "1655015",
+      "modelo": "Importado",
+      "tab1": 289,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "175/65 R 15",
+      "ref": "1756515",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/60 R 15",
+      "ref": "1856015",
+      "modelo": "Importado",
+      "tab1": 259,
+      "tab2": 299,
+      "tab3": 319
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/60 R 15",
+      "ref": "1856015",
+      "modelo": "Dunlop Sport FM-800",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/60 R 15",
+      "ref": "1856015",
+      "modelo": "Firestone F-700",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/60 R 15",
+      "ref": "1856015",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/60 R 15",
+      "ref": "1856015",
+      "modelo": "Pirelli P-400 Evo",
+      "tab1": 539,
+      "tab2": 569,
+      "tab3": 599
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/65 R 15",
+      "ref": "1856515",
+      "modelo": "Importado",
+      "tab1": 279,
+      "tab2": 299,
+      "tab3": 309
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/65 R 15",
+      "ref": "1856515",
+      "modelo": "Dunlop Sport FM-800",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/65 R 15",
+      "ref": "1856515",
+      "modelo": "Firestone F-700",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/65 R 15",
+      "ref": "1856515",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/65 R 15",
+      "ref": "1856515",
+      "modelo": "Pirelli P-400 Evo",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "195/50 R 15",
       "ref": "1955015",
       "modelo": "Importado",
@@ -410,14 +505,7 @@
       "tab3": 319
     },
     {
-      "medida": "195/50 R 16",
-      "ref": "1955016",
-      "modelo": "Importado",
-      "tab1": 319,
-      "tab2": 339,
-      "tab3": 359
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "195/55 R 15",
       "ref": "1955515",
       "modelo": "Importado",
@@ -426,14 +514,52 @@
       "tab3": 309
     },
     {
-      "medida": "195/55 R 16",
-      "ref": "1955516",
-      "modelo": "Importado",
-      "tab1": 359,
-      "tab2": 379,
-      "tab3": 399
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 15",
+      "ref": "1955515",
+      "modelo": "Dunlop Sport FM-800",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 15",
+      "ref": "1955515",
+      "modelo": "Firestone F-700",
+      "tab1": 379,
+      "tab2": 399,
+      "tab3": 429
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 15",
+      "ref": "1955515",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 15",
+      "ref": "1955515",
+      "modelo": "Pirelli P-400 Evo",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 15",
+      "ref": "1955515",
+      "modelo": "Pirelli Powergy",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "195/60 R 15",
       "ref": "1956015",
       "modelo": "Importado",
@@ -442,14 +568,52 @@
       "tab3": 309
     },
     {
-      "medida": "195/60 R 16",
-      "ref": "1956016",
-      "modelo": "Importado",
-      "tab1": 369,
-      "tab2": 389,
-      "tab3": 419
+      "categoria": "PASSEIO",
+      "medida": "195/60 R 15",
+      "ref": "1956015",
+      "modelo": "Bridgestone Ecopia EP-150",
+      "tab1": 389,
+      "tab2": 419,
+      "tab3": 439
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "195/60 R 15",
+      "ref": "1956015",
+      "modelo": "Dunlop Sport FM-800",
+      "tab1": 419,
+      "tab2": 449,
+      "tab3": 469
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/60 R 15",
+      "ref": "1956015",
+      "modelo": "Firestone F-700",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/60 R 15",
+      "ref": "1956015",
+      "modelo": "Goodyear Kelly Edge 2",
+      "tab1": 489,
+      "tab2": 519,
+      "tab3": 549
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/60 R 15",
+      "ref": "1956015",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "195/65 R 15",
       "ref": "1956515",
       "modelo": "Importado",
@@ -458,6 +622,43 @@
       "tab3": 339
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "195/65 R 15",
+      "ref": "1956515",
+      "modelo": "Dunlop Sport FM-800",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/65 R 15",
+      "ref": "1956515",
+      "modelo": "Firestone F-700",
+      "tab1": 489,
+      "tab2": 519,
+      "tab3": 549
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/65 R 15",
+      "ref": "1956515",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/65 R 15",
+      "ref": "1956515",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 539,
+      "tab2": 569,
+      "tab3": 599
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "195/70 R 15",
       "ref": "1957015",
       "modelo": "Importado Carga Leve",
@@ -466,94 +667,7 @@
       "tab3": 449
     },
     {
-      "medida": "195/75 R 16",
-      "ref": "1957516",
-      "modelo": "Importado Carga Leve",
-      "tab1": 359,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "205/30 R 20",
-      "ref": "2053020",
-      "modelo": "Importado",
-      "tab1": 389,
-      "tab2": 419,
-      "tab3": 439
-    },
-    {
-      "medida": "205/35 R 18",
-      "ref": "2053518",
-      "modelo": "Importado",
-      "tab1": 359,
-      "tab2": 389,
-      "tab3": 419
-    },
-    {
-      "medida": "205/35 R 20",
-      "ref": "2053520",
-      "modelo": "Importado",
-      "tab1": 369,
-      "tab2": 399,
-      "tab3": 419
-    },
-    {
-      "medida": "205/40 R 17",
-      "ref": "2054017",
-      "modelo": "Importado",
-      "tab1": 299,
-      "tab2": 319,
-      "tab3": 339
-    },
-    {
-      "medida": "205/40 R 18",
-      "ref": "2054018",
-      "modelo": "Importado",
-      "tab1": 449,
-      "tab2": 479,
-      "tab3": 499
-    },
-    {
-      "medida": "205/45 R 17",
-      "ref": "2054517",
-      "modelo": "Importado",
-      "tab1": 329,
-      "tab2": 349,
-      "tab3": 369
-    },
-    {
-      "medida": "205/50 R 16",
-      "ref": "2055016",
-      "modelo": "Importado",
-      "tab1": 199,
-      "tab2": 229,
-      "tab3": 249
-    },
-    {
-      "medida": "205/50 R 17",
-      "ref": "2055017",
-      "modelo": "Importado",
-      "tab1": 359,
-      "tab2": 389,
-      "tab3": 409
-    },
-    {
-      "medida": "205/55 R 16",
-      "ref": "2055516",
-      "modelo": "Importado",
-      "tab1": 279,
-      "tab2": 329,
-      "tab3": 349
-    },
-    {
-      "medida": "205/55 R 17",
-      "ref": "2055517",
-      "modelo": "Importado",
-      "tab1": 379,
-      "tab2": 409,
-      "tab3": 429
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "205/60 R 15",
       "ref": "2056015",
       "modelo": "Importado HT",
@@ -562,14 +676,61 @@
       "tab3": 359
     },
     {
-      "medida": "205/60 R 16",
-      "ref": "2056016",
-      "modelo": "Importado HT",
-      "tab1": 349,
-      "tab2": 369,
-      "tab3": 389
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 15",
+      "ref": "2056015",
+      "modelo": "Importado AT",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 15",
+      "ref": "2056015",
+      "modelo": "Roadcruza RA-1100 All Terrain",
+      "tab1": 519,
+      "tab2": 549,
+      "tab3": 579
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 15",
+      "ref": "2056015",
+      "modelo": "Speedmax Pangea All Terrain",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 15",
+      "ref": "2056015",
+      "modelo": "Dunlop Sport FM-800 HT",
+      "tab1": 489,
+      "tab2": 519,
+      "tab3": 549
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 15",
+      "ref": "2056015",
+      "modelo": "Goodyear Efficientgrip Performance HT",
+      "tab1": 579,
+      "tab2": 609,
+      "tab3": 649
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 15",
+      "ref": "2056015",
+      "modelo": "Pirelli Scorpion ATR",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "205/65 R 15",
       "ref": "2056515",
       "modelo": "Importado HT",
@@ -578,14 +739,52 @@
       "tab3": 389
     },
     {
-      "medida": "205/65 R 16",
-      "ref": "2056516",
-      "modelo": "Importado HT",
-      "tab1": 399,
-      "tab2": 419,
-      "tab3": 449
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 15",
+      "ref": "2056515",
+      "modelo": "Importado AT",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 15",
+      "ref": "2056515",
+      "modelo": "Comforser CF1100 RT All Terrain",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 15",
+      "ref": "2056515",
+      "modelo": "Dunlop SPFM-800 HT",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 15",
+      "ref": "2056515",
+      "modelo": "Goodyear Fortitude Wrangler HT",
+      "tab1": 589,
+      "tab2": 629,
+      "tab3": 659
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 15",
+      "ref": "2056515",
+      "modelo": "Bridgestone Dueller AT",
+      "tab1": 569,
+      "tab2": 599,
+      "tab3": 639
+    },
+    {
+      "categoria": "PASSEIO",
       "medida": "205/70 R 15",
       "ref": "2057015",
       "modelo": "Importado HT",
@@ -594,262 +793,70 @@
       "tab3": 419
     },
     {
-      "medida": "205/75 R 16",
-      "ref": "2057516",
+      "categoria": "PASSEIO",
+      "medida": "205/70 R 15",
+      "ref": "2057015",
+      "modelo": "Importado AT",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/70 R 15",
+      "ref": "2057015",
       "modelo": "Importado Carga Leve",
-      "tab1": 429,
-      "tab2": 459,
-      "tab3": 489
-    },
-    {
-      "medida": "215/30 R 20",
-      "ref": "2153020",
-      "modelo": "Importado",
-      "tab1": 429,
-      "tab2": 459,
-      "tab3": 479
-    },
-    {
-      "medida": "215/35 R 18",
-      "ref": "2153518",
-      "modelo": "Importado",
-      "tab1": 309,
-      "tab2": 329,
-      "tab3": 349
-    },
-    {
-      "medida": "215/35 R 19",
-      "ref": "2153519",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 439,
-      "tab3": 459
-    },
-    {
-      "medida": "215/40 R 18",
-      "ref": "2154018",
-      "modelo": "Importado",
-      "tab1": 389,
-      "tab2": 419,
-      "tab3": 439
-    },
-    {
-      "medida": "215/45 R 17",
-      "ref": "2154517",
-      "modelo": "Importado",
-      "tab1": 349,
-      "tab2": 369,
-      "tab3": 389
-    },
-    {
-      "medida": "215/45 R 18",
-      "ref": "2154518",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "215/50 R 17",
-      "ref": "2155017",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "215/55 R 16",
-      "ref": "2155516",
-      "modelo": "Importado",
-      "tab1": 369,
-      "tab2": 389,
-      "tab3": 419
-    },
-    {
-      "medida": "215/55 R 17",
-      "ref": "2155517",
-      "modelo": "Importado",
-      "tab1": 429,
-      "tab2": 459,
-      "tab3": 479
-    },
-    {
-      "medida": "215/55 R 18",
-      "ref": "2155518",
-      "modelo": "Importado",
       "tab1": 449,
       "tab2": 479,
       "tab3": 499
     },
     {
-      "medida": "215/60 R 16",
-      "ref": "2156016",
-      "modelo": "Importado",
-      "tab1": 389,
-      "tab2": 419,
-      "tab3": 439
-    },
-    {
-      "medida": "215/60 R 17",
-      "ref": "2156017",
-      "modelo": "Importado",
-      "tab1": 439,
-      "tab2": 469,
-      "tab3": 489
-    },
-    {
-      "medida": "215/65 R 16",
-      "ref": "2156516",
-      "modelo": "Importado HT",
-      "tab1": 409,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "215/75 R 16",
-      "ref": "2157516",
-      "modelo": "Importado Carga Leve",
+      "categoria": "PASSEIO",
+      "medida": "205/70 R 15",
+      "ref": "2057015",
+      "modelo": "Comforser CF1100 RT All Terrain",
       "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
+      "tab2": 439,
+      "tab3": 469
     },
     {
-      "medida": "215/75 R 17.5",
-      "ref": "215751750",
-      "modelo": "Importado Liso 16PR",
-      "tab1": 689,
-      "tab2": 729,
-      "tab3": 769
+      "categoria": "PASSEIO",
+      "medida": "205/70 R 15",
+      "ref": "2057015",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 529,
+      "tab2": 559,
+      "tab3": 589
     },
     {
-      "medida": "215/80 R 16",
-      "ref": "2158016",
-      "modelo": "Pirelli Scorpion HT",
-      "tab1": 699,
-      "tab2": 739,
-      "tab3": 779
+      "categoria": "PASSEIO",
+      "medida": "205/70 R 15",
+      "ref": "2057015",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 559,
+      "tab2": 589,
+      "tab3": 629
     },
     {
-      "medida": "225/30 R 20",
-      "ref": "2253020",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 459
+      "categoria": "PASSEIO",
+      "medida": "205/70 R 15",
+      "ref": "2057015",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 519,
+      "tab2": 549,
+      "tab3": 579
     },
     {
-      "medida": "225/35 R 19",
-      "ref": "2253519",
-      "modelo": "Importado",
-      "tab1": 379,
-      "tab2": 399,
-      "tab3": 429
+      "categoria": "PASSEIO",
+      "medida": "205/70 R 15",
+      "ref": "2057015",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 569,
+      "tab2": 599,
+      "tab3": 639
     },
     {
-      "medida": "225/35 R 20",
-      "ref": "2253520",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "225/40 R 18",
-      "ref": "2254018",
-      "modelo": "Importado",
-      "tab1": 359,
-      "tab2": 379,
-      "tab3": 409
-    },
-    {
-      "medida": "225/40 R 19",
-      "ref": "2254019",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 459
-    },
-    {
-      "medida": "225/45 R 17",
-      "ref": "2254517",
-      "modelo": "Importado",
-      "tab1": 349,
-      "tab2": 369,
-      "tab3": 399
-    },
-    {
-      "medida": "225/45 R 18",
-      "ref": "2254518",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "225/50 R 17",
-      "ref": "2255017",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "225/50 R 18",
-      "ref": "2255018",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "225/55 R 18",
-      "ref": "2255518",
-      "modelo": "Importado",
-      "tab1": 459,
-      "tab2": 489,
-      "tab3": 519
-    },
-    {
-      "medida": "225/55 R 19",
-      "ref": "2255519",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "225/60 R 17",
-      "ref": "2256017",
-      "modelo": "Importado HT",
-      "tab1": 469,
-      "tab2": 499,
-      "tab3": 529
-    },
-    {
-      "medida": "225/60 R 18",
-      "ref": "2256018",
-      "modelo": "Importado HT",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "225/65 R 16",
-      "ref": "2256516",
-      "modelo": "Importado Carga Leve",
-      "tab1": 489,
-      "tab2": 519,
-      "tab3": 549
-    },
-    {
-      "medida": "225/65 R 17",
-      "ref": "2256517",
-      "modelo": "Importado HT",
-      "tab1": 499,
-      "tab2": 539,
-      "tab3": 569
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "225/70 R 15",
       "ref": "2257015",
       "modelo": "Importado Carga Leve",
@@ -858,150 +865,7 @@
       "tab3": 499
     },
     {
-      "medida": "225/70 R 16",
-      "ref": "2257016",
-      "modelo": "importado HT",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "225/75 R 16",
-      "ref": "2257516",
-      "modelo": "Importado Carga Leve",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "235/35 R 19",
-      "ref": "2353519",
-      "modelo": "Importado",
-      "tab1": 469,
-      "tab2": 499,
-      "tab3": 529
-    },
-    {
-      "medida": "235/40 R 18",
-      "ref": "2354018",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "235/40 R 19",
-      "ref": "2354019",
-      "modelo": "Importado",
-      "tab1": 549,
-      "tab2": 579,
-      "tab3": 619
-    },
-    {
-      "medida": "235/45 R 18",
-      "ref": "2354518",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "235/45 R 19",
-      "ref": "2354519",
-      "modelo": "Importado",
-      "tab1": 519,
-      "tab2": 549,
-      "tab3": 579
-    },
-    {
-      "medida": "235/45 R 20",
-      "ref": "2354520",
-      "modelo": "Importado",
-      "tab1": 549,
-      "tab2": 579,
-      "tab3": 619
-    },
-    {
-      "medida": "235/50 R 18",
-      "ref": "2355018",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "235/50 R 19",
-      "ref": "2355019",
-      "modelo": "Importado",
-      "tab1": 549,
-      "tab2": 579,
-      "tab3": 619
-    },
-    {
-      "medida": "235/55 R 17",
-      "ref": "2355517",
-      "modelo": "Importado",
-      "tab1": 469,
-      "tab2": 499,
-      "tab3": 529
-    },
-    {
-      "medida": "235/55 R 18",
-      "ref": "2355518",
-      "modelo": "Importado",
-      "tab1": 549,
-      "tab2": 579,
-      "tab3": 619
-    },
-    {
-      "medida": "235/55 R 19",
-      "ref": "2355519",
-      "modelo": "Importado",
-      "tab1": 659,
-      "tab2": 699,
-      "tab3": 739
-    },
-    {
-      "medida": "235/60 R 16",
-      "ref": "2356016",
-      "modelo": "Importado HT",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "235/60 R 17",
-      "ref": "2356017",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "235/60 R 18",
-      "ref": "2356018",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "235/65 R 17",
-      "ref": "2356517",
-      "modelo": "Importado HT",
-      "tab1": 459,
-      "tab2": 489,
-      "tab3": 519
-    },
-    {
-      "medida": "235/70 R 16",
-      "ref": "2357016",
-      "modelo": "Importado HT",
-      "tab1": 539,
-      "tab2": 569,
-      "tab3": 599
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "235/75 R 15",
       "ref": "2357515",
       "modelo": "Importado HT",
@@ -1010,166 +874,25 @@
       "tab3": 569
     },
     {
-      "medida": "245/35 R 19",
-      "ref": "2453519",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 459
-    },
-    {
-      "medida": "245/35 R 20",
-      "ref": "2453520",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "245/40 R 18",
-      "ref": "2454018",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "245/40 R 20",
-      "ref": "2454020",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "245/45 R 17",
-      "ref": "2454517",
-      "modelo": "Importado",
-      "tab1": 399,
-      "tab2": 429,
-      "tab3": 449
-    },
-    {
-      "medida": "245/45 R 18",
-      "ref": "2454518",
-      "modelo": "Importado",
-      "tab1": 459,
-      "tab2": 489,
-      "tab3": 519
-    },
-    {
-      "medida": "245/45 R 19",
-      "ref": "2454519",
-      "modelo": "Importado",
-      "tab1": 699,
-      "tab2": 739,
-      "tab3": 779
-    },
-    {
-      "medida": "245/45 R 20",
-      "ref": "2454520",
-      "modelo": "Importado",
-      "tab1": 549,
-      "tab2": 579,
-      "tab3": 619
-    },
-    {
-      "medida": "245/50 R 20",
-      "ref": "2455020",
-      "modelo": "Importado",
-      "tab1": 659,
-      "tab2": 699,
-      "tab3": 739
-    },
-    {
-      "medida": "245/65 R 17",
-      "ref": "2456517",
-      "modelo": "Importado HT",
-      "tab1": 549,
-      "tab2": 569,
-      "tab3": 599
-    },
-    {
-      "medida": "245/70 R 16",
-      "ref": "2457016",
-      "modelo": "Importado HT",
+      "categoria": "PASSEIO",
+      "medida": "235/75 R 15",
+      "ref": "2357515",
+      "modelo": "Importado AT",
       "tab1": 559,
-      "tab2": 599,
+      "tab2": 589,
       "tab3": 629
     },
     {
-      "medida": "250-17",
-      "ref": "25017",
-      "modelo": "Rinaldi PD-29  Urbano  (Diant Tubetype)",
-      "tab1": 99,
-      "tab2": 109,
-      "tab3": 109
-    },
-    {
-      "medida": "255/30 R 19",
-      "ref": "2553019",
-      "modelo": "Importado",
-      "tab1": 469,
-      "tab2": 499,
-      "tab3": 529
-    },
-    {
-      "medida": "255/35 R 19",
-      "ref": "2553519",
-      "modelo": "Importado",
-      "tab1": 469,
-      "tab2": 499,
-      "tab3": 529
-    },
-    {
-      "medida": "255/40 R 19",
-      "ref": "2554019",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "255/40 R 21",
-      "ref": "2554021",
-      "modelo": "Importado",
-      "tab1": 649,
-      "tab2": 689,
-      "tab3": 709
-    },
-    {
-      "medida": "255/45 R 19",
-      "ref": "2554519",
-      "modelo": "Importado",
-      "tab1": 599,
-      "tab2": 639,
-      "tab3": 669
-    },
-    {
-      "medida": "255/50 R 19",
-      "ref": "2555019",
-      "modelo": "Importado",
-      "tab1": 499,
-      "tab2": 529,
-      "tab3": 559
-    },
-    {
-      "medida": "255/55 R 19",
-      "ref": "2555519",
-      "modelo": "Importado HT",
-      "tab1": 599,
-      "tab2": 649,
-      "tab3": 679
-    },
-    {
-      "medida": "255/60 R 18",
-      "ref": "2556018",
+      "categoria": "PASSEIO",
+      "medida": "235/75 R 15",
+      "ref": "2357515",
       "modelo": "Pirelli Scorpion HT",
-      "tab1": 759,
-      "tab2": 809,
-      "tab3": 849
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
     },
     {
+      "categoria": "PASSEIO",
       "medida": "255/75 R 15",
       "ref": "2557515",
       "modelo": "Firestone Destination HT",
@@ -1178,238 +901,97 @@
       "tab3": 1119
     },
     {
-      "medida": "265/50 R 20",
-      "ref": "2655020",
-      "modelo": "Importado HT",
-      "tab1": 699,
-      "tab2": 739,
-      "tab3": 779
+      "categoria": "PASSEIO",
+      "medida": "255/75 R 15",
+      "ref": "2557515",
+      "modelo": "Firestone Destination ATX All Terrain",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1119
     },
     {
-      "medida": "265/60 R 18",
-      "ref": "2656018",
-      "modelo": "Importado HT",
-      "tab1": 599,
-      "tab2": 639,
-      "tab3": 669
-    },
-    {
-      "medida": "265/60 R 20",
-      "ref": "2656020",
-      "modelo": "Delinte DX-10 AT",
-      "tab1": 1399,
-      "tab2": 1479,
-      "tab3": 1599
-    },
-    {
-      "medida": "265/65 R 17",
-      "ref": "2656517",
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
       "modelo": "Importado HT",
       "tab1": 599,
       "tab2": 639,
       "tab3": 669
     },
     {
-      "medida": "265/65 R 18",
-      "ref": "2656518",
-      "modelo": "Sunset RT All Terrain",
-      "tab1": 839,
-      "tab2": 889,
-      "tab3": 939
-    },
-    {
-      "medida": "265/70 R 16",
-      "ref": "2657016",
-      "modelo": "Importado HT",
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
+      "modelo": "Importado AT",
       "tab1": 639,
       "tab2": 679,
       "tab3": 719
     },
     {
-      "medida": "265/70 R 18",
-      "ref": "2657018",
-      "modelo": "Delinte DX-10 AT",
-      "tab1": 1199,
-      "tab2": 1269,
-      "tab3": 1329
-    },
-    {
-      "medida": "265/75 R 16",
-      "ref": "2657516",
-      "modelo": "Importado HT",
-      "tab1": 659,
-      "tab2": 699,
-      "tab3": 749
-    },
-    {
-      "medida": "275-17",
-      "ref": "27517",
-      "modelo": "Rinaldi PD-29  Urbano  (Diant Tubetype)",
-      "tab1": 99,
-      "tab2": 109,
-      "tab3": 109
-    },
-    {
-      "medida": "275-18",
-      "ref": "27518",
-      "modelo": "Rinaldi BS-32  Urbano  (Diant Tubetype)",
-      "tab1": 119,
-      "tab2": 129,
-      "tab3": 139
-    },
-    {
-      "medida": "275/40 R 20",
-      "ref": "2754520",
-      "modelo": "Importado",
-      "tab1": 629,
-      "tab2": 669,
-      "tab3": 699
-    },
-    {
-      "medida": "275/45 R 20",
-      "ref": "2754520",
-      "modelo": "Importado",
-      "tab1": 659,
-      "tab2": 699,
-      "tab3": 739
-    },
-    {
-      "medida": "275/55 R 19",
-      "ref": "2755519",
-      "modelo": "Delinte DX-10 AT",
-      "tab1": 1099,
-      "tab2": 1169,
-      "tab3": 1229
-    },
-    {
-      "medida": "275/55 R 20",
-      "ref": "2755520",
-      "modelo": "Importado HT",
-      "tab1": 799,
-      "tab2": 849,
-      "tab3": 899
-    },
-    {
-      "medida": "275/60 R 20",
-      "ref": "2756020",
-      "modelo": "Delinte DX-12 RT All Terrain",
-      "tab1": 1699,
-      "tab2": 1799,
-      "tab3": 1899
-    },
-    {
-      "medida": "275/65 R 18",
-      "ref": "2756518",
-      "modelo": "Delinte DX-10 AT",
-      "tab1": 1299,
-      "tab2": 1379,
-      "tab3": 1459
-    },
-    {
-      "medida": "275/65 R 20",
-      "ref": "2756520",
-      "modelo": "Roadcruza RT All Terrain",
-      "tab1": 1399,
-      "tab2": 1479,
-      "tab3": 1559
-    },
-    {
-      "medida": "275/70 R 18",
-      "ref": "2757018",
-      "modelo": "Roadcruza RT All Terrain",
-      "tab1": 1099,
-      "tab2": 1169,
-      "tab3": 1259
-    },
-    {
-      "medida": "275/70 R 22.5",
-      "ref": "275702250",
-      "modelo": "Importado Liso",
-      "tab1": 1599,
-      "tab2": 1699,
-      "tab3": 1789
-    },
-    {
-      "medida": "275/80 R 22.5",
-      "ref": "275802250",
-      "modelo": "Importado Liso 16PR",
-      "tab1": 1449,
-      "tab2": 1539,
-      "tab3": 1629
-    },
-    {
-      "medida": "285/50 R 20",
-      "ref": "2855020",
-      "modelo": "Davanti RT All Terrain",
-      "tab1": 799,
-      "tab2": 849,
-      "tab3": 899
-    },
-    {
-      "medida": "285/60 R 18",
-      "ref": "2856018",
-      "modelo": "Importado HT",
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
+      "modelo": "Davanti Terratoura RT All Terrain",
       "tab1": 699,
-      "tab2": 749,
-      "tab3": 799
+      "tab2": 739,
+      "tab3": 779
     },
     {
-      "medida": "285/60 R 20",
-      "ref": "2856020",
-      "modelo": "Delinte DX-10 AT",
-      "tab1": 1299,
-      "tab2": 1379,
-      "tab3": 1459
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 789,
+      "tab2": 839,
+      "tab3": 879
     },
     {
-      "medida": "285/65 R 18",
-      "ref": "2856518",
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
       "modelo": "Xbri Brutus RT All Terrain",
-      "tab1": 1079,
-      "tab2": 1149,
-      "tab3": 1199
+      "tab1": 869,
+      "tab2": 919,
+      "tab3": 969
     },
     {
-      "medida": "285/75 R 16",
-      "ref": "2857516",
-      "modelo": "Delinte Bandit DX-10 AT",
-      "tab1": 1199,
-      "tab2": 1269,
-      "tab3": 1349
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
+      "modelo": "Xbri Forza MT Mud Terrain",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1119
     },
     {
-      "medida": "295/80 R 22.5",
-      "ref": "295802250",
-      "modelo": "Importado Liso 16PR",
-      "tab1": 1539,
-      "tab2": 1629,
-      "tab3": 1729
+      "categoria": "PASSEIO",
+      "medida": "31x10.5 R 15",
+      "ref": "31105015",
+      "modelo": "Firestone Destination MT-23 Mud Terrain",
+      "tab1": 979,
+      "tab2": 1039,
+      "tab3": 1099
     },
     {
-      "medida": "300-10",
-      "ref": "30010",
-      "modelo": "Rinaldi BS-32 Urbano  (Diant/Tras Tubetype)",
-      "tab1": 139,
-      "tab2": 149,
-      "tab3": 159
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 15",
+      "ref": "35125015",
+      "modelo": "Delinte Bandit DX-9 MT Mud Terrain",
+      "tab1": 1499,
+      "tab2": 1569,
+      "tab3": 1649
     },
     {
-      "medida": "305/70 R 18",
-      "ref": "3057018",
-      "modelo": "Delinte DX-12 RT All Terrain",
-      "tab1": 1599,
-      "tab2": 1699,
-      "tab3": 1789
-    },
-    {
-      "medida": "350-10",
-      "ref": "35010",
-      "modelo": "Rinaldi BS-32 Urbano  (Diant/Tras Tubetype)",
-      "tab1": 159,
-      "tab2": 169,
-      "tab3": 179
-    },
-    {
+      "categoria": "PASSEIO",
       "medida": "560-15",
       "ref": "56015",
       "modelo": "Monumental Folex (Tubetype)",
@@ -1418,30 +1000,2797 @@
       "tab3": 319
     },
     {
-      "medida": "650-10",
-      "ref": "65010",
-      "modelo": "Importado 10PR Tubetype (Conjunto Pneumatico)",
+      "categoria": "PASSEIO",
+      "medida": "175/55 R 16",
+      "ref": "1755516",
+      "modelo": "Importado",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/55 R 16",
+      "ref": "1855516",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/55 R 16",
+      "ref": "1855516",
+      "modelo": "Bridgestone Ecopia EP-150",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/55 R 16",
+      "ref": "1855516",
+      "modelo": "Dunlop SPFM-800",
       "tab1": 499,
       "tab2": 529,
       "tab3": 559
     },
     {
-      "medida": "700-12",
-      "ref": "70012",
-      "modelo": "Importado 12PR Tubetype (Conjunto Pneumatico)",
-      "tab1": 659,
-      "tab2": 699,
-      "tab3": 739
+      "categoria": "PASSEIO",
+      "medida": "185/55 R 16",
+      "ref": "1855516",
+      "modelo": "Firestone F-700",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
     },
     {
-      "medida": "700-16",
-      "ref": "70016",
-      "modelo": "Importado Liso 12PR",
+      "categoria": "PASSEIO",
+      "medida": "185/55 R 16",
+      "ref": "1855516",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 629,
+      "tab2": 669,
+      "tab3": 709
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/50 R 16",
+      "ref": "1955016",
+      "modelo": "Importado",
+      "tab1": 319,
+      "tab2": 339,
+      "tab3": 359
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/50 R 16",
+      "ref": "1955016",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 16",
+      "ref": "1955516",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 379,
+      "tab3": 399
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 16",
+      "ref": "1955516",
+      "modelo": "Dunlop SPFM-800",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 16",
+      "ref": "1955516",
+      "modelo": "Firestone F-700",
+      "tab1": 569,
+      "tab2": 599,
+      "tab3": 639
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/55 R 16",
+      "ref": "1955516",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 619,
+      "tab2": 659,
+      "tab3": 699
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/60 R 16",
+      "ref": "1956016",
+      "modelo": "Importado",
+      "tab1": 369,
+      "tab2": 389,
+      "tab3": 419
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/75 R 16",
+      "ref": "1957516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 359,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/50 R 16",
+      "ref": "2055016",
+      "modelo": "Importado",
+      "tab1": 199,
+      "tab2": 229,
+      "tab3": 249
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Importado",
+      "tab1": 289,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Dunlop SPFM-800",
+      "tab1": 439,
+      "tab2": 469,
+      "tab3": 489
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Firestone F-700",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Goodyear Kelly Edge 2",
+      "tab1": 439,
+      "tab2": 469,
+      "tab3": 489
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Michelin Primacy 4",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 16",
+      "ref": "2055516",
+      "modelo": "Pirelli P-400 Evo",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Importado HT",
+      "tab1": 349,
+      "tab2": 369,
+      "tab3": 389
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Importado AT",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Comforser CF1100 RT All Terrain",
+      "tab1": 509,
+      "tab2": 539,
+      "tab3": 569
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Bridgestone Ecopia EP-150 HT",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Dunlop Enasave EC-350 HT",
+      "tab1": 559,
+      "tab2": 589,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Goodyear Wrangler Territory HT",
+      "tab1": 689,
+      "tab2": 729,
+      "tab3": 769
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Bridgestone Dueller Revo AT",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/60 R 16",
+      "ref": "2056016",
+      "modelo": "Pirelli Scorpion ATR",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 16",
+      "ref": "2056516",
+      "modelo": "Importado HT",
+      "tab1": 399,
+      "tab2": 419,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 16",
+      "ref": "2056516",
+      "modelo": "Firestone Destination LE-3 HT",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 16",
+      "ref": "2056516",
+      "modelo": "Goodyear Efficientgrip SUV HT",
+      "tab1": 679,
+      "tab2": 719,
+      "tab3": 759
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/65 R 16",
+      "ref": "2056516",
+      "modelo": "Pirelli Scorpion HT",
       "tab1": 669,
       "tab2": 709,
       "tab3": 749
     },
     {
+      "categoria": "PASSEIO",
+      "medida": "205/75 R 16",
+      "ref": "2057516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 429,
+      "tab2": 459,
+      "tab3": 489
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/75 R 16",
+      "ref": "2057516",
+      "modelo": "Falken Carga",
+      "tab1": 429,
+      "tab2": 459,
+      "tab3": 489
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/75 R 16",
+      "ref": "2057516",
+      "modelo": "Goodyear Marathon Carga",
+      "tab1": 859,
+      "tab2": 909,
+      "tab3": 959
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 16",
+      "ref": "2155516",
+      "modelo": "Importado",
+      "tab1": 369,
+      "tab2": 389,
+      "tab3": 419
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 16",
+      "ref": "2156016",
+      "modelo": "Importado",
+      "tab1": 389,
+      "tab2": 419,
+      "tab3": 439
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 16",
+      "ref": "2156016",
+      "modelo": "Goodyear Wrangler Fortitude HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Importado HT",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 549,
+      "tab2": 589,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Bridgestone Dueller HT 98T",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Bridgestone Dueller HT 102H",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Firestone Destination HT",
+      "tab1": 589,
+      "tab2": 629,
+      "tab3": 659
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Michelin Primacy 4 HT",
+      "tab1": 749,
+      "tab2": 799,
+      "tab3": 839
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/65 R 16",
+      "ref": "2156516",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 739,
+      "tab2": 789,
+      "tab3": 829
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/75 R 16",
+      "ref": "2157516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/80 R 16",
+      "ref": "2158016",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 16",
+      "ref": "2256516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 16",
+      "ref": "2256516",
+      "modelo": "Goodyear G-32 Carga",
+      "tab1": 1179,
+      "tab2": 1249,
+      "tab3": 1319
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/70 R 16",
+      "ref": "2257016",
+      "modelo": "Importado HT",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/70 R 16",
+      "ref": "2257016",
+      "modelo": "Importado AT",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/70 R 16",
+      "ref": "2257016",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/75 R 16",
+      "ref": "2257516",
+      "modelo": "Importado Carga Leve",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/75 R 16",
+      "ref": "2257516",
+      "modelo": "Pirelli Scorpion ATR",
+      "tab1": 749,
+      "tab2": 799,
+      "tab3": 839
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/75 R 16",
+      "ref": "2257516",
+      "modelo": "Goodyear Marathon Carga",
+      "tab1": 1099,
+      "tab2": 1169,
+      "tab3": 1229
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/60 R 16",
+      "ref": "2356016",
+      "modelo": "Importado HT",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/60 R 16",
+      "ref": "2356016",
+      "modelo": "Goodyear Kelly Edge HT",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 709
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/60 R 16",
+      "ref": "2356016",
+      "modelo": "Goodyear Fortitude Wrangler HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/70 R 16",
+      "ref": "2357016",
+      "modelo": "Importado HT",
+      "tab1": 539,
+      "tab2": 569,
+      "tab3": 599
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/70 R 16",
+      "ref": "2357016",
+      "modelo": "Importado AT",
+      "tab1": 559,
+      "tab2": 599,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/70 R 16",
+      "ref": "2357016",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 689,
+      "tab2": 729,
+      "tab3": 769
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/70 R 16",
+      "ref": "2357016",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/70 R 16",
+      "ref": "2357016",
+      "modelo": "Pirelli Scorpion ATR",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/70 R 16",
+      "ref": "2357016",
+      "modelo": "Pirelli Scorpion S-AT All Terrain",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Importado HT",
+      "tab1": 559,
+      "tab2": 599,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Importado AT",
+      "tab1": 559,
+      "tab2": 599,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Davanti Terratoura RT All Terrain",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 829,
+      "tab2": 879,
+      "tab3": 929
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Windforce Catchfors RT All Terrain",
+      "tab1": 759,
+      "tab2": 809,
+      "tab3": 849
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/70 R 16",
+      "ref": "2457016",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/70 R 16",
+      "ref": "2557016",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 699
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/70 R 16",
+      "ref": "2557016",
+      "modelo": "Pirelli Scorpion STR HT",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Importado HT",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Importado AT",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Ariets RT All Terrain",
+      "tab1": 889,
+      "tab2": 939,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 969,
+      "tab2": 1029,
+      "tab3": 1089
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 929,
+      "tab2": 989,
+      "tab3": 1039
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 849,
+      "tab2": 899,
+      "tab3": 949
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 989,
+      "tab2": 1049,
+      "tab3": 1099
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Firestone Destination HT",
+      "tab1": 969,
+      "tab2": 1029,
+      "tab3": 1089
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 16",
+      "ref": "2657016",
+      "modelo": "Firestone Destination ATX All Terrain",
+      "tab1": 1089,
+      "tab2": 1159,
+      "tab3": 1219
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Importado HT",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 749
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Importado AT",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 749
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Davanti Terratoura RT All Terrain",
+      "tab1": 779,
+      "tab2": 829,
+      "tab3": 869
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Roadcruza RA-1100 RT All Terrain",
+      "tab1": 799,
+      "tab2": 749,
+      "tab3": 799
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 1039,
+      "tab2": 1099,
+      "tab3": 1169
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 819,
+      "tab2": 869,
+      "tab3": 919
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Windforce Catchfors RT All Terrain",
+      "tab1": 819,
+      "tab2": 869,
+      "tab3": 919
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1049,
+      "tab2": 1109,
+      "tab3": 1179
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/75 R 16",
+      "ref": "2657516",
+      "modelo": "Hifly Vigorous MT-601 Mud Terrain",
+      "tab1": 799,
+      "tab2": 859,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/75 R 16",
+      "ref": "2857516",
+      "modelo": "Delinte Bandit DX-10 AT",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/75 R 16",
+      "ref": "2857516",
+      "modelo": "Davanti Terratoura RT All Terrain",
+      "tab1": 1029,
+      "tab2": 1089,
+      "tab3": 1149
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/75 R 16",
+      "ref": "2857516",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 1159,
+      "tab2": 1229,
+      "tab3": 1299
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/75 R 16",
+      "ref": "2857516",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "305/70 R 16",
+      "ref": "3057016",
+      "modelo": "Delinte Bandit DX-9 MT Mud Terrain",
+      "tab1": 1099,
+      "tab2": 1159,
+      "tab3": 1219
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "165/40 R 17",
+      "ref": "1654017",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/35 R 17",
+      "ref": "1853517",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/40 R 17",
+      "ref": "1954017",
+      "modelo": "Importado",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 379
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/45 R 17",
+      "ref": "1954517",
+      "modelo": "Importado",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/40 R 17",
+      "ref": "2054017",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/40 R 17",
+      "ref": "2054017",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/45 R 17",
+      "ref": "2054517",
+      "modelo": "Importado",
+      "tab1": 329,
+      "tab2": 349,
+      "tab3": 369
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/50 R 17",
+      "ref": "2055017",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 389,
+      "tab3": 409
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/55 R 17",
+      "ref": "2055517",
+      "modelo": "Importado",
+      "tab1": 379,
+      "tab2": 409,
+      "tab3": 429
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/45 R 17",
+      "ref": "2154517",
+      "modelo": "Importado",
+      "tab1": 349,
+      "tab2": 369,
+      "tab3": 389
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/45 R 17",
+      "ref": "2154517",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Bridgestone ER-33",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Bridgestone T-005",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Dunlop Sport FM-800",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Firestone F-700",
+      "tab1": 589,
+      "tab2": 629,
+      "tab3": 659
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 609,
+      "tab2": 649,
+      "tab3": 679
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Pirelli P-7 Cinturato",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/50 R 17",
+      "ref": "2155017",
+      "modelo": "Pirelli Powergy",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 17",
+      "ref": "2155517",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 17",
+      "ref": "2155517",
+      "modelo": "Bridgestone ER-370",
+      "tab1": 679,
+      "tab2": 719,
+      "tab3": 759
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 17",
+      "ref": "2155517",
+      "modelo": "Dunlop Sport FM-800",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 17",
+      "ref": "2155517",
+      "modelo": "Goodyear Efficientgrip SUV",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 17",
+      "ref": "2155517",
+      "modelo": "Michelin Primacy 4",
+      "tab1": 789,
+      "tab2": 839,
+      "tab3": 879
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 17",
+      "ref": "2156017",
+      "modelo": "Importado",
+      "tab1": 439,
+      "tab2": 469,
+      "tab3": 489
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 17",
+      "ref": "2156017",
+      "modelo": "Bridgestone Alenza 001 HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 17",
+      "ref": "2156017",
+      "modelo": "Dunlop Enasave EC-300 HT",
+      "tab1": 679,
+      "tab2": 719,
+      "tab3": 759
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 17",
+      "ref": "2156017",
+      "modelo": "Goodyear Efficientgrip SUV HT",
+      "tab1": 819,
+      "tab2": 869,
+      "tab3": 919
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 17",
+      "ref": "2156017",
+      "modelo": "Michelin Primacy 4 HT",
+      "tab1": 829,
+      "tab2": 879,
+      "tab3": 929
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/60 R 17",
+      "ref": "2156017",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 17",
+      "ref": "2254517",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 17",
+      "ref": "2254517",
+      "modelo": "Dunlop Maxx050",
+      "tab1": 489,
+      "tab2": 519,
+      "tab3": 549
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 17",
+      "ref": "2254517",
+      "modelo": "Firestone F-700",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 17",
+      "ref": "2254517",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 559,
+      "tab2": 589,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 17",
+      "ref": "2254517",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 559,
+      "tab2": 589,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 17",
+      "ref": "2254517",
+      "modelo": "Pirelli Powergy",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Importado Runflat",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 679
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Bridgestone T-005",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Firestone F-700",
+      "tab1": 589,
+      "tab2": 629,
+      "tab3": 659
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Goodyear Eagle Sport 2",
+      "tab1": 629,
+      "tab2": 669,
+      "tab3": 699
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Pirelli P-1 Cinturato",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 17",
+      "ref": "2255017",
+      "modelo": "Pirelli Powergy",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 17",
+      "ref": "2256017",
+      "modelo": "Importado HT",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 17",
+      "ref": "2256017",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 17",
+      "ref": "2256017",
+      "modelo": "Pirelli Scorpion Verde HT",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 17",
+      "ref": "2256517",
+      "modelo": "Importado HT",
+      "tab1": 499,
+      "tab2": 539,
+      "tab3": 569
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 17",
+      "ref": "2256517",
+      "modelo": "Importado AT",
+      "tab1": 579,
+      "tab2": 619,
+      "tab3": 649
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 17",
+      "ref": "2256517",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 669,
+      "tab2": 699,
+      "tab3": 749
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 17",
+      "ref": "2256517",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 719,
+      "tab2": 769,
+      "tab3": 809
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 17",
+      "ref": "2256517",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 889,
+      "tab2": 939,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/65 R 17",
+      "ref": "2256517",
+      "modelo": "Pirelli Scorpion AT",
+      "tab1": 889,
+      "tab2": 939,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/55 R 17",
+      "ref": "2355517",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/60 R 17",
+      "ref": "2356017",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/65 R 17",
+      "ref": "2356517",
+      "modelo": "Importado HT",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/45 R 17",
+      "ref": "2454517",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/65 R 17",
+      "ref": "2456517",
+      "modelo": "Importado HT",
+      "tab1": 549,
+      "tab2": 569,
+      "tab3": 599
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Importado HT",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Importado AT",
+      "tab1": 629,
+      "tab2": 669,
+      "tab3": 699
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Davanti RT All Terrain",
+      "tab1": 739,
+      "tab2": 779,
+      "tab3": 829
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 769,
+      "tab2": 819,
+      "tab3": 869
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 949,
+      "tab2": 999,
+      "tab3": 1069
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 849,
+      "tab2": 899,
+      "tab3": 959
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 17",
+      "ref": "2656517",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 789
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 17",
+      "ref": "2657017",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 17",
+      "ref": "2657017",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1119
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 17",
+      "ref": "2657017",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 919,
+      "tab2": 979,
+      "tab3": 1029
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 17",
+      "ref": "2657017",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1029,
+      "tab2": 1089,
+      "tab3": 1149
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/65 R 17",
+      "ref": "2856517",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1119
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/70 R 17",
+      "ref": "2857017",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 999,
+      "tab2": 1069,
+      "tab3": 1129
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/70 R 17",
+      "ref": "2857017",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 1189,
+      "tab2": 1259,
+      "tab3": 1329
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/70 R 17",
+      "ref": "2857017",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 899,
+      "tab2": 959,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/70 R 17",
+      "ref": "2857017",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1189,
+      "tab2": 1259,
+      "tab3": 1329
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/70 R 17",
+      "ref": "2857017",
+      "modelo": "Pirelli Scorpion MTR Mud Terrain",
+      "tab1": 899,
+      "tab2": 959,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "315/70 R 17",
+      "ref": "3157017",
+      "modelo": "Delinte DX-12 RT All Terrain",
+      "tab1": 1299,
+      "tab2": 1379,
+      "tab3": 1459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "315/70 R 17",
+      "ref": "3157017",
+      "modelo": "Pirelli Scorpion S-AT All Terrain",
+      "tab1": 999,
+      "tab2": 1069,
+      "tab3": 1119
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "33x12.5 R 17",
+      "ref": "33125017",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1119
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 17",
+      "ref": "35125017",
+      "modelo": "Delinte DX-9 MT Mud Terrain",
+      "tab1": 1599,
+      "tab2": 1699,
+      "tab3": 1789
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "165/35 R 18",
+      "ref": "1653518",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "165/40 R 18",
+      "ref": "1654018",
+      "modelo": "Importado",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "185/35 R 18",
+      "ref": "1853518",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "195/35 R 18",
+      "ref": "1953518",
+      "modelo": "Importado",
+      "tab1": 319,
+      "tab2": 359,
+      "tab3": 389
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/35 R 18",
+      "ref": "2053518",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 389,
+      "tab3": 419
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/40 R 18",
+      "ref": "2054018",
+      "modelo": "Importado",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/45 R 18",
+      "ref": "2054518",
+      "modelo": "Goodyear Eagle Touring",
+      "tab1": 649,
+      "tab2": 689,
+      "tab3": 729
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/35 R 18",
+      "ref": "2153518",
+      "modelo": "Importado",
+      "tab1": 309,
+      "tab2": 329,
+      "tab3": 349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/40 R 18",
+      "ref": "2154018",
+      "modelo": "Importado",
+      "tab1": 389,
+      "tab2": 419,
+      "tab3": 439
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/45 R 18",
+      "ref": "2154518",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 18",
+      "ref": "2155518",
+      "modelo": "Importado",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/55 R 18",
+      "ref": "2155518",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 449,
+      "tab2": 479,
+      "tab3": 499
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/40 R 18",
+      "ref": "2254018",
+      "modelo": "Importado",
+      "tab1": 359,
+      "tab2": 379,
+      "tab3": 409
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/40 R 18",
+      "ref": "2254018",
+      "modelo": "Importado Runflat",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 18",
+      "ref": "2254518",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/45 R 18",
+      "ref": "2254518",
+      "modelo": "Importado Runflat",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 679
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 18",
+      "ref": "2255018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/50 R 18",
+      "ref": "2255018",
+      "modelo": "Importado Runflat",
+      "tab1": 749,
+      "tab2": 799,
+      "tab3": 839
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/55 R 18",
+      "ref": "2255518",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/55 R 18",
+      "ref": "2255518",
+      "modelo": "Michelin Primacy 4",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/55 R 18",
+      "ref": "2255518",
+      "modelo": "Pirelli Scorpion JP",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 18",
+      "ref": "2256018",
+      "modelo": "Importado HT",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 18",
+      "ref": "2256018",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 569,
+      "tab2": 599,
+      "tab3": 629
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 18",
+      "ref": "2256018",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 18",
+      "ref": "2256018",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 619,
+      "tab2": 659,
+      "tab3": 699
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/60 R 18",
+      "ref": "2256018",
+      "modelo": "Firestone Destination ATX All Terrain",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/40 R 18",
+      "ref": "2354018",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/45 R 18",
+      "ref": "2354518",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/45 R 18",
+      "ref": "2354518",
+      "modelo": "Pirelli Powergy",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/50 R 18",
+      "ref": "2355018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/55 R 18",
+      "ref": "2355518",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/60 R 18",
+      "ref": "2356018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/40 R 18",
+      "ref": "2454018",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/45 R 18",
+      "ref": "2454518",
+      "modelo": "Importado",
+      "tab1": 459,
+      "tab2": 489,
+      "tab3": 519
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/45 R 18",
+      "ref": "2454518",
+      "modelo": "Importado Runflat",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/60 R 18",
+      "ref": "2556018",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 759,
+      "tab2": 809,
+      "tab3": 849
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Importado HT",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Importado AT",
+      "tab1": 659,
+      "tab2": 709,
+      "tab3": 769
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 849,
+      "tab2": 899,
+      "tab3": 949
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Bridgestone HT 110T",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Bridgestone HT 110H",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Firestone LE-3 HT",
+      "tab1": 879,
+      "tab2": 929,
+      "tab3": 979
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Pirelli Scorpion HT",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 18",
+      "ref": "2656018",
+      "modelo": "Firestone Destination ATX All Terrain",
+      "tab1": 1059,
+      "tab2": 1129,
+      "tab3": 1189
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/65 R 18",
+      "ref": "2656518",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 839,
+      "tab2": 889,
+      "tab3": 939
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 18",
+      "ref": "2657018",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1329
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 18",
+      "ref": "2657018",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 1169,
+      "tab2": 1239,
+      "tab3": 1309
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/70 R 18",
+      "ref": "2657018",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1059,
+      "tab2": 1129,
+      "tab3": 1189
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/65 R 18",
+      "ref": "2756518",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1299,
+      "tab2": 1379,
+      "tab3": 1459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/65 R 18",
+      "ref": "2756518",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 1019,
+      "tab2": 1079,
+      "tab3": 1149
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/65 R 18",
+      "ref": "2756518",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1169,
+      "tab2": 1239,
+      "tab3": 1309
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/65 R 18",
+      "ref": "2756518",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1019,
+      "tab2": 1079,
+      "tab3": 1149
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/70 R 18",
+      "ref": "2757018",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1099,
+      "tab2": 1169,
+      "tab3": 1259
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/60 R 18",
+      "ref": "2856018",
+      "modelo": "Importado HT",
+      "tab1": 699,
+      "tab2": 749,
+      "tab3": 799
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/60 R 18",
+      "ref": "2856018",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/65 R 18",
+      "ref": "2856518",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1079,
+      "tab2": 1149,
+      "tab3": 1199
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "305/70 R 18",
+      "ref": "3057018",
+      "modelo": "Delinte DX-12 RT All Terrain",
+      "tab1": 1599,
+      "tab2": 1699,
+      "tab3": 1789
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "33x12.5 R 18",
+      "ref": "33125018",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 959,
+      "tab2": 1019,
+      "tab3": 1079
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "33x12.5 R 18",
+      "ref": "33125018",
+      "modelo": "Roadcruza MT Mud Terrain",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1349
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 18",
+      "ref": "35125018",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1399,
+      "tab2": 1479,
+      "tab3": 1569
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 18",
+      "ref": "35125018",
+      "modelo": "Delinte DX-9 MT Mud Terrain",
+      "tab1": 1599,
+      "tab2": 1669,
+      "tab3": 1739
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 18",
+      "ref": "35125018",
+      "modelo": "Xbri Forza MT Mud Terrain",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/35 R 19",
+      "ref": "2153519",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 439,
+      "tab3": 459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/35 R 19",
+      "ref": "2253519",
+      "modelo": "Importado",
+      "tab1": 379,
+      "tab2": 399,
+      "tab3": 429
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/40 R 19",
+      "ref": "2254019",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/55 R 19",
+      "ref": "2255519",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/35 R 19",
+      "ref": "2353519",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/40 R 19",
+      "ref": "2354019",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/45 R 19",
+      "ref": "2354519",
+      "modelo": "Importado",
+      "tab1": 519,
+      "tab2": 549,
+      "tab3": 579
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/45 R 19",
+      "ref": "2354519",
+      "modelo": "Pirelli Scorpion Verde MOE Runflat",
+      "tab1": 1299,
+      "tab2": 1379,
+      "tab3": 1449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/50 R 19",
+      "ref": "2355019",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/55 R 19",
+      "ref": "2355519",
+      "modelo": "Importado",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/35 R 19",
+      "ref": "2453519",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/45 R 19",
+      "ref": "2454519",
+      "modelo": "Importado",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/30 R 19",
+      "ref": "2553019",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/35 R 19",
+      "ref": "2553519",
+      "modelo": "Importado",
+      "tab1": 469,
+      "tab2": 499,
+      "tab3": 529
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/40 R 19",
+      "ref": "2554019",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/45 R 19",
+      "ref": "2554519",
+      "modelo": "Importado",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/50 R 19",
+      "ref": "2555019",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/55 R 19",
+      "ref": "2555519",
+      "modelo": "Importado HT",
+      "tab1": 599,
+      "tab2": 649,
+      "tab3": 679
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/55 R 19",
+      "ref": "2555519",
+      "modelo": "Importado AT",
+      "tab1": 599,
+      "tab2": 649,
+      "tab3": 679
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/55 R 19",
+      "ref": "2555519",
+      "modelo": "Sunset RT All Terrain",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/55 R 19",
+      "ref": "2555519",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 949,
+      "tab2": 999,
+      "tab3": 1069
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/55 R 19",
+      "ref": "2555519",
+      "modelo": "Pirelli Scorpion S-AT All Terrain",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/55 R 19",
+      "ref": "2755519",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1099,
+      "tab2": 1169,
+      "tab3": 1229
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/55 R 19",
+      "ref": "2755519",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1129
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/30 R 20",
+      "ref": "2053020",
+      "modelo": "Importado",
+      "tab1": 389,
+      "tab2": 419,
+      "tab3": 439
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "205/35 R 20",
+      "ref": "2053520",
+      "modelo": "Importado",
+      "tab1": 369,
+      "tab2": 399,
+      "tab3": 419
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "215/30 R 20",
+      "ref": "2153020",
+      "modelo": "Importado",
+      "tab1": 429,
+      "tab2": 459,
+      "tab3": 479
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/30 R 20",
+      "ref": "2253020",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "225/35 R 20",
+      "ref": "2253520",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "235/45 R 20",
+      "ref": "2354520",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/35 R 20",
+      "ref": "2453520",
+      "modelo": "Importado",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/40 R 20",
+      "ref": "2454020",
+      "modelo": "Importado",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/45 R 20",
+      "ref": "2454520",
+      "modelo": "Importado",
+      "tab1": 549,
+      "tab2": 579,
+      "tab3": 619
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/45 R 20",
+      "ref": "2454520",
+      "modelo": "Importado DELINTE",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "245/50 R 20",
+      "ref": "2455020",
+      "modelo": "Importado",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/50 R 20",
+      "ref": "2655020",
+      "modelo": "Importado HT",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/50 R 20",
+      "ref": "2655020",
+      "modelo": "Comforser RT All Terrain",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/50 R 20",
+      "ref": "2655020",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/50 R 20",
+      "ref": "2655020",
+      "modelo": "Tristar RT All Terrain",
+      "tab1": 749,
+      "tab2": 799,
+      "tab3": 849
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 20",
+      "ref": "2656020",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1399,
+      "tab2": 1479,
+      "tab3": 1599
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "265/60 R 20",
+      "ref": "2656020",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 999,
+      "tab2": 1049,
+      "tab3": 1099
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/40 R 20",
+      "ref": "2754020",
+      "modelo": "Importado",
+      "tab1": 629,
+      "tab2": 669,
+      "tab3": 699
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/40 R 20",
+      "ref": "2754020",
+      "modelo": "Importado DELINTE",
+      "tab1": 899,
+      "tab2": 949,
+      "tab3": 999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/45 R 20",
+      "ref": "2754520",
+      "modelo": "Importado",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/55 R 20",
+      "ref": "2755520",
+      "modelo": "Importado HT",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/55 R 20",
+      "ref": "2755520",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1339
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/55 R 20",
+      "ref": "2755520",
+      "modelo": "Tristar RT All Terrain",
+      "tab1": 959,
+      "tab2": 1019,
+      "tab3": 1069
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/60 R 20",
+      "ref": "2756020",
+      "modelo": "Delinte DX-12 RT All Terrain",
+      "tab1": 1699,
+      "tab2": 1799,
+      "tab3": 1899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/60 R 20",
+      "ref": "2756020",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1099,
+      "tab2": 1079,
+      "tab3": 1169
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "275/65 R 20",
+      "ref": "2756520",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1399,
+      "tab2": 1479,
+      "tab3": 1559
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/50 R 20",
+      "ref": "2855020",
+      "modelo": "Davanti RT All Terrain",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "285/60 R 20",
+      "ref": "2856020",
+      "modelo": "Delinte DX-10 AT",
+      "tab1": 1299,
+      "tab2": 1379,
+      "tab3": 1459
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "33x12.5 R 20",
+      "ref": "33125020",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 1299,
+      "tab2": 1279,
+      "tab3": 1369
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "33x12.5 R 20",
+      "ref": "33125020",
+      "modelo": "Delinte DX-9 MT Mud Terrain",
+      "tab1": 1799,
+      "tab2": 1899,
+      "tab3": 1999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 20",
+      "ref": "35125020",
+      "modelo": "Roadcruza RT All Terrain",
+      "tab1": 1779,
+      "tab2": 1889,
+      "tab3": 1999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 20",
+      "ref": "35125020",
+      "modelo": "Speedmax Pangea RT All Terrain",
+      "tab1": 1699,
+      "tab2": 1799,
+      "tab3": 1899
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 20",
+      "ref": "35125020",
+      "modelo": "Xbri Brutus RT All Terrain",
+      "tab1": 1399,
+      "tab2": 1489,
+      "tab3": 1599
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 20",
+      "ref": "35125020",
+      "modelo": "Delinte DX-9 MT Mud Terrain",
+      "tab1": 1799,
+      "tab2": 1899,
+      "tab3": 1999
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "35x12.5 R 20",
+      "ref": "35125020",
+      "modelo": "Xbri Forza MT Mud Terrain",
+      "tab1": 1099,
+      "tab2": 1169,
+      "tab3": 1249
+    },
+    {
+      "categoria": "PASSEIO",
+      "medida": "255/40 R 21",
+      "ref": "2554021",
+      "modelo": "Importado",
+      "tab1": 649,
+      "tab2": 689,
+      "tab3": 709
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "700-16",
+      "ref": "70016",
+      "modelo": "Importado Liso 12PR",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "CAMINHÃO",
       "medida": "750-16",
       "ref": "75016",
       "modelo": "Importado Liso 14PR",
@@ -1450,14 +3799,367 @@
       "tab3": 739
     },
     {
+      "categoria": "CAMINHÃO",
       "medida": "750-16",
       "ref": "75016",
+      "modelo": "Importado Borrachudo 14PR",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "215/75 R 17.5",
+      "ref": "215751750",
+      "modelo": "Importado Liso 16PR",
+      "tab1": 689,
+      "tab2": 729,
+      "tab3": 769
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "215/75 R 17.5",
+      "ref": "215751750",
+      "modelo": "Importado Misto 16PR",
+      "tab1": 739,
+      "tab2": 789,
+      "tab3": 829
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "215/75 R 17.5",
+      "ref": "215751750",
+      "modelo": "Importado Borrachudo 16PR",
+      "tab1": 739,
+      "tab2": 789,
+      "tab3": 829
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "215/75 R 17.5",
+      "ref": "215751750",
+      "modelo": "Importado Borrachudo 18PR",
+      "tab1": 739,
+      "tab2": 789,
+      "tab3": 829
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "235/75 R 17.5",
+      "ref": "235751750",
+      "modelo": "Importado Liso 18PR",
+      "tab1": 759,
+      "tab2": 809,
+      "tab3": 849
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "235/75 R 17.5",
+      "ref": "235751750",
+      "modelo": "Importado Misto 18PR",
+      "tab1": 789,
+      "tab2": 839,
+      "tab3": 879
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "235/75 R 17.5",
+      "ref": "235751750",
+      "modelo": "Importado Borrachudo 18PR",
+      "tab1": 789,
+      "tab2": 839,
+      "tab3": 879
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "900-20",
+      "ref": "90020",
+      "modelo": "Importado Liso 14PR",
+      "tab1": 1099,
+      "tab2": 1159,
+      "tab3": 1219
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "900-20",
+      "ref": "90020",
+      "modelo": "Importado Borrachudo 14PR",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1339
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "1000-20",
+      "ref": "100020",
+      "modelo": "Importado Liso 14PR",
+      "tab1": 1199,
+      "tab2": 1269,
+      "tab3": 1329
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "1000-20",
+      "ref": "100020",
+      "modelo": "Importado Borrachudo 14PR",
+      "tab1": 1359,
+      "tab2": 1439,
+      "tab3": 1519
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "1000 R 20",
+      "ref": "1000R20",
+      "modelo": "Importado Misto",
+      "tab1": 1699,
+      "tab2": 1759,
+      "tab3": 1819
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "275/70 R 22.5",
+      "ref": "275702250",
+      "modelo": "Importado Liso",
+      "tab1": 1599,
+      "tab2": 1699,
+      "tab3": 1789
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "275/80 R 22.5",
+      "ref": "275802250",
+      "modelo": "Importado Liso 16PR",
+      "tab1": 1449,
+      "tab2": 1539,
+      "tab3": 1629
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "275/80 R 22.5",
+      "ref": "275802250",
+      "modelo": "Importado Misto 16PR",
+      "tab1": 1549,
+      "tab2": 1639,
+      "tab3": 1739
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "275/80 R 22.5",
+      "ref": "275802250",
+      "modelo": "Importado Borrachudo 16PR",
+      "tab1": 1649,
+      "tab2": 1749,
+      "tab3": 1849
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "275/80 R 22.5",
+      "ref": "275802250",
+      "modelo": "Importado Liso 18PR",
+      "tab1": 1539,
+      "tab2": 1629,
+      "tab3": 1729
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "275/80 R 22.5",
+      "ref": "275802250",
+      "modelo": "Importado Misto 18PR",
+      "tab1": 1649,
+      "tab2": 1749,
+      "tab3": 1849
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "275/80 R 22.5",
+      "ref": "275802250",
+      "modelo": "Importado Borrachudo 18PR",
+      "tab1": 1699,
+      "tab2": 1799,
+      "tab3": 1899
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "295/80 R 22.5",
+      "ref": "295802250",
+      "modelo": "Importado Liso 16PR",
+      "tab1": 1539,
+      "tab2": 1629,
+      "tab3": 1729
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "295/80 R 22.5",
+      "ref": "295802250",
+      "modelo": "Importado Misto 16PR",
+      "tab1": 1599,
+      "tab2": 1689,
+      "tab3": 1789
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "295/80 R 22.5",
+      "ref": "295802250",
+      "modelo": "Importado Borrachudo 16PR",
+      "tab1": 1599,
+      "tab2": 1689,
+      "tab3": 1789
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "295/80 R 22.5",
+      "ref": "295802250",
+      "modelo": "Importado Liso 18PR",
+      "tab1": 1799,
+      "tab2": 1909,
+      "tab3": 2019
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "295/80 R 22.5",
+      "ref": "295802250",
+      "modelo": "Importado Misto 18PR",
+      "tab1": 1699,
+      "tab2": 1799,
+      "tab3": 1899
+    },
+    {
+      "categoria": "CAMINHÃO",
+      "medida": "295/80 R 22.5",
+      "ref": "295802250",
+      "modelo": "Importado Borrachudo 18PR",
+      "tab1": 1699,
+      "tab2": 1799,
+      "tab3": 1899
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "600-9",
+      "ref": "6009",
+      "modelo": "Importado 10PR Tubetype",
+      "tab1": 399,
+      "tab2": 429,
+      "tab3": 449
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "650-10",
+      "ref": "65010",
+      "modelo": "Importado 10PR Tubetype",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "650-10",
+      "ref": "65010",
+      "modelo": "Importado 12PR Tubetype",
+      "tab1": 499,
+      "tab2": 529,
+      "tab3": 559
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "700-12",
+      "ref": "70012",
+      "modelo": "Importado 12PR Tubetype",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "700-12",
+      "ref": "70012",
+      "modelo": "Importado 14PR Tubetype",
+      "tab1": 659,
+      "tab2": 699,
+      "tab3": 739
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "10-16.5",
+      "ref": "101650",
+      "modelo": "Importado Tubeless 12PR",
+      "tab1": 699,
+      "tab2": 739,
+      "tab3": 779
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "12-16.5",
+      "ref": "121650",
+      "modelo": "Importado Tubeless 10PR",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "12-16.5",
+      "ref": "121650",
+      "modelo": "Importado Tubeless 12PR",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 899
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "10.5/80-18",
+      "ref": "10508018",
+      "modelo": "Tratores industriais Tubeless",
+      "tab1": 999,
+      "tab2": 1059,
+      "tab3": 1119
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "12.5/80-18",
+      "ref": "12508018",
+      "modelo": "Importado Industrial 12PR Tubeless",
+      "tab1": 1099,
+      "tab2": 1169,
+      "tab3": 1229
+    },
+    {
+      "categoria": "EMPILHADEIRA",
+      "medida": "17.5-25",
+      "ref": "17525",
+      "modelo": "Tratores industriais",
+      "tab1": 2989,
+      "tab2": 3169,
+      "tab3": 3349
+    },
+    {
+      "categoria": "AGRÍCOLA",
+      "medida": "750-16",
+      "ref": "75016agr",
       "modelo": "Importado 10PR (3 raios)",
       "tab1": 659,
       "tab2": 699,
       "tab3": 739
     },
     {
+      "categoria": "AGRÍCOLA",
+      "medida": "750-16",
+      "ref": "75016agr",
+      "modelo": "Importado 10PR (5 raios)",
+      "tab1": 599,
+      "tab2": 639,
+      "tab3": 669
+    },
+    {
+      "categoria": "AGRÍCOLA",
+      "medida": "750-16",
+      "ref": "75016agr",
+      "modelo": "Importado 8PR Tratorado",
+      "tab1": 639,
+      "tab2": 679,
+      "tab3": 719
+    },
+    {
+      "categoria": "AGRÍCOLA",
       "medida": "750-18",
       "ref": "75018",
       "modelo": "Pirelli RA-45 6PR (5 raios)",
@@ -1466,52 +4168,319 @@
       "tab3": 559
     },
     {
-      "medida": "80/100-14",
-      "ref": "8010014",
-      "modelo": "Importado Sport  (Tras Tubetype)",
-      "tab1": 99,
-      "tab2": 109,
-      "tab3": 109
+      "categoria": "AGRÍCOLA",
+      "medida": "10.5/80-18",
+      "ref": "10508018agr",
+      "modelo": "Importado 10PR (5 Raios)",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 889
     },
     {
-      "medida": "80/80-14",
-      "ref": "808014",
-      "modelo": "Rinaldi SS-48 Sport  (Diant Tubeless)",
-      "tab1": 199,
-      "tab2": 209,
-      "tab3": 219
+      "categoria": "AGRÍCOLA",
+      "medida": "10.5/80-18",
+      "ref": "10508018agr",
+      "modelo": "Importado 12PR (Implemento)",
+      "tab1": 799,
+      "tab2": 849,
+      "tab3": 889
     },
     {
-      "medida": "90/100-21",
-      "ref": "9010021",
-      "modelo": "Rinaldi SW-43 Off-Road  (Dian Tubetype)",
-      "tab1": 259,
-      "tab2": 279,
-      "tab3": 289
+      "categoria": "AGRÍCOLA",
+      "medida": "12/4-24",
+      "ref": "12424",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 1499,
+      "tab2": 1589,
+      "tab3": 1679
     },
     {
-      "medida": "90/90-12",
-      "ref": "909012",
-      "modelo": "Rinaldi HB-37 Sport  (Diant Tubeless)",
-      "tab1": 199,
-      "tab2": 209,
-      "tab3": 219
+      "categoria": "AGRÍCOLA",
+      "medida": "14/9-24",
+      "ref": "14924",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 1749,
+      "tab2": 1859,
+      "tab3": 1959
     },
     {
-      "medida": "90/90-18",
-      "ref": "909018",
-      "modelo": "Importado Sport  (Tras Tubetype)",
+      "categoria": "AGRÍCOLA",
+      "medida": "14/9-28",
+      "ref": "14928",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 2499,
+      "tab2": 2649,
+      "tab3": 2799
+    },
+    {
+      "categoria": "AGRÍCOLA",
+      "medida": "18/4-30",
+      "ref": "18430",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 3109,
+      "tab2": 3299,
+      "tab3": 3489
+    },
+    {
+      "categoria": "AGRÍCOLA",
+      "medida": "18/4-34",
+      "ref": "18434",
+      "modelo": "Importado 12PR (Tras Trator)",
+      "tab1": 3299,
+      "tab2": 3499,
+      "tab3": 3699
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "300-10",
+      "ref": "30010",
+      "modelo": "Rinaldi BS-32 Urbano (Diant/Tras Tubetype)",
       "tab1": 139,
       "tab2": 149,
       "tab3": 159
     },
     {
-      "medida": "900-20",
-      "ref": "90020",
-      "modelo": "Importado Liso 14PR",
-      "tab1": 1099,
-      "tab2": 1159,
-      "tab3": 1219
+      "categoria": "MOTO",
+      "medida": "350-10",
+      "ref": "35010",
+      "modelo": "Rinaldi BS-32 Urbano (Diant/Tras Tubetype)",
+      "tab1": 159,
+      "tab2": 169,
+      "tab3": 179
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "100/90-10",
+      "ref": "1009010",
+      "modelo": "Rinaldi HB-37 Sport (Diant/Tras Tubeless)",
+      "tab1": 229,
+      "tab2": 239,
+      "tab3": 249
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "90/90-12",
+      "ref": "909012",
+      "modelo": "Rinaldi HB-37 Sport (Diant Tubeless)",
+      "tab1": 199,
+      "tab2": 209,
+      "tab3": 219
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "130/70-12",
+      "ref": "1307012",
+      "modelo": "Rinaldi HB-37 Sport (Diant/Tras Tubeless)",
+      "tab1": 249,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "120/70-13",
+      "ref": "1207013",
+      "modelo": "Rinaldi HB-37 Sport (Diant/Tras Tubeless)",
+      "tab1": 249,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "130/70-13",
+      "ref": "1307013",
+      "modelo": "",
+      "tab1": 299,
+      "tab2": 319,
+      "tab3": 339
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "80/80-14",
+      "ref": "808014",
+      "modelo": "Rinaldi SS-48 Sport (Diant Tubeless)",
+      "tab1": 199,
+      "tab2": 209,
+      "tab3": 219
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "80/100-14",
+      "ref": "8010014",
+      "modelo": "Importado Sport (Tras Tubetype)",
+      "tab1": 99,
+      "tab2": 109,
+      "tab3": 109
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "80/100-14",
+      "ref": "8010014",
+      "modelo": "Rinaldi PD-29 Urbano (Tras Tubetype)",
+      "tab1": 129,
+      "tab2": 139,
+      "tab3": 149
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "100/80-14",
+      "ref": "1008014",
+      "modelo": "Rinaldi SS-48 Sport (Diant Tubeless)",
+      "tab1": 239,
+      "tab2": 259,
+      "tab3": 269
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "120/70-14",
+      "ref": "1207014",
+      "modelo": "Rinaldi SS-48 Sport (Tras Tubeless)",
+      "tab1": 229,
+      "tab2": 249,
+      "tab3": 259
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "250-17",
+      "ref": "25017",
+      "modelo": "Rinaldi PD-29 Urbano (Diant Tubetype)",
+      "tab1": 99,
+      "tab2": 109,
+      "tab3": 109
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "275-17",
+      "ref": "27517",
+      "modelo": "Rinaldi PD-29 Urbano (Diant Tubetype)",
+      "tab1": 99,
+      "tab2": 109,
+      "tab3": 109
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "100/80-17",
+      "ref": "1008017",
+      "modelo": "Importado Sport (Diant Tubeless)",
+      "tab1": 149,
+      "tab2": 159,
+      "tab3": 169
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "110/70-17",
+      "ref": "1107017",
+      "modelo": "Importado Sport (Diant Tubeless)",
+      "tab1": 199,
+      "tab2": 209,
+      "tab3": 219
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "110/90-17",
+      "ref": "1109017",
+      "modelo": "Rinaldi R-34 Trail (Tras Tubetype)",
+      "tab1": 279,
+      "tab2": 289,
+      "tab3": 309
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "130/70-17",
+      "ref": "1307017",
+      "modelo": "Importado Sport (Tras Tubeless)",
+      "tab1": 239,
+      "tab2": 249,
+      "tab3": 269
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "130/70-17",
+      "ref": "1307017",
+      "modelo": "Mounumental Luxor Sport (Tras Tubeless)",
+      "tab1": 239,
+      "tab2": 249,
+      "tab3": 269
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "140/70-17",
+      "ref": "1407017",
+      "modelo": "Importado Sport (Tras Tubeless)",
+      "tab1": 289,
+      "tab2": 299,
+      "tab3": 319
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "275-18",
+      "ref": "27518",
+      "modelo": "Rinaldi BS-32 Urbano (Diant Tubetype)",
+      "tab1": 119,
+      "tab2": 129,
+      "tab3": 139
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "90/90-18",
+      "ref": "909018",
+      "modelo": "Importado Sport (Tras Tubetype)",
+      "tab1": 139,
+      "tab2": 149,
+      "tab3": 159
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "90/90-18",
+      "ref": "909018",
+      "modelo": "Rinaldi BS-32 Urbano (Tras Tubetype)",
+      "tab1": 139,
+      "tab2": 149,
+      "tab3": 159
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "90/90-18",
+      "ref": "909018",
+      "modelo": "Rinaldi PD-29 Urbano (Tras Tubetype)",
+      "tab1": 139,
+      "tab2": 149,
+      "tab3": 159
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "90/90-18",
+      "ref": "909018",
+      "modelo": "Rinaldi R-34 Trail (Tras Tubetype)",
+      "tab1": 169,
+      "tab2": 179,
+      "tab3": 189
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "90/90-18",
+      "ref": "909018",
+      "modelo": "Rinaldi SS-48 Sport (Tras Tubeless)",
+      "tab1": 189,
+      "tab2": 199,
+      "tab3": 209
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "140/80-18",
+      "ref": "1408018",
+      "modelo": "Rinaldi SW-43 Off-Road (Tras Tubetype)",
+      "tab1": 379,
+      "tab2": 399,
+      "tab3": 419
+    },
+    {
+      "categoria": "MOTO",
+      "medida": "90/100-21",
+      "ref": "9010021",
+      "modelo": "Rinaldi SW-43 Off-Road (Dian Tubetype)",
+      "tab1": 259,
+      "tab2": 279,
+      "tab3": 289
     }
   ]
 }
