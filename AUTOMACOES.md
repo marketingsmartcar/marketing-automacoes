@@ -465,7 +465,7 @@ BRPneus-MonitorAds-15h00     → seg–sáb 15h
 BRPneus-MonitorAds-16h00     → seg–sáb 16h
 BRPneus-MonitorAds-17h00     → seg–sáb 17h
 BRPneus-MonitorAds-17h30     → seg–sáb 17h30
-BRPneus-ComparativoPrecos   → toda segunda às 8h
+BRPneus-ComparativoPrecos   → toda segunda às 8h30 (GitHub Actions)
 ```
 
 **PM2 (sempre ativos):**
@@ -1284,7 +1284,7 @@ node tools/bi-reativacao-oi.js --loja=BR01 --dia=14 --mes=7  # data específica
 | Campo | Valor |
 |-------|-------|
 | Script | `tools/comparar-precos-pneustore.js` |
-| Agendamento | Toda **segunda-feira às 8h** — Task Scheduler: `BRPneus-ComparativoPrecos` |
+| Agendamento | Toda **segunda-feira às 8h30** — GitHub Actions: `comparativo-precos.yml` (runner self-hosted) |
 | Log | `logs/comparativo-precos.log` |
 | Cache diário | `output/debug-bi/pneustore-cache.json` |
 | Excel local | `output/relatorios/comparativo-precos-YYYY-MM-DD.xlsx` |
