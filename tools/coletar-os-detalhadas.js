@@ -93,15 +93,21 @@ async function login(page) {
 }
 
 async function trocarLoja(page, ddlValue) {
-  await page.evaluate((v) => {
-    const sel = document.querySelector('#ddlTrocarEmpresa');
-    if (sel) sel.value = v;
-  }, ddlValue);
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }),
-    page.click('#ctl00_btnTrocarEmpresa'),
-  ]);
-  await sleep(1000);
+  // Navega ao relatório primeiro (garante que o seletor de loja esteja no DOM)
+  await page.goto(RELATORIO_URL, { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.waitForSelector('#ddlTrocarEmpresa', { timeout: 10000 });
+  await page.select('#ddlTrocarEmpresa', ddlValue);
+  await sleep(300);
+
+  // Clica via JS (ignora visibilidade — botão pode estar oculto em alguns temas)
+  const navPromise = page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+  await page.evaluate(() => {
+    const btn = document.querySelector('#ctl00_btnTrocarEmpresa');
+    if (btn) btn.click();
+  });
+  // Se já era a loja atual, a navegação não acontece
+  await navPromise.catch(() => sleep(1000));
+  await sleep(800);
 }
 
 // ── Parser de OS ──────────────────────────────────────────────────────────────
