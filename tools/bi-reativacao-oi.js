@@ -32,6 +32,23 @@ const GRUPO_AUTOMACAO_ID = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID || '120363407
 const DEBUG_DIR = path.join(__dirname, '..', 'output', 'debug-bi');
 const SLEEP     = ms => new Promise(r => setTimeout(r, ms));
 
+// ── Lock file (evita execução paralela) ───────────────────────────────────────
+const LOCK_FILE = path.join(DEBUG_DIR, 'bi-reativacao.lock');
+function adquirirLock() {
+  try { fs.mkdirSync(path.dirname(LOCK_FILE), { recursive: true }); } catch {}
+  if (fs.existsSync(LOCK_FILE)) {
+    const pid = fs.readFileSync(LOCK_FILE, 'utf8').trim();
+    // Verifica se o processo ainda está vivo
+    try { process.kill(Number(pid), 0); console.error(`❌ Já existe uma instância rodando (PID ${pid}). Aguarde terminar.`); process.exit(1); } catch {}
+    // PID morto — lock stale, pode sobrescrever
+  }
+  fs.writeFileSync(LOCK_FILE, String(process.pid));
+}
+function liberarLock() { try { fs.unlinkSync(LOCK_FILE); } catch {} }
+process.on('exit', liberarLock);
+process.on('SIGINT', () => { liberarLock(); process.exit(130); });
+process.on('SIGTERM', () => { liberarLock(); process.exit(143); });
+
 // ── Estado diário (deduplicação) ───────────────────────────────────────────────
 // Garante que nada é reenviado se o script rodar duas vezes no mesmo dia
 const _dataBRT = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -242,8 +259,12 @@ async function baixarComFiltro(page, loja, filtroFn, labelLog) {
 
   const totalFiltrado = await page.$eval('[id*="TotalFiltrado"]', el => el.textContent.replace(/\D/g,'')).catch(() => null);
   console.log(`  📊 ${labelLog}: ${totalFiltrado ?? '?'} clientes`);
-  if (totalFiltrado === null || totalFiltrado === '0' || totalFiltrado === '') {
-    console.log('  ℹ️  0 ou indefinido — pulando download');
+  if (totalFiltrado === '0' || totalFiltrado === '') {
+    console.log('  ℹ️  0 clientes — nada a enviar');
+    return 'zero';
+  }
+  if (totalFiltrado === null) {
+    console.log('  ℹ️  TotalFiltrado indefinido — pulando download');
     return null;
   }
   // Se TotalFiltrado == base (filtro não aplicou), pula para evitar enviar base inteira
@@ -421,6 +442,7 @@ async function formatarExcel(xlsPath, xlsxPath) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  adquirirLock();
   const { dia, mes, loja: lojaFiltro } = parseArgs();
   const hoje = new Date();
   const periodos = calcularPeriodos(hoje);
@@ -512,6 +534,15 @@ async function main() {
           if (!fs.existsSync(destXlsx)) {
             await carregarBase(page, loja);
             const excelPath = await baixarComFiltro(page, loja, tarefa.filtro, tarefa.labelLog);
+            if (excelPath === 'zero') {
+              // 0 clientes é resultado legítimo (feriado, domingo, etc.) — avisa e encerra sem retry
+              const msg = `🔄 ${loja.sigla} - ${tarefa.label}: 0 clientes encontrados`;
+              console.log(`  ℹ️  ${msg}`);
+              await enviarTextoWA(msg);
+              marcarEnviado(estado, chaveDedup);
+              enviado = true;
+              break;
+            }
             if (!excelPath) {
               console.log(`  ⚠️  Filtro falhou na tentativa ${tentativa}`);
               continue;
