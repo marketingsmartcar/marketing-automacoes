@@ -1,0 +1,80 @@
+name: OS Detalhadas — Coleta Diária OI
+
+on:
+  schedule:
+    # 08:30 BRT = 11:30 UTC — Segunda a Sábado
+    - cron: '30 11 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      data:
+        description: 'Data inicial (YYYY-MM-DD). Vazio = ontem (BRT).'
+        required: false
+      ate:
+        description: 'Data final (YYYY-MM-DD). Vazio = igual à inicial.'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  coletar:
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Adicionar Git bash ao PATH
+        shell: powershell
+        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Instalar dependências
+        shell: bash
+        run: npm ci
+
+      - name: Criar .env
+        shell: bash
+        run: |
+          echo "OI_EMAIL=${{ secrets.OI_EMAIL }}"                                                     >> .env
+          echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                                     >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                               >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}"     >> .env
+
+      - name: Calcular data (ontem BRT se não informado)
+        shell: bash
+        id: data
+        run: |
+          if [ -n "${{ github.event.inputs.data }}" ]; then
+            DE="${{ github.event.inputs.data }}"
+          else
+            DE=$(node -e "
+              const d = new Date();
+              d.setDate(d.getDate() - 1);
+              process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(d));
+            ")
+          fi
+          ATE="${{ github.event.inputs.ate }}"
+          if [ -z "$ATE" ]; then ATE="$DE"; fi
+          echo "de=$DE" >> $GITHUB_OUTPUT
+          echo "ate=$ATE" >> $GITHUB_OUTPUT
+          echo "📅 Coletando: $DE a $ATE"
+
+      - name: Coletar OS detalhadas
+        shell: bash
+        run: node tools/coletar-os-detalhadas.js --date ${{ steps.data.outputs.de }} --ate ${{ steps.data.outputs.ate }}
+
+      - name: Salvar debug como artefato
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: os-debug-${{ github.run_number }}
+          path: debug/os-detalhadas/
+          if-no-files-found: ignore
+          retention-days: 3

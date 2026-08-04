@@ -1318,3 +1318,45 @@ npm run comparar-precos:agendar      # reagenda o Task Scheduler
 - Scraping com delay de 1,5s entre medidas para não sobrecarregar o site
 
 *Criado: 30/07/2026*
+
+---
+
+## 26. OS Detalhadas — Coleta Diária OI
+
+**O que faz:** Todo dia às 08h30, faz scraping das Ordens de Serviço do dia anterior no OI (Vendas > Relatório de Vendas > OS: Sim > Gestão Periódica) para cada loja ativa. Salva todos os dados detalhados no Supabase (NexusZ), incluindo itens (produto/serviço), responsável, executor, grupo, LB%, pagamentos.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-os-detalhadas.js` |
+| GitHub Actions | `.github/workflows/coleta-os-detalhadas.yml` |
+| Agendamento | Diário às **08h30 BRT** (11h30 UTC) — Segunda a Sábado |
+| Lojas | BR01 (469), BR03 (2202), BR04 (1524), PEG1 (3098) |
+| Tabelas Supabase | `os_vendas` (header da OS) + `os_itens` (produtos/serviços) |
+| Debug | `debug/os-detalhadas/` — dump do texto de cada página por loja |
+
+**Como rodar manualmente:**
+```bash
+node tools/coletar-os-detalhadas.js                          # ontem
+node tools/coletar-os-detalhadas.js --date 2026-08-03        # dia específico
+node tools/coletar-os-detalhadas.js --date 2026-08-01 --ate 2026-08-03  # intervalo
+```
+
+**Campos coletados por OS:**
+- Header: OS número, data, loja, cliente, tipo, veículo, placa, hodômetro, ano
+- Responsável, pesquisa (origem), observações
+- Total serviços, total produtos, total OS, LB%
+- Itens: código, descrição, grupo, qtd, R$ total, desconto, tabela, custo, executor
+
+**Visualização no NexusZ:**
+- Menu: Admin > "Vendas & OS" (`/admin/vendas-os`)
+- Filtros: período, busca (OS/cliente/placa/responsável), tabs por loja
+- Cards: count OS, faturamento, LB% médio, serviços, produtos
+- Tabela expandível: clica na OS para ver itens detalhados
+
+**Regras importantes:**
+- Seletor OS: `#ctl00_cph_ddlMostrarOS` com valor `"True"` = "Sim"
+- Upsert por `(loja_key, os_numero)` — reroda sem duplicar
+- Itens são re-inseridos a cada coleta (delete + insert) para garantir atualização
+- Paginação: verifica botão "Próximo" após cada página (dias com muitas OS)
+
+*Criado: 04/08/2026*
