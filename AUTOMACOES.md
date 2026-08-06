@@ -1369,3 +1369,40 @@ node tools/coletar-os-detalhadas.js --date 2026-08-01 --ate 2026-08-03  # interv
 - Runner self-hosted obrigatório: o scraper usa Puppeteer + Chrome, não roda em GitHub-hosted
 
 *Criado: 04/08/2026 | Atualizado: 06/08/2026 (realtime + coleta intradiária de hoje)*
+
+---
+
+## 27. Sync Cadastro Funcionários OI → NexusZ (Manual)
+
+**O que faz:** Abre o perfil de cada funcionário cadastrado no NexusZ dentro do OI (Oficina Inteligente), coleta todos os dados das abas Pessoa, Endereço, Contato, Documentos, Dados Bancários e Funcionário, e atualiza os campos correspondentes na tabela `rh_colaboradores` do NexusZ via Supabase.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/sync-cadastro-funcionarios-oi.js` |
+| Execução | Manual (sob demanda) |
+| Lojas cobertas | BR01, BR03, BR04, PEG1 (todas as lojas ativas) |
+| Tabela Supabase | `rh_colaboradores` |
+| Output debug | `output/debug-sync-funcionarios/` |
+| Dependências | `puppeteer-extra`, `puppeteer-extra-plugin-stealth` |
+
+**Como rodar:**
+```bash
+node tools/sync-cadastro-funcionarios-oi.js              # todas as lojas
+node tools/sync-cadastro-funcionarios-oi.js --dry-run    # testa sem salvar
+node tools/sync-cadastro-funcionarios-oi.js --loja=BR01  # filtra uma loja
+```
+
+**Campos coletados (mapeados para rh_colaboradores):**
+- Pessoa: `cpf`, `rg`, `data_nascimento`, `sexo`, `apelido`, `email`, `telefone_celular`, `telefone_fixo`, `telefone_celular_2`, `estado_civil`, `grau_instrucao`, `pais`, `observacoes`
+- Endereço: `endereco`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `cep`
+- Dados Bancários: `banco`, `agencia`, `conta`, `pix`
+- Funcionário: `cargo`, `data_admissao`, `data_demissao`, `data_registro`, `salario`, `matricula`, `pis`, `ctps_numero`, `ctps_serie`, `titulo_eleitor`, `titulo_eleitor_zona`, `titulo_eleitor_secao`, `certificado_reservista`, `horario_entrada`, `horario_saida`, `horario_intervalo`
+
+**Observações técnicas:**
+- OI abre o perfil em **nova aba** (form `target="_blank"`) — o script força `_self` antes do clique e tem fallback via `browser.on('targetcreated')`
+- ASP.NET WebForms PostBack: o script usa `ElementHandle.click()` real para passar a Event Validation
+- Match por nome normalizado (sem acento, sem parênteses, tokens de 3+ chars)
+- Filtro automático: ignora nomes com "/", começando com número, "EXCLUIDO", "MATERIAL INTERNO"
+- 4 sem match esperados: Cibele Zachi, Fábio Zachi (não estão no NexusZ), Jessica Salomão (typo no OI)
+
+*Criado: 06/08/2026 — Validado: 52 funcionários atualizados, 0 erros.*
