@@ -1406,3 +1406,46 @@ node tools/sync-cadastro-funcionarios-oi.js --loja=BR01  # filtra uma loja
 - 4 sem match esperados: Cibele Zachi, Fábio Zachi (não estão no NexusZ), Jessica Salomão (typo no OI)
 
 *Criado: 06/08/2026 — Validado: 52 funcionários atualizados, 0 erros.*
+
+---
+
+## 28. Sync Registros de Ponto InPonto → NexusZ (Manual/Agendável)
+
+**O que faz:** Consulta a API REST do InPonto (`pontogoapi-homolog-production.up.railway.app`) e sincroniza os registros de ponto de cada funcionário na tabela `rh_pontos` do NexusZ. Os dados aparecem na aba **Ponto** no perfil de cada colaborador.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/sync-ponto-inponto.js` |
+| Execução | Manual (sob demanda) ou agendável |
+| API | `pontogoapi-homolog-production.up.railway.app` |
+| Auth | Token estático `INPONTO_TOKEN` no `.env` |
+| Company ID | `INPONTO_COMPANY_ID` no `.env` |
+| Tabela Supabase | `rh_pontos` |
+
+**Como rodar:**
+```bash
+node tools/sync-ponto-inponto.js              # últimos 30 dias
+node tools/sync-ponto-inponto.js --today      # só hoje
+node tools/sync-ponto-inponto.js --days 7     # últimos 7 dias
+node tools/sync-ponto-inponto.js --mes 08/2026 # mês específico
+node tools/sync-ponto-inponto.js --dry-run    # sem salvar, apenas exibir
+```
+
+**Campos sincronizados (rh_pontos):**
+- `entrada`, `saida_almoco`, `retorno_almoco`, `saida` — horários HH:MM extraídos das batidas
+- `horas_trabalhadas` — calculado por pares de batidas (em decimal)
+- `batidas` — array de timestamps brutos (jsonb)
+- `inconsistencias` — mensagens de alerta da API (jsonb), exibidas como badges na UI
+- `inponto_employee_id` — ID do funcionário no InPonto (também salvo em `rh_colaboradores`)
+- `sincronizado_em` — timestamp do último sync
+
+**Match funcionário:** por CPF normalizado (somente dígitos). Funcionários InPonto sem CPF no NexusZ ficam na lista "não encontrados" — precisam ser cadastrados manualmente.
+
+**Observações técnicas:**
+- API requer header `Authorization: <token>` (sem prefixo Bearer)
+- Payload da rota `get-occurrences-from-company-range` exige campo `tolerance: "10m"` (Go duration string) — omissão retorna 422
+- `localDate` nas batidas já está em BRT (não é UTC); extrair hora via regex `T(\d{2}):(\d{2})` sem conversão
+- Upsert com constraint única `(colaborador_id, data)` — atualiza se já existir
+- O InPonto gerencia a equipe Smartcar (14 funcionários); apenas os com CPF cadastrado no NexusZ recebem o sync
+
+*Criado: 06/08/2026 — Validado com dry-run: 1 colaborador sincronizado (Gustavo Adati), 8 sem match (equipe Smartcar não cadastrada no NexusZ).*
