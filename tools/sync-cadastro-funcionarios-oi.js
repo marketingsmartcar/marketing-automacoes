@@ -346,8 +346,68 @@ async function extrairCampos(page) {
       d[k] = el.options[el.selectedIndex]?.text?.trim() || '';
     });
 
+    // ── Extrações específicas por padrão (fallback para campos que o lbl() não alcança) ──
+
+    // CPF: detecta por padrão ###.###.###-## ou ##############
+    if (!d['CPF/CNPJ'] && !d['CPF']) {
+      Array.from(document.querySelectorAll('input')).forEach(el => {
+        const v = (el.value || '').trim();
+        if (/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(v) && v.replace(/\D/g,'').length === 11) {
+          d['CPF/CNPJ'] = v;
+        }
+      });
+    }
+
+    // Sexo: radio com value M / F (o lbl() pode devolver "M" como chave em vez de "Sexo")
+    const sexoChecked = document.querySelector(
+      'input[type=radio][value="M"]:checked, input[type=radio][value="F"]:checked, ' +
+      'input[type=radio][value="Masculino"]:checked, input[type=radio][value="Feminino"]:checked'
+    );
+    if (sexoChecked) d['Sexo'] = sexoChecked.value;
+
     return d;
   }).catch(() => ({}));
+}
+
+// ── Lê contatos de emergência da aba Contato (tabela de contatos existentes) ─────
+async function lerContatosEmergencia(page) {
+  return page.evaluate(() => {
+    const contatos = [];
+    const trs = Array.from(document.querySelectorAll('table tr'));
+    let dentroTabela = false;
+
+    for (const tr of trs) {
+      const cells = Array.from(tr.querySelectorAll('td, th'));
+      const textos = cells.map(c => c.textContent.trim().replace(/\s+/g,' '));
+
+      if (!dentroTabela) {
+        // Detecta header da tabela de contatos
+        if (textos.includes('Contato') && textos.includes('Comercial')) {
+          dentroTabela = true;
+        }
+        continue;
+      }
+
+      // Saiu da tabela (nova tabela ou fim)
+      if (textos.includes('Contato') && textos.includes('Comercial')) continue;
+      if (cells.length < 2) { dentroTabela = false; continue; }
+
+      const nome = textos[0];
+      if (!nome || nome.length > 100 || nome.length < 1) continue;
+
+      // Posições: 0=Contato, 1=Comercial, 2=Ramal, 3=Residencial, 4=Celular, 5=E-mail, 6=Departamento
+      const comercial   = textos[1] || null;
+      const residencial = textos[3] || null;
+      const celular     = textos[4] || null;
+      const emailC      = textos[5] || null;
+
+      const telefone = celular || comercial || residencial || null;
+      if (nome && (telefone || emailC)) {
+        contatos.push({ nome, telefone, email: emailC || null });
+      }
+    }
+    return contatos;
+  }).catch(() => []);
 }
 
 // ── Lê todas as abas ──────────────────────────────────────────────────────────
@@ -391,6 +451,15 @@ async function lerTudo(profilePage) {
     if (aba === 'Endereço') {
       const tabela = await lerEnderecoTabela(profilePage);
       Object.assign(c, tabela); // tabela vence inputs vazios
+    }
+
+    // Contato: lê também a tabela de contatos de emergência
+    if (aba === 'Contato') {
+      const contatos = await lerContatosEmergencia(profilePage);
+      if (contatos.length > 0) {
+        c['_emergencia_nome']     = contatos[0].nome || '';
+        c['_emergencia_telefone'] = contatos[0].telefone || '';
+      }
     }
 
     for (const [k, v] of Object.entries(c)) {
@@ -511,6 +580,9 @@ function mapear(campos) {
     horario_entrada:     get('Entrada'),
     horario_saida:       get('Saída', 'Saida', 'Termino Intervalo', 'Término Intervalo'),
     horario_intervalo:   get('Início Intervalo', 'Inicio Intervalo', 'Intervalo Refeição'),
+    // Contato de emergência (aba Contato — tabela de contatos)
+    emergencia_nome:     get('_emergencia_nome') || null,
+    emergencia_telefone: get('_emergencia_telefone') || null,
   };
 }
 
