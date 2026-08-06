@@ -348,43 +348,31 @@ async function extrairCampos(page) {
 
 // ── Lê todas as abas ──────────────────────────────────────────────────────────
 
-let _debugPrimeiro = true; // loga campos brutos apenas no primeiro funcionário
-
 async function lerTudo(profilePage) {
   const abas = ['Pessoa', 'Endereço', 'Contato', 'Documentos', 'Dados Bancários', 'Funcionário'];
   const camposPorAba = {};
 
   for (const aba of abas) {
-    const urlAntes = profilePage.url();
     await lerAba(profilePage, aba);
-    const urlDepois = profilePage.url();
     const c = await extrairCampos(profilePage);
 
-    // Só guarda novos campos (não sobrescreve com vazio)
-    let novos = 0;
     for (const [k, v] of Object.entries(c)) {
-      if (v && v.trim() && !camposPorAba[k]) { camposPorAba[k] = v; novos++; }
+      if (v && v.trim() && !camposPorAba[k]) camposPorAba[k] = v;
       else if (!camposPorAba[k]) camposPorAba[k] = v;
     }
-    if (Object.keys(c).length > 0) process.stdout.write(` [${aba}:${Object.keys(c).length}]`);
+    const novosPreench = Object.entries(c).filter(([,v]) => v && v.trim()).length;
+    if (novosPreench > 0) process.stdout.write(` [${aba}:${novosPreench}✓]`);
   }
   process.stdout.write('\n');
 
-  const campos = camposPorAba;
-
-  if (_debugPrimeiro) {
-    _debugPrimeiro = false;
-    const preenchidos = Object.entries(campos).filter(([,v]) => v && v.trim());
-    console.log(`    [debug] ${preenchidos.length} campos preenchidos de ${Object.keys(campos).length} total:`);
-    preenchidos.forEach(([k,v]) => console.log(`      "${k}": "${v}"`));
-    if (!preenchidos.length) {
-      console.log('    [debug] todos os campos estão vazios');
-      console.log(`    [debug] amostra (5 campos brutos):`);
-      Object.entries(campos).slice(0, 5).forEach(([k,v]) => console.log(`      "${k}": "${v}"`));
-    }
+  // Diagnóstico: se nenhum campo preenchido, mostra amostra dos campos brutos
+  const preenchidos = Object.entries(camposPorAba).filter(([,v]) => v && v.trim());
+  if (!preenchidos.length) {
+    console.log(`    [debug] ⚠️ 0 campos preenchidos — amostra de campos brutos:`);
+    Object.entries(camposPorAba).slice(0, 8).forEach(([k,v]) => console.log(`      "${k}": "${v}"`));
   }
 
-  return campos;
+  return camposPorAba;
 }
 
 // ── Mapeia OI → NexusZ ────────────────────────────────────────────────────────
@@ -537,83 +525,130 @@ async function main() {
     const filtrada   = filtrar(listaBruta);
     console.log(`   📊 Bruto: ${listaBruta.length} | Válidos: ${filtrada.length} | Ignorados: ${listaBruta.length - filtrada.length}`);
 
-    // Deduplica por nome normalizado (mantém primeiro encontrado)
-    const vistosNomes = new Set();
-    const dedup = filtrada.filter(f => {
+    // Agrupa todas as entradas OI pelo nome normalizado (mantém TODAS — sem descartar duplicatas)
+    const porNome = new Map(); // normNome → [entradas]
+    filtrada.forEach(f => {
       const n = normNome(f.nome);
-      if (vistosNomes.has(n)) return false;
-      vistosNomes.add(n);
-      return true;
+      if (!porNome.has(n)) porNome.set(n, []);
+      porNome.get(n).push(f);
     });
-    console.log(`   ✅ ${dedup.length} únicos após deduplicação`);
 
-    // Match contra NexusZ
-    const paraSync = dedup.map(f => ({
-      ...f,
-      colaborador: matchNexusz(nexuszList, f.nome),
+    const totalNomes   = porNome.size;
+    const totalDupls   = [...porNome.values()].filter(v => v.length > 1).length;
+    console.log(`   ✅ ${totalNomes} nomes únicos (${totalDupls} com entradas duplicadas na OI)`);
+    if (totalDupls) {
+      [...porNome.entries()].filter(([,v]) => v.length > 1).forEach(([n, v]) =>
+        console.log(`      ↳ "${n}" — ${v.length}x (${v.map(e => e.lojaKey).join(', ')})`));
+    }
+
+    // Match contra NexusZ (por grupo de nome)
+    const grupos = [...porNome.entries()].map(([nNorm, entradas]) => ({
+      nNorm,
+      entradas,
+      colaborador: matchNexusz(nexuszList, entradas[0].nome),
     }));
 
-    const comMatch  = paraSync.filter(f => f.colaborador);
-    const semMatch  = paraSync.filter(f => !f.colaborador);
+    const comMatch  = grupos.filter(g => g.colaborador);
+    const semMatch  = grupos.filter(g => !g.colaborador);
 
     console.log(`   ✅ ${comMatch.length} com match no NexusZ`);
     if (semMatch.length) {
-      console.log(`   ⚠️  ${semMatch.length} sem match (não estão no NexusZ):`);
-      semMatch.forEach(f => console.log(`      - ${f.nome} (${f.lojaKey})`));
+      console.log(`   ⚠️  ${semMatch.length} sem match:`);
+      semMatch.forEach(g => console.log(`      - ${g.entradas[0].nome} (${g.entradas.map(e => e.lojaKey).join(', ')})`));
     }
 
     if (!comMatch.length) {
       console.log('\n❌ Nenhum para processar.'); return;
     }
 
-    // 3. Processa cada funcionário
-    console.log(`\n3️⃣  Lendo cadastros (${comMatch.length} funcionários)...\n`);
+    const totalEntradas = comMatch.reduce((s, g) => s + g.entradas.length, 0);
+    console.log(`\n3️⃣  Lendo cadastros (${comMatch.length} funcionários / ${totalEntradas} entradas OI)...\n`);
 
     let totalOk = 0, totalErro = 0;
     const resultados = [];
 
     for (let i = 0; i < comMatch.length; i++) {
-      const { nome, controlId, lojaKey, colaborador } = comMatch[i];
-      process.stdout.write(`  [${String(i+1).padStart(2)}/${comMatch.length}] ${nome.padEnd(40)}`);
+      const { entradas, colaborador } = comMatch[i];
+      const nomeDisplay = entradas[0].nome;
+      const isDupl = entradas.length > 1;
+      process.stdout.write(`  [${String(i+1).padStart(2)}/${comMatch.length}] ${nomeDisplay.padEnd(40)}`);
+      if (isDupl) process.stdout.write(`(${entradas.length} entradas OI)\n`);
 
       try {
-        const profilePage = await abrirPerfil(page, browser, controlId);
-        if (!profilePage) {
-          console.log('⚠️  perfil não carregou');
-          await screenshot(page, `sem-perfil-${nome.slice(0,15).replace(/\s/g,'_')}`);
-          totalErro++;
-          continue;
+        // Abre TODAS as entradas OI e mescla os dados (campo não-nulo prevalece)
+        let dadosMesclados = {};
+        let totalCamposEncontrados = 0;
+
+        for (let j = 0; j < entradas.length; j++) {
+          const entrada = entradas[j];
+          if (isDupl) process.stdout.write(`    [entrada ${j+1}/${entradas.length} — ${entrada.lojaKey}] `);
+
+          const profilePage = await abrirPerfil(page, browser, entrada.controlId);
+          if (!profilePage) {
+            if (isDupl) console.log('⚠️  perfil não carregou');
+            else process.stdout.write('⚠️  perfil não carregou\n');
+            await screenshot(page, `sem-perfil-${nomeDisplay.slice(0,15).replace(/\s/g,'_')}-${j}`);
+            continue;
+          }
+
+          const campos = await lerTudo(profilePage);
+          if (profilePage !== page) await profilePage.close().catch(() => {});
+
+          const dados = mapear(campos);
+          const preenchidos = Object.entries(dados).filter(([,v]) => v !== null && v !== undefined && v !== '');
+
+          if (isDupl) {
+            process.stdout.write(`${preenchidos.length} campos: ${preenchidos.map(([k]) => k).join(', ')}\n`);
+          }
+
+          // Mescla: campo existente não-nulo não é sobrescrito por nulo; campo novo sempre aceito
+          for (const [k, v] of Object.entries(dados)) {
+            if (v !== null && v !== undefined && v !== '') {
+              if (!dadosMesclados[k] || dadosMesclados[k] === null) {
+                dadosMesclados[k] = v;
+              }
+            }
+          }
+          totalCamposEncontrados = Object.entries(dadosMesclados)
+            .filter(([,v]) => v !== null && v !== undefined && v !== '').length;
         }
 
-        const campos = await lerTudo(profilePage);
+        // Mostra resumo dos campos mesclados (sempre, para facilitar diagnóstico)
+        const preenchidosFinal = Object.entries(dadosMesclados)
+          .filter(([,v]) => v !== null && v !== undefined && v !== '');
 
-        // Fecha nova aba se o perfil abriu fora da aba principal
-        if (profilePage !== page) await profilePage.close().catch(() => {});
-
-        const dados  = mapear(campos);
-        const camposPreenchidos = Object.entries(dados).filter(([,v]) => v !== null && v !== undefined && v !== '').length;
+        if (!isDupl) {
+          process.stdout.write(`    → ${preenchidosFinal.length} campos: `);
+          process.stdout.write(preenchidosFinal.map(([k]) => k).join(', ') + '\n');
+        } else {
+          console.log(`    → Mesclado: ${preenchidosFinal.length} campos: ${preenchidosFinal.map(([k]) => k).join(', ')}`);
+        }
 
         if (DRY_RUN) {
-          process.stdout.write(`    🔍 ${camposPreenchidos} campos\n`);
-          resultados.push({ nome, lojaKey, dados });
+          resultados.push({ nome: nomeDisplay, entradas: entradas.length, dados: dadosMesclados });
           continue;
         }
 
-        const res = await atualizar(colaborador.id, dados);
+        if (!preenchidosFinal.length) {
+          process.stdout.write(`    ⏭️  sem dados para salvar\n`);
+          continue;
+        }
+
+        const res = await atualizar(colaborador.id, dadosMesclados);
         if (res.skipped) {
           process.stdout.write(`    ⏭️  sem dados\n`);
         } else if (res.ok) {
-          process.stdout.write(`    ✅ ${res.n} campos\n`);
+          process.stdout.write(`    ✅ ${res.n} campos salvos\n`);
           totalOk++;
         } else {
           process.stdout.write(`    ❌ HTTP ${res.status}\n`);
           totalErro++;
         }
-        resultados.push({ nome, lojaKey, colaboradorId: colaborador.id, campos: res.n });
+        resultados.push({ nome: nomeDisplay, entradas: entradas.length, colaboradorId: colaborador.id, campos: res.n });
 
       } catch (err) {
         process.stdout.write(`    ❌ ${err.message}\n`);
-        await screenshot(page, `erro-${nome.slice(0,15).replace(/\s/g,'_')}`).catch(() => {});
+        await screenshot(page, `erro-${nomeDisplay.slice(0,15).replace(/\s/g,'_')}`).catch(() => {});
         totalErro++;
       }
 
