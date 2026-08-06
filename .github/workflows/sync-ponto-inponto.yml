@@ -1,0 +1,58 @@
+name: Sync Ponto InPonto → NexusZ
+
+on:
+  schedule:
+    # A cada 5 minutos (mínimo GitHub Actions)
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'today | days:N | mes:MM/YYYY'
+        required: false
+        default: 'today'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Criar .env
+        run: |
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                           >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          echo "INPONTO_TOKEN=${{ secrets.INPONTO_TOKEN }}"                                       >> .env
+          echo "INPONTO_COMPANY_ID=${{ secrets.INPONTO_COMPANY_ID }}"                             >> .env
+          echo "INPONTO_USER_ID=${{ secrets.INPONTO_USER_ID }}"                                   >> .env
+
+      - name: Sync ponto
+        run: |
+          MODO="${{ github.event.inputs.modo }}"
+          MODO="${MODO:-today}"
+
+          if [ "$MODO" = "today" ]; then
+            node tools/sync-ponto-inponto.js --today
+          elif echo "$MODO" | grep -q "^days:"; then
+            DAYS="${MODO#days:}"
+            node tools/sync-ponto-inponto.js --days "$DAYS"
+          elif echo "$MODO" | grep -q "^mes:"; then
+            MES="${MODO#mes:}"
+            node tools/sync-ponto-inponto.js --mes "$MES"
+          else
+            node tools/sync-ponto-inponto.js --today
+          fi
