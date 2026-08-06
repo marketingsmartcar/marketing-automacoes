@@ -1,0 +1,65 @@
+name: OS Tempo Real — API OI (a cada 2 min)
+
+on:
+  schedule:
+    # A cada 2 min, 07:50–18:00 BRT (10:50–21:00 UTC) — Segunda a Sábado
+    # GitHub Actions mínimo é 5 min; para 2 min usamos runner self-hosted com cron do SO
+    # Este workflow delega ao script que roda no cron local do Windows
+    - cron: '*/5 11-21 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      data:
+        description: 'Data (YYYY-MM-DD). Vazio = hoje (BRT).'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  coletar:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Adicionar Git bash ao PATH
+        shell: powershell
+        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Instalar dependências
+        shell: bash
+        run: npm ci
+
+      - name: Criar .env
+        shell: bash
+        run: |
+          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}"             >> .env
+          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}"       >> .env
+          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}"             >> .env
+          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}"             >> .env
+          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                       >> .env
+          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+
+      - name: Calcular data
+        shell: bash
+        id: data
+        run: |
+          if [ -n "${{ github.event.inputs.data }}" ]; then
+            DE="${{ github.event.inputs.data }}"
+          else
+            DE=$(node -e "process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()))")
+          fi
+          echo "de=$DE" >> $GITHUB_OUTPUT
+          echo "📅 Coletando OS de: $DE"
+
+      - name: Coletar OS via API
+        shell: bash
+        run: node tools/coletar-os-api.js ${{ steps.data.outputs.de }}
