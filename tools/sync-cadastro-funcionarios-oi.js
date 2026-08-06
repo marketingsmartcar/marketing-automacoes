@@ -51,10 +51,14 @@ function empresaParaLoja(empresa) {
   return null;
 }
 
+// Nomes a ignorar no sync (donos da empresa)
+const SKIP_NAMES = new Set(['CIBELE REGINA OLIVEIRA', 'FABIO ZACHI', 'CIBELE ZACHI']);
+
 function normNome(n) {
   return (n || '').trim().toUpperCase()
-    .replace(/\s*\(.*?\)\s*/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/\s*\(.*?\)\s*/g, '') // remove (conteúdo)
+    .replace(/\s*\(.*$/g, '')       // remove ( sem fechamento
+    .replace(/\s+/g, ' ').trim()
     .normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
@@ -348,25 +352,58 @@ async function extrairCampos(page) {
 
 // ── Lê todas as abas ──────────────────────────────────────────────────────────
 
+// Lê endereço da tabela-grade na aba Endereço (o OI mostra endereços em tabela, não em inputs)
+async function lerEnderecoTabela(profilePage) {
+  return profilePage.evaluate(() => {
+    const resultado = {};
+    const trs = Array.from(document.querySelectorAll('table tr'));
+    for (const tr of trs) {
+      const tds = Array.from(tr.querySelectorAll('td'));
+      // Linha de endereço: pelo menos 7 colunas onde a 1ª parece ser CEP (8 dígitos)
+      if (tds.length >= 7) {
+        const cepRaw = (tds[0]?.textContent || '').trim().replace(/\D/g, '');
+        if (cepRaw.length === 8) {
+          resultado.cep         = cepRaw;
+          resultado.endereco    = (tds[1]?.textContent || '').trim() || null;
+          resultado.numero      = (tds[2]?.textContent || '').trim() || null;
+          resultado.complemento = (tds[3]?.textContent || '').trim() || null;
+          resultado.bairro      = (tds[4]?.textContent || '').trim() || null;
+          resultado.cidade      = (tds[5]?.textContent || '').trim() || null;
+          resultado.estado      = (tds[6]?.textContent || '').trim() || null;
+          break;
+        }
+      }
+    }
+    return resultado;
+  }).catch(() => ({}));
+}
+
 async function lerTudo(profilePage) {
-  const abas = ['Pessoa', 'Endereço', 'Contato', 'Documentos', 'Dados Bancários', 'Funcionário'];
   const camposPorAba = {};
 
+  // Abas com inputs de formulário
+  const abas = ['Pessoa', 'Endereço', 'Contato', 'Documentos', 'Dados Bancários', 'Funcionário'];
   for (const aba of abas) {
     await lerAba(profilePage, aba);
     const c = await extrairCampos(profilePage);
 
+    // Endereço: complementa com dados da tabela-grade (o OI não usa inputs para o endereço salvo)
+    if (aba === 'Endereço') {
+      const tabela = await lerEnderecoTabela(profilePage);
+      Object.assign(c, tabela); // tabela vence inputs vazios
+    }
+
     for (const [k, v] of Object.entries(c)) {
-      if (v && v.trim() && !camposPorAba[k]) camposPorAba[k] = v;
+      if (v && String(v).trim() && !camposPorAba[k]) camposPorAba[k] = v;
       else if (!camposPorAba[k]) camposPorAba[k] = v;
     }
-    const novosPreench = Object.entries(c).filter(([,v]) => v && v.trim()).length;
+    const novosPreench = Object.entries(c).filter(([,v]) => v && String(v).trim()).length;
     if (novosPreench > 0) process.stdout.write(` [${aba}:${novosPreench}✓]`);
   }
   process.stdout.write('\n');
 
   // Diagnóstico: se nenhum campo preenchido, mostra amostra dos campos brutos
-  const preenchidos = Object.entries(camposPorAba).filter(([,v]) => v && v.trim());
+  const preenchidos = Object.entries(camposPorAba).filter(([,v]) => v && String(v).trim());
   if (!preenchidos.length) {
     console.log(`    [debug] ⚠️ 0 campos preenchidos — amostra de campos brutos:`);
     Object.entries(camposPorAba).slice(0, 8).forEach(([k,v]) => console.log(`      "${k}": "${v}"`));
@@ -384,40 +421,50 @@ function mapear(campos) {
         key.toLowerCase().includes(k.toLowerCase())
       );
       const v = found?.[1];
-      if (v && v.trim() && v !== '0,00' && v !== '00/00/0000' && v !== 'Selecione...') return v.trim();
+      if (v && String(v).trim() && v !== '0,00' && v !== '00/00/0000' && v !== 'Selecione...') return String(v).trim();
     }
     return null;
   }
 
-  const cpfRaw    = get('CPF/CNPJ', 'cpf');
+  // CPF / CNPJ — tenta pelo label e também pelo valor direto passado da tabela de endereço
+  const cpfRaw    = get('CPF/CNPJ', 'CPF');
   const cpfDigits = (cpfRaw || '').replace(/\D/g, '');
   const cpf       = cpfDigits.length === 11 ? cpfRaw : null;
   const cnpj      = cpfDigits.length === 14 ? cpfRaw : null;
 
+  // Sexo → valores exatos do Select NexusZ: "Masculino" | "Feminino"
   const sexoRaw = get('Sexo');
-  const sexo = /^m/i.test(sexoRaw || '') ? 'M' : /^f/i.test(sexoRaw || '') ? 'F' : null;
+  let sexo = null;
+  if (/^m/i.test(sexoRaw || '') || /masculino/i.test(sexoRaw || '')) sexo = 'Masculino';
+  else if (/^f/i.test(sexoRaw || '') || /feminino/i.test(sexoRaw || '')) sexo = 'Feminino';
 
-  const estadoCivilRaw = get('Estado Civil');
+  // Estado Civil → valores exatos do Select NexusZ
+  const ec = get('Estado Civil') || '';
   let estado_civil = null;
-  if (estadoCivilRaw) {
-    if (/casado/i.test(estadoCivilRaw))   estado_civil = 'casado';
-    else if (/solteir/i.test(estadoCivilRaw)) estado_civil = 'solteiro';
-    else if (/divorci/i.test(estadoCivilRaw)) estado_civil = 'divorciado';
-    else if (/viuv/i.test(estadoCivilRaw))    estado_civil = 'viúvo';
-    else if (/uniao/i.test(estadoCivilRaw) || /união/i.test(estadoCivilRaw)) estado_civil = 'união estável';
-  }
+  if      (/casado/i.test(ec))            estado_civil = 'Casado(a)';
+  else if (/solteir/i.test(ec))           estado_civil = 'Solteiro(a)';
+  else if (/divorci/i.test(ec))           estado_civil = 'Divorciado(a)';
+  else if (/vi[uú]v/i.test(ec))           estado_civil = 'Viúvo(a)';
+  else if (/uni[aã]o/i.test(ec))          estado_civil = 'União estável';
 
-  const grauRaw = get('Grau de Instrução', 'Grau de Instrucao', 'Instrução');
+  // Grau de Instrução → valores exatos do Select NexusZ
+  const gr = get('Grau de Instrução', 'Grau de Instrucao', 'Instrução') || '';
   let grau_instrucao = null;
-  if (grauRaw) {
-    if (/fundamental.*incompl/i.test(grauRaw))  grau_instrucao = 'fundamental_incompleto';
-    else if (/fundamental.*compl/i.test(grauRaw))   grau_instrucao = 'fundamental_completo';
-    else if (/medio.*incompl/i.test(grauRaw) || /médio.*incompl/i.test(grauRaw)) grau_instrucao = 'medio_incompleto';
-    else if (/medio.*compl/i.test(grauRaw) || /médio.*compl/i.test(grauRaw))  grau_instrucao = 'medio_completo';
-    else if (/superior.*incompl/i.test(grauRaw)) grau_instrucao = 'superior_incompleto';
-    else if (/superior.*compl/i.test(grauRaw) || /faculdade/i.test(grauRaw)) grau_instrucao = 'superior_completo';
-    else if (/p.?s.*grad/i.test(grauRaw)) grau_instrucao = 'pos_graduacao';
-  }
+  if      (/fundamental.*incompl/i.test(gr))                        grau_instrucao = 'Fundamental Incompleto';
+  else if (/fundamental.*compl/i.test(gr))                          grau_instrucao = 'Fundamental Completo';
+  else if (/(medio|médio).*incompl/i.test(gr))                      grau_instrucao = 'Médio Incompleto';
+  else if (/(medio|médio).*compl/i.test(gr))                        grau_instrucao = 'Médio Completo';
+  else if (/superior.*incompl/i.test(gr))                           grau_instrucao = 'Superior Incompleto';
+  else if (/superior.*compl/i.test(gr) || /faculdade/i.test(gr))    grau_instrucao = 'Superior Completo';
+  else if (/p.?s.*grad/i.test(gr))                                  grau_instrucao = 'Pós-Graduação';
+  else if (/mestrado/i.test(gr))                                     grau_instrucao = 'Mestrado';
+  else if (/doutorado/i.test(gr))                                    grau_instrucao = 'Doutorado';
+
+  // Telefone fixo: remove nome/texto que vem junto (ex: "16 99702-1116 Felipe" → "16 99702-1116")
+  const telFixoRaw = get('Telefone 1');
+  const telefone_fixo = telFixoRaw
+    ? telFixoRaw.replace(/^(\(?\d{2}\)?\s*[\d\s\-]{8,})\s.*$/, '$1').trim() || null
+    : null;
 
   return {
     cpf,
@@ -428,17 +475,18 @@ function mapear(campos) {
     apelido:             get('Apelido'),
     email:               get('E-mail', 'Email'),
     telefone_celular:    get('Celular(SMS)', 'Celular'),
-    telefone_fixo:       get('Telefone 1'),
-    telefone_celular_2:  get('Telefone 2', 'Telefone 3'),
-    endereco:            get('Logradouro', 'Endereço'),
-    numero:              get('Número', 'Num.'),
-    complemento:         get('Complemento'),
-    bairro:              get('Bairro'),
-    cidade:              get('Cidade'),
-    estado:              get('Estado'),
-    cep:                 get('CEP'),
+    telefone_fixo,
+    telefone_celular_2:  get('Telefone 2', 'Telefone 3', 'Telefone 4'),
+    // Endereço — vem dos campos diretos passados pelo lerEnderecoTabela() via Object.assign
+    endereco:            campos.endereco   || get('Logradouro'),
+    numero:              campos.numero     || get('Número', 'Num.'),
+    complemento:         campos.complemento|| get('Complemento'),
+    bairro:              campos.bairro     || get('Bairro'),
+    cidade:              campos.cidade     || get('Cidade'),
+    estado:              campos.estado     || get('Estado'),
+    cep:                 campos.cep        || get('CEP'),
     pais:                get('País', 'Pais'),
-    observacoes:         get('Observação'),
+    observacoes:         get('Observação', 'Observacao'),
     // Dados bancários
     banco:               get('Banco'),
     agencia:             get('Agência', 'Agencia'),
@@ -450,19 +498,19 @@ function mapear(campos) {
     data_demissao:       parseDateBR(get('Data de Demissão', 'Demissão')),
     data_registro:       parseDateBR(get('Data de Registro', 'Registro')),
     salario:             parseNum(get('Salário')),
-    matricula:           get('Matrícula', 'Matricula'),
+    matricula:           get('Matrícula', 'Matricula', 'Código'),
     pis:                 get('PIS', 'PIS/PASEP'),
     ctps_numero:         get('Nº CTPS', 'CTPS'),
     ctps_serie:          get('Série CTPS', 'Serie CTPS'),
-    titulo_eleitor:      get('Título Eleitor', 'Título de Eleitor'),
+    titulo_eleitor:      get('Título Eleitor', 'Título de Eleitor', 'Titulo Eleitor'),
     titulo_eleitor_zona: get('Zona'),
-    titulo_eleitor_secao:get('Seção'),
+    titulo_eleitor_secao:get('Seção', 'Secao'),
     certificado_reservista: get('Reservista', 'Certificado de Reservista'),
     estado_civil,
     grau_instrucao,
     horario_entrada:     get('Entrada'),
-    horario_saida:       get('Saída', 'Saida'),
-    horario_intervalo:   get('Início Intervalo Refeição', 'Intervalo'),
+    horario_saida:       get('Saída', 'Saida', 'Termino Intervalo', 'Término Intervalo'),
+    horario_intervalo:   get('Início Intervalo', 'Inicio Intervalo', 'Intervalo Refeição'),
   };
 }
 
@@ -526,9 +574,11 @@ async function main() {
     console.log(`   📊 Bruto: ${listaBruta.length} | Válidos: ${filtrada.length} | Ignorados: ${listaBruta.length - filtrada.length}`);
 
     // Agrupa todas as entradas OI pelo nome normalizado (mantém TODAS — sem descartar duplicatas)
+    // Ignora donos da empresa
     const porNome = new Map(); // normNome → [entradas]
     filtrada.forEach(f => {
       const n = normNome(f.nome);
+      if (SKIP_NAMES.has(n)) return; // pula donos
       if (!porNome.has(n)) porNome.set(n, []);
       porNome.get(n).push(f);
     });
