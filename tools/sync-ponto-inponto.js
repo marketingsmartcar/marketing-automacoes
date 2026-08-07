@@ -16,9 +16,14 @@ const { createClient } = require("@supabase/supabase-js");
 
 // ── Config ───────────────────────────────────────────────────────────────────
 const API_BASE = "https://pontogoapi-homolog-production.up.railway.app";
-const AUTH     = process.env.INPONTO_TOKEN || "33ACF05C-2C05-4131-656B-7E4D54A1C71E";
-const COMPANY  = process.env.INPONTO_COMPANY_ID || "v5FmAK1E4yQZDHuc8nwh";
-const USER_ID  = process.env.INPONTO_USER_ID || "nK16K5HEjDSlU9PxrSWcJYu3vN43";
+const AUTH     = process.env.INPONTO_TOKEN;
+const COMPANY  = process.env.INPONTO_COMPANY_ID;
+const USER_ID  = process.env.INPONTO_USER_ID;
+
+if (!AUTH || !COMPANY || !USER_ID) {
+  console.error("❌ Defina INPONTO_TOKEN, INPONTO_COMPANY_ID e INPONTO_USER_ID no .env");
+  process.exit(1);
+}
 
 const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY || process.env.NEXUSZ_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
