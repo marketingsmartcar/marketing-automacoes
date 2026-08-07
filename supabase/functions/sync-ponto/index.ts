@@ -86,11 +86,18 @@ Deno.serve(async (req) => {
     const sb = createClient(SB_URL, SB_KEY);
     const { data: colabData } = await sb.from("rh_colaboradores").select("id,nome,cpf,inponto_employee_id");
 
-    const cpfMap: Record<string, any> = {};
-    const idMap:  Record<string, any> = {};
+    const cpfMap:  Record<string, any> = {};
+    const idMap:   Record<string, any> = {};
+    const nomeMap: Record<string, any> = {};
+
+    const normNome = (n: string) =>
+      (n || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .toLowerCase().replace(/\s+/g, " ").trim();
+
     for (const c of (colabData || [])) {
-      if (c.cpf) cpfMap[c.cpf.replace(/\D/g, "")] = c;
+      if (c.cpf) { const k = c.cpf.replace(/\D/g, ""); if (k) cpfMap[k] = c; }
       if (c.inponto_employee_id) idMap[c.inponto_employee_id] = c;
+      const nn = normNome(c.nome); if (nn) nomeMap[nn] = c;
     }
 
     const EMPRESAS = carregarEmpresas();
@@ -106,7 +113,8 @@ Deno.serve(async (req) => {
 
       for (const entry of (occRes.employees || [])) {
         const emp   = entry.employee;
-        const colab = cpfMap[(emp.cpf||"").replace(/\D/g,"")] || idMap[emp.id];
+        const cpfK = (emp.cpf || "").replace(/\D/g, "");
+        const colab = (cpfK && cpfMap[cpfK]) || idMap[emp.id] || nomeMap[normNome(emp.name)];
         if (!colab) { notFound++; continue; }
 
         if (!colab.inponto_employee_id) {

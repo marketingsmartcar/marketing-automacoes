@@ -191,15 +191,24 @@ function parseBatidas(pontos) {
   }
   console.log(`  ✅ ${colaboradores.length} colaboradores ativos no NexusZ`);
 
-  // ── Montar mapa CPF → colaborador ────────────────────────────────────────
+  // ── Montar mapas de lookup ──────────────────────────────────────────────
   const cpfMap = {};
   const inpontoIdMap = {};
+  const nomeMap = {}; // nome normalizado → colaborador
+
+  function normNome(n) {
+    return (n || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
   colaboradores.forEach(c => {
     if (c.cpf) {
       const cpfLimpo = c.cpf.replace(/\D/g, "");
-      cpfMap[cpfLimpo] = c;
+      if (cpfLimpo) cpfMap[cpfLimpo] = c;
     }
     if (c.inponto_employee_id) inpontoIdMap[c.inponto_employee_id] = c;
+    const nn = normNome(c.nome);
+    if (nn) nomeMap[nn] = c;
   });
 
   // ── Loop por empresa → buscar ocorrências e salvar ──────────────────────
@@ -235,8 +244,10 @@ function parseBatidas(pontos) {
     const emp = entry.employee;
     const cpfLimpo = (emp.cpf || "").replace(/\D/g, "");
 
-    // Encontrar colaborador no NexusZ (por CPF ou inponto_id)
-    let colab = cpfMap[cpfLimpo] || inpontoIdMap[emp.id];
+    // Encontrar colaborador no NexusZ: CPF > inponto_id > nome normalizado
+    let colab = (cpfLimpo && cpfMap[cpfLimpo])
+      || inpontoIdMap[emp.id]
+      || nomeMap[normNome(emp.name)];
 
     if (!colab) {
       notFound++;
@@ -244,7 +255,7 @@ function parseBatidas(pontos) {
       continue;
     }
 
-    // Atualizar inponto_employee_id no colaborador se não tiver
+    // Persistir inponto_employee_id para acelerar lookups futuros
     if (!colab.inponto_employee_id && !DRY_RUN) {
       await supabase
         .from("rh_colaboradores")
