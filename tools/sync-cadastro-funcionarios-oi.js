@@ -891,7 +891,7 @@ function mapearCargo(cargoOI) {
 // Campos que o sync NUNCA deve sobrescrever — gerenciados pelo usuário no NexusZ
 const CAMPOS_PROTEGIDOS_ATUALIZAR = new Set(['cargo', 'salario']);
 
-async function atualizar(id, dados) {
+async function atualizar(id, dados, lojaKey) {
   const payload = {};
   for (const [k, v] of Object.entries(dados)) {
     if (k.startsWith('_')) continue; // campos internos
@@ -900,6 +900,20 @@ async function atualizar(id, dados) {
     if (Array.isArray(v)) { if (v.length > 0) payload[k] = v; }
     else if (v !== null && v !== undefined && v !== '') payload[k] = v;
   }
+
+  // Atualizar loja se o colaborador foi transferido
+  if (lojaKey && UNIT_MAP[lojaKey]) {
+    payload.unidade_id  = UNIT_MAP[lojaKey].unitId;
+    payload.oi_loja_key = lojaKey;
+  }
+
+  // Derivar status a partir da data de demissão
+  if (dados.data_demissao) {
+    payload.status = 'demitido';
+  } else if (!payload.status) {
+    payload.status = 'ativo';
+  }
+
   if (!Object.keys(payload).length) return { skipped: true };
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rh_colaboradores?id=eq.${id}`, {
@@ -1102,9 +1116,8 @@ async function main() {
           continue;
         }
 
+        const lojaKey = entradas[0].lojaKey;
         if (isNovo) {
-          // INSERT: usa a primeira entrada para determinar a loja
-          const lojaKey = entradas[0].lojaKey;
           const res = await inserirNovo(nomeDisplay, lojaKey, dadosMesclados);
           if (res.skipped) {
             process.stdout.write(`    ⏭️  ${res.motivo}\n`);
@@ -1117,7 +1130,7 @@ async function main() {
           }
           resultados.push({ nome: nomeDisplay, novo: true, entradas: entradas.length, loja: lojaKey });
         } else {
-          const res = await atualizar(colaborador.id, dadosMesclados);
+          const res = await atualizar(colaborador.id, dadosMesclados, lojaKey);
           if (res.skipped) {
             process.stdout.write(`    ⏭️  sem dados\n`);
           } else if (res.ok) {
