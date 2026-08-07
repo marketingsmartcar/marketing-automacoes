@@ -569,6 +569,40 @@ function mapear(campos) {
   // Nome completo (usado ao inserir novo colaborador)
   const nomeOI = get('Nome', 'Nome Completo') || null;
 
+  // Campos flat de telefone
+  const tel_celular   = get('Celular(SMS)', 'Celular');
+  const tel_cel2      = get('Telefone 2', 'Telefone 3', 'Telefone 4');
+
+  // Array `telefones` — formato que a UI do NexusZ exibe
+  const telefonesArr = [];
+  if (tel_celular) telefonesArr.push({ tipo: 'celular', numero: tel_celular, de_quem: 'próprio' });
+  if (telefone_fixo) telefonesArr.push({ tipo: 'fixo', numero: telefone_fixo, de_quem: '' });
+  if (tel_cel2) telefonesArr.push({ tipo: 'celular', numero: tel_cel2, de_quem: '' });
+
+  // Campos flat de endereço
+  const end_logradouro = campos.endereco   || get('Logradouro');
+  const end_numero     = campos.numero     || get('Número', 'Num.');
+  const end_complement = campos.complemento|| get('Complemento');
+  const end_bairro     = campos.bairro     || get('Bairro');
+  const end_cidade     = campos.cidade     || get('Cidade');
+  const end_estado     = campos.estado     || get('Estado');
+  const end_cep        = campos.cep        || get('CEP');
+
+  // Array `enderecos` — formato que a UI do NexusZ exibe
+  const enderecosArr = [];
+  if (end_logradouro || end_cidade) {
+    enderecosArr.push({
+      de_quem:     'residencial',
+      logradouro:  end_logradouro || '',
+      numero:      end_numero     || '',
+      complemento: end_complement || '',
+      bairro:      end_bairro     || '',
+      cidade:      end_cidade     || '',
+      estado:      end_estado     || '',
+      cep:         end_cep        || '',
+    });
+  }
+
   return {
     _nomeOI: nomeOI,
     cpf,
@@ -578,18 +612,23 @@ function mapear(campos) {
     sexo,
     apelido:             get('Apelido'),
     email:               get('E-mail', 'Email'),
-    telefone_celular:    get('Celular(SMS)', 'Celular'),
+    // Campos flat (compatibilidade)
+    telefone_celular:    tel_celular,
     telefone_fixo,
-    telefone_celular_2:  get('Telefone 2', 'Telefone 3', 'Telefone 4'),
-    // Endereço — vem dos campos diretos passados pelo lerEnderecoTabela() via Object.assign
-    endereco:            campos.endereco   || get('Logradouro'),
-    numero:              campos.numero     || get('Número', 'Num.'),
-    complemento:         campos.complemento|| get('Complemento'),
-    bairro:              campos.bairro     || get('Bairro'),
-    cidade:              campos.cidade     || get('Cidade'),
-    estado:              campos.estado     || get('Estado'),
-    cep:                 campos.cep        || get('CEP'),
+    telefone_celular_2:  tel_cel2,
+    // Array dinâmico que a UI exibe
+    telefones:           telefonesArr.length > 0 ? telefonesArr : null,
+    // Endereço flat (compatibilidade)
+    endereco:            end_logradouro,
+    numero:              end_numero,
+    complemento:         end_complement,
+    bairro:              end_bairro,
+    cidade:              end_cidade,
+    estado:              end_estado,
+    cep:                 end_cep,
     pais:                get('País', 'Pais'),
+    // Array dinâmico que a UI exibe
+    enderecos:           enderecosArr.length > 0 ? enderecosArr : null,
     observacoes:         get('Observação', 'Observacao'),
     // Dados bancários
     banco:               get('Banco'),
@@ -626,7 +665,9 @@ function mapear(campos) {
 async function atualizar(id, dados) {
   const payload = {};
   for (const [k, v] of Object.entries(dados)) {
-    if (v !== null && v !== undefined && v !== '') payload[k] = v;
+    // Arrays (telefones, enderecos) são incluídos mesmo que vazios não sejam string
+    if (Array.isArray(v)) { if (v.length > 0) payload[k] = v; }
+    else if (v !== null && v !== undefined && v !== '') payload[k] = v;
   }
   if (!Object.keys(payload).length) return { skipped: true };
 
