@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: 'today | days:N | mes:MM/YYYY'
+        description: 'days:N (padrão 10) | mes:MM/YYYY'
         required: false
-        default: 'today'
+        default: 'days:10'
 
 permissions:
   contents: read
@@ -45,7 +45,7 @@ jobs:
           MODO="${MODO:-today}"
 
           if [ "$MODO" = "today" ]; then
-            node tools/sync-ponto-inponto.js --today
+            node tools/sync-ponto-inponto.js --days 10
           elif echo "$MODO" | grep -q "^days:"; then
             DAYS="${MODO#days:}"
             node tools/sync-ponto-inponto.js --days "$DAYS"

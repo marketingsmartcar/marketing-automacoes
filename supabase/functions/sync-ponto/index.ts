@@ -68,8 +68,11 @@ Deno.serve(async (req) => {
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const hoje = new Date();
-    const startDate = body.startDate ? new Date(body.startDate) : hoje;
+    // Padrão: últimos 10 dias (captura saídas do dia anterior que ficaram pendentes)
     const endDate   = body.endDate   ? new Date(body.endDate)   : hoje;
+    const defaultStart = new Date(hoje);
+    defaultStart.setDate(defaultStart.getDate() - 10);
+    const startDate = body.startDate ? new Date(body.startDate) : defaultStart;
 
     const [empRes, colaboradores] = await Promise.all([
       apiGet(`get-employees?company-token-pg=${COMPANY}&page=1&limit=200`),
