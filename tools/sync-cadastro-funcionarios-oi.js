@@ -765,7 +765,8 @@ function mapear(campos) {
     agencia:             get('Agência', 'Agencia'),
     conta:               get('N.º Conta', 'Conta Corrente', 'Conta'),
     pix:                 get('PIX', 'Chave PIX'),
-    // Funcionário — cargo NUNCA é sincronizado (gerenciado pelo usuário no NexusZ)
+    // Cargo da OI — capturado apenas para mapeamento em inserções (nunca sobrescreve no update)
+    _cargoOI:            get('Cargo', 'Função', 'Funcao', 'Função/Cargo', 'Ocupação', 'Ocupacao'),
     data_admissao:       parseDateBR(get('Data de Admissão', 'Admissão', 'Dt. Admissão')),
     data_demissao:       parseDateBR(get('Data de Demissão', 'Demissão')),
     data_registro:       parseDateBR(get('Data de Registro', 'Registro')),
@@ -806,6 +807,85 @@ function mapear(campos) {
   };
 }
 
+// ── Mapeamento de cargos OI → NexusZ ──────────────────────────────────────────
+// Aplica SOMENTE ao inserir novo colaborador. Nunca sobrescreve registro existente.
+
+const CARGO_MAP = {
+  // mecânico
+  'mecanico':                   'MECANICO',
+  'mecânico':                   'MECANICO',
+  'aux mecanico':               'AUXILIAR MECANICO',
+  'aux mecânico':               'AUXILIAR MECANICO',
+  'auxiliar mecanico':          'AUXILIAR MECANICO',
+  'auxiliar mecânico':          'AUXILIAR MECANICO',
+  'auxiliar de mecanico':       'AUXILIAR MECANICO',
+  'auxiliar de mecânico':       'AUXILIAR MECANICO',
+  'aux mec':                    'AUX MEC',
+  // estoque
+  'estoque':                    'ESTOQUISTA',
+  'estoquista':                 'ESTOQUISTA',
+  'aux estoque':                'ESTOQUISTA',
+  'auxiliar de estoque':        'ESTOQUISTA',
+  // logística
+  'aux logistica':              'AUX LOGISTICA',
+  'aux logística':              'AUX LOGISTICA',
+  'auxiliar logistica':         'AUX LOGISTICA',
+  'auxiliar de logistica':      'AUX LOGISTICA',
+  'auxiliar logística':         'AUX LOGISTICA',
+  'auxiliar de logística':      'AUX LOGISTICA',
+  // supervisor
+  'supervisor':                 'SUPERVISOR',
+  // gerente
+  'gerente':                    'GERENTE',
+  // caixa
+  'caixa':                      'CAIXA',
+  // consultor/vendas
+  'consultor':                  'CONSULTOR',
+  'consultor de vendas':        'CONSULTOR DE VENDAS',
+  'consultora de vendas':       'CONSULTORA DE VENDAS',
+  'vendedor':                   'VENDEDOR',
+  // moto
+  'moto':                       'MOTOBOY',
+  'motoboy':                    'MOTOBOY',
+  'motoqueiro':                 'MOTOBOY',
+  // auxiliar genérico
+  'auxiliar':                   'AUXILIAR',
+  // faxineira/limpeza
+  'faxineira':                  'FAXINEIRA',
+  'faxineiro':                  'FAXINEIRA',
+  'limpeza':                    'FAXINEIRA',
+  // estagiário
+  'estagiario':                 'ESTAGIÁRIO',
+  'estagiária':                 'ESTAGIÁRIO',
+  'estagiário':                 'ESTAGIÁRIO',
+  // recepção
+  'recepcao':                   'RECEPÇÃO',
+  'recepção':                   'RECEPÇÃO',
+  'recepcionista':              'RECEPÇÃO',
+  // montador
+  'montador':                   'MONTADOR DE PNEUS',
+  'montador de pneus':          'MONTADOR DE PNEUS',
+  // administrativo / marketing / rh
+  'marketing':                  'MARKETING',
+  'recursos humanos':           'RECURSOS HUMANOS',
+  'rh':                         'RECURSOS HUMANOS',
+  'sac':                        'SAC POS VENDA',
+  'sac pos venda':              'SAC POS VENDA',
+  'sac pós venda':              'SAC POS VENDA',
+  'pos venda':                  'SAC POS VENDA',
+  'pós venda':                  'SAC POS VENDA',
+};
+
+function mapearCargo(cargoOI) {
+  if (!cargoOI) return null;
+  const key = cargoOI.trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos para lookup
+    .replace(/\s+/g, ' ');
+  // tenta com acento normalizado
+  const keyAcentuado = cargoOI.trim().toLowerCase().replace(/\s+/g, ' ');
+  return CARGO_MAP[key] || CARGO_MAP[keyAcentuado] || null;
+}
+
 // ── Atualiza NexusZ ────────────────────────────────────────────────────────────
 
 // Campos que o sync NUNCA deve sobrescrever — gerenciados pelo usuário no NexusZ
@@ -839,15 +919,19 @@ async function inserirNovo(nomeDisplay, lojaKey, dados) {
   const unit = UNIT_MAP[lojaKey];
   if (!unit) return { skipped: true, motivo: `loja ${lojaKey} sem unit_id` };
 
-  const { _nomeOI, ...dadosLimpos } = dados;
+  const { _nomeOI, _cargoOI, ...dadosLimpos } = dados;
   const payload = {};
-  // cargo e salario nunca são definidos pelo sync — gerenciados pelo usuário
+  // cargo e salario nunca são definidos pelo sync via campos diretos
   const CAMPOS_PROTEGIDOS = new Set(['cargo', 'salario']);
   for (const [k, v] of Object.entries(dadosLimpos)) {
     if (k.startsWith('_')) continue; // campos internos
     if (CAMPOS_PROTEGIDOS.has(k)) continue;
     if (v !== null && v !== undefined && v !== '') payload[k] = v;
   }
+
+  // Cargo: mapeia o valor da OI para a nomenclatura cadastrada no NexusZ
+  const cargoMapeado = mapearCargo(_cargoOI);
+  if (cargoMapeado) payload.cargo = cargoMapeado;
 
   payload.nome      = limparNome(_nomeOI || nomeDisplay);
   payload.status    = 'ativo';
