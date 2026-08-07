@@ -38,6 +38,14 @@ jobs:
           echo "INPONTO_TOKEN=${{ secrets.INPONTO_TOKEN }}"                                       >> .env
           echo "INPONTO_COMPANY_ID=${{ secrets.INPONTO_COMPANY_ID }}"                             >> .env
           echo "INPONTO_USER_ID=${{ secrets.INPONTO_USER_ID }}"                                   >> .env
+          echo "INPONTO_COMPANY_1=${{ secrets.INPONTO_COMPANY_1 }}"                               >> .env
+          echo "INPONTO_USER_1=${{ secrets.INPONTO_USER_1 }}"                                     >> .env
+          echo "INPONTO_COMPANY_2=${{ secrets.INPONTO_COMPANY_2 }}"                               >> .env
+          echo "INPONTO_USER_2=${{ secrets.INPONTO_USER_2 }}"                                     >> .env
+          echo "INPONTO_COMPANY_3=${{ secrets.INPONTO_COMPANY_3 }}"                               >> .env
+          echo "INPONTO_USER_3=${{ secrets.INPONTO_USER_3 }}"                                     >> .env
+          echo "INPONTO_COMPANY_4=${{ secrets.INPONTO_COMPANY_4 }}"                               >> .env
+          echo "INPONTO_USER_4=${{ secrets.INPONTO_USER_4 }}"                                     >> .env
 
       - name: Sync ponto
         run: |

@@ -1,11 +1,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const API_BASE  = "https://pontogoapi-homolog-production.up.railway.app";
-const AUTH      = Deno.env.get("INPONTO_TOKEN")!;
-const COMPANY   = Deno.env.get("INPONTO_COMPANY_ID")!;
-const USER_ID   = Deno.env.get("INPONTO_USER_ID")!;
-const SB_URL    = Deno.env.get("SUPABASE_URL")!;
-const SB_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const API_BASE = "https://pontogoapi-homolog-production.up.railway.app";
+const AUTH     = Deno.env.get("INPONTO_TOKEN")!;
+const SB_URL   = Deno.env.get("SUPABASE_URL")!;
+const SB_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Carrega empresas de INPONTO_COMPANY_N / INPONTO_USER_N (fallback: legado)
+function carregarEmpresas(): { id: string; userId: string }[] {
+  const lista: { id: string; userId: string }[] = [];
+  for (let i = 1; i <= 20; i++) {
+    const id     = Deno.env.get(`INPONTO_COMPANY_${i}`);
+    const userId = Deno.env.get(`INPONTO_USER_${i}`);
+    if (id && userId) lista.push({ id, userId });
+    else if (i > 4) break;
+  }
+  if (lista.length === 0) {
+    const id     = Deno.env.get("INPONTO_COMPANY_ID");
+    const userId = Deno.env.get("INPONTO_USER_ID");
+    if (id && userId) lista.push({ id, userId });
+  }
+  return lista;
+}
 
 function toGoDate(d: Date) {
   return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
@@ -40,11 +55,6 @@ function calcularHoras(batidas: string[]) {
   return parseFloat((min / 60).toFixed(2));
 }
 
-async function apiGet(path: string) {
-  const r = await fetch(`${API_BASE}/${path}`, { headers: { Authorization: AUTH } });
-  return r.json();
-}
-
 async function apiPost(path: string, body: unknown) {
   const r = await fetch(`${API_BASE}/${path}`, {
     method: "POST",
@@ -68,18 +78,14 @@ Deno.serve(async (req) => {
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const hoje = new Date();
-    // Padrão: últimos 10 dias (captura saídas do dia anterior que ficaram pendentes)
-    const endDate   = body.endDate   ? new Date(body.endDate)   : hoje;
+    const endDate      = body.endDate   ? new Date(body.endDate)   : hoje;
     const defaultStart = new Date(hoje);
     defaultStart.setDate(defaultStart.getDate() - 10);
-    const startDate = body.startDate ? new Date(body.startDate) : defaultStart;
+    const startDate    = body.startDate ? new Date(body.startDate) : defaultStart;
 
-    const [empRes, colaboradores] = await Promise.all([
-      apiGet(`get-employees?company-token-pg=${COMPANY}&page=1&limit=200`),
-      createClient(SB_URL, SB_KEY).from("rh_colaboradores").select("id,nome,cpf,inponto_employee_id"),
-    ]);
+    const sb = createClient(SB_URL, SB_KEY);
+    const { data: colabData } = await sb.from("rh_colaboradores").select("id,nome,cpf,inponto_employee_id");
 
-    const { data: colabData } = colaboradores as any;
     const cpfMap: Record<string, any> = {};
     const idMap:  Record<string, any> = {};
     for (const c of (colabData || [])) {
@@ -87,56 +93,59 @@ Deno.serve(async (req) => {
       if (c.inponto_employee_id) idMap[c.inponto_employee_id] = c;
     }
 
-    const occRes = await apiPost(
-      `get-occurrences-from-company-range?company-token-pg=${COMPANY}&userId=${USER_ID}`,
-      { companyId: COMPANY, occurrences: ["22","23","24","25","27"], considerFlexibleAsStrong: true,
-        tolerance: "10m", startDate: toGoDate(startDate), endDate: toGoDate(endDate), team: ["all"], userId: USER_ID }
-    );
-
-    const sb = createClient(SB_URL, SB_KEY);
+    const EMPRESAS = carregarEmpresas();
     let saved = 0, notFound = 0;
 
-    for (const entry of (occRes.employees || [])) {
-      const emp = entry.employee;
-      const colab = cpfMap[(emp.cpf||"").replace(/\D/g,"")] || idMap[emp.id];
-      if (!colab) { notFound++; continue; }
+    for (const empresa of EMPRESAS) {
+      const { id: COMPANY, userId: USER_ID } = empresa;
+      const occRes = await apiPost(
+        `get-occurrences-from-company-range?company-token-pg=${COMPANY}&userId=${USER_ID}`,
+        { companyId: COMPANY, occurrences: ["22","23","24","25","27"], considerFlexibleAsStrong: true,
+          tolerance: "10m", startDate: toGoDate(startDate), endDate: toGoDate(endDate), team: ["all"], userId: USER_ID }
+      );
 
-      if (!colab.inponto_employee_id) {
-        await sb.from("rh_colaboradores").update({ inponto_employee_id: emp.id }).eq("id", colab.id);
-      }
+      for (const entry of (occRes.employees || [])) {
+        const emp   = entry.employee;
+        const colab = cpfMap[(emp.cpf||"").replace(/\D/g,"")] || idMap[emp.id];
+        if (!colab) { notFound++; continue; }
 
-      const porDia: Record<string, { pontos: any[]; inconsistencias: string[] }> = {};
-      for (const occ of (entry.occurrences || [])) {
-        const day = occ.date.substring(0, 10);
-        if (!porDia[day]) porDia[day] = { pontos: [], inconsistencias: [] };
-        if (occ.message) porDia[day].inconsistencias.push(occ.message);
-        for (const p of (occ.points || [])) {
-          if (!porDia[day].pontos.find((x: any) => x.id === p.id)) porDia[day].pontos.push(p);
+        if (!colab.inponto_employee_id) {
+          await sb.from("rh_colaboradores").update({ inponto_employee_id: emp.id }).eq("id", colab.id);
         }
-      }
 
-      const upserts = Object.entries(porDia).map(([day, d]) => {
-        const sorted = d.pontos.sort((a: any, b: any) =>
-          new Date(a.localDate||a.date).getTime() - new Date(b.localDate||b.date).getTime()
-        );
-        const batidas = sorted.map((p: any) => p.localDate || p.date);
-        const { entrada, saida_almoco, retorno_almoco, saida } = parseBatidas(sorted);
-        return {
-          colaborador_id: colab.id, data: day, inponto_employee_id: emp.id,
-          entrada, saida_almoco, retorno_almoco, saida,
-          horas_trabalhadas: calcularHoras(batidas),
-          batidas, inconsistencias: d.inconsistencias,
-          sincronizado_em: new Date().toISOString(),
-        };
-      });
+        const porDia: Record<string, { pontos: any[]; inconsistencias: string[] }> = {};
+        for (const occ of (entry.occurrences || [])) {
+          const day = occ.date.substring(0, 10);
+          if (!porDia[day]) porDia[day] = { pontos: [], inconsistencias: [] };
+          if (occ.message) porDia[day].inconsistencias.push(occ.message);
+          for (const p of (occ.points || [])) {
+            if (!porDia[day].pontos.find((x: any) => x.id === p.id)) porDia[day].pontos.push(p);
+          }
+        }
 
-      if (upserts.length) {
-        const { error } = await sb.from("rh_pontos").upsert(upserts, { onConflict: "colaborador_id,data" });
-        if (!error) saved += upserts.length;
+        const upserts = Object.entries(porDia).map(([day, d]) => {
+          const sorted = d.pontos.sort((a: any, b: any) =>
+            new Date(a.localDate||a.date).getTime() - new Date(b.localDate||b.date).getTime()
+          );
+          const batidas = sorted.map((p: any) => p.localDate || p.date);
+          const { entrada, saida_almoco, retorno_almoco, saida } = parseBatidas(sorted);
+          return {
+            colaborador_id: colab.id, data: day, inponto_employee_id: emp.id,
+            entrada, saida_almoco, retorno_almoco, saida,
+            horas_trabalhadas: calcularHoras(batidas),
+            batidas, inconsistencias: d.inconsistencias,
+            sincronizado_em: new Date().toISOString(),
+          };
+        });
+
+        if (upserts.length) {
+          const { error } = await sb.from("rh_pontos").upsert(upserts, { onConflict: "colaborador_id,data" });
+          if (!error) saved += upserts.length;
+        }
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, saved, notFound }), {
+    return new Response(JSON.stringify({ ok: true, saved, notFound, empresas: EMPRESAS.length }), {
       headers: { "Content-Type": "application/json", ...CORS },
     });
   } catch (err: any) {

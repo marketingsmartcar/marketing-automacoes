@@ -17,13 +17,32 @@ const { createClient } = require("@supabase/supabase-js");
 // ── Config ───────────────────────────────────────────────────────────────────
 const API_BASE = "https://pontogoapi-homolog-production.up.railway.app";
 const AUTH     = process.env.INPONTO_TOKEN;
-const COMPANY  = process.env.INPONTO_COMPANY_ID;
-const USER_ID  = process.env.INPONTO_USER_ID;
 
-if (!AUTH || !COMPANY || !USER_ID) {
-  console.error("❌ Defina INPONTO_TOKEN, INPONTO_COMPANY_ID e INPONTO_USER_ID no .env");
+if (!AUTH) {
+  console.error("❌ Defina INPONTO_TOKEN no .env");
   process.exit(1);
 }
+
+// Suporte a múltiplas empresas via INPONTO_COMPANY_N / INPONTO_USER_N
+// Fallback para variáveis legadas INPONTO_COMPANY_ID / INPONTO_USER_ID
+function carregarEmpresas() {
+  const empresas = [];
+  for (let i = 1; i <= 20; i++) {
+    const id     = process.env[`INPONTO_COMPANY_${i}`];
+    const userId = process.env[`INPONTO_USER_${i}`];
+    if (id && userId) empresas.push({ id, userId });
+    else if (i > 4) break;
+  }
+  if (empresas.length === 0) {
+    // Fallback legado
+    const id     = process.env.INPONTO_COMPANY_ID;
+    const userId = process.env.INPONTO_USER_ID;
+    if (id && userId) empresas.push({ id, userId });
+    else { console.error("❌ Defina INPONTO_COMPANY_1/INPONTO_USER_1 (ou INPONTO_COMPANY_ID/USER_ID) no .env"); process.exit(1); }
+  }
+  return empresas;
+}
+const EMPRESAS = carregarEmpresas();
 
 const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY || process.env.NEXUSZ_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -152,15 +171,7 @@ function parseBatidas(pontos) {
   const endStr = toGoDate(endDate);
   console.log(`📆 Período: ${startStr} → ${endStr}\n`);
 
-  // ── Buscar funcionários do InPonto ───────────────────────────────────────
-  console.log("👥 Buscando funcionários do InPonto...");
-  const empRes = await httpGet(`${API_BASE}/get-employees?company-token-pg=${COMPANY}&page=1&limit=200`);
-  if (empRes.status !== 200 || !empRes.body?.list) {
-    console.error("❌ Falha ao buscar funcionários:", empRes.status, JSON.stringify(empRes.body).substring(0, 200));
-    process.exit(1);
-  }
-  const inpontoEmployees = empRes.body.list;
-  console.log(`  ✅ ${inpontoEmployees.length} funcionários no InPonto`);
+  console.log(`🏢 ${EMPRESAS.length} empresa(s) InPonto configurada(s)`);
 
   // ── Buscar colaboradores do NexusZ ───────────────────────────────────────
   if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -191,33 +202,34 @@ function parseBatidas(pontos) {
     if (c.inponto_employee_id) inpontoIdMap[c.inponto_employee_id] = c;
   });
 
-  // ── Buscar ocorrências ───────────────────────────────────────────────────
-  console.log("\n📡 Buscando registros de ponto...");
-  const occRes = await httpPost(
-    `get-occurrences-from-company-range?company-token-pg=${COMPANY}&userId=${USER_ID}`,
-    {
-      companyId: COMPANY,
-      occurrences: ["22", "23", "24", "25", "27"],
-      considerFlexibleAsStrong: true,
-      tolerance: "10m",
-      startDate: startStr,
-      endDate: endStr,
-      team: ["all"],
-      userId: USER_ID,
-    }
-  );
-
-  if (occRes.status !== 200 || !occRes.body?.employees) {
-    console.error("❌ Falha ao buscar ocorrências:", occRes.status, JSON.stringify(occRes.body).substring(0, 300));
-    process.exit(1);
-  }
-
-  const employeeEntries = occRes.body.employees;
-  console.log(`  ✅ ${employeeEntries.length} funcionários com registros no período`);
-
-  // ── Processar e salvar ──────────────────────────────────────────────────
+  // ── Loop por empresa → buscar ocorrências e salvar ──────────────────────
   let synced = 0, notFound = 0, errors = 0;
   const notFoundList = [];
+
+  for (const empresa of EMPRESAS) {
+    const { id: COMPANY, userId: USER_ID } = empresa;
+    console.log(`\n📡 Empresa ${COMPANY} — buscando pontos...`);
+    const occRes = await httpPost(
+      `get-occurrences-from-company-range?company-token-pg=${COMPANY}&userId=${USER_ID}`,
+      {
+        companyId: COMPANY,
+        occurrences: ["22", "23", "24", "25", "27"],
+        considerFlexibleAsStrong: true,
+        tolerance: "10m",
+        startDate: startStr,
+        endDate: endStr,
+        team: ["all"],
+        userId: USER_ID,
+      }
+    );
+
+    if (occRes.status !== 200 || !occRes.body?.employees) {
+      console.error(`  ❌ Falha (${occRes.status}):`, JSON.stringify(occRes.body).substring(0, 200));
+      continue; // tenta próxima empresa
+    }
+
+    const employeeEntries = occRes.body.employees;
+    console.log(`  ✅ ${employeeEntries.length} funcionários com registros`);
 
   for (const entry of employeeEntries) {
     const emp = entry.employee;
@@ -297,7 +309,8 @@ function parseBatidas(pontos) {
         synced += upserts.length;
       }
     }
-  }
+  } // fim loop employeeEntries
+  } // fim loop EMPRESAS
 
   // ── Resumo ───────────────────────────────────────────────────────────────
   console.log("\n" + "═".repeat(50));
