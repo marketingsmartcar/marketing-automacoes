@@ -284,6 +284,11 @@ function parseBatidas(pontos) {
         (a, b) => new Date(a.localDate || a.date) - new Date(b.localDate || b.date)
       );
       const batidasTimestamps = pontosOrdenados.map(p => p.localDate || p.date);
+      const batidasGeo = pontosOrdenados.map(p => ({
+        t:   p.localDate || p.date,
+        lat: p.latitude  ?? null,
+        lng: p.longitude ?? null,
+      }));
       const { entrada, saida_almoco, retorno_almoco, saida } = parseBatidas(pontosOrdenados);
       const horasMin = calcularHoras(batidasTimestamps);
       const horasDec = parseFloat((horasMin / 60).toFixed(2));
@@ -298,6 +303,7 @@ function parseBatidas(pontos) {
         saida,
         horas_trabalhadas: horasDec,
         batidas: batidasTimestamps,
+        batidas_geo: batidasGeo,
         inconsistencias: dadosDia.inconsistencias,
         sincronizado_em: new Date().toISOString(),
       });
