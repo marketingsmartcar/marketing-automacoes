@@ -284,16 +284,12 @@ function parseBatidas(pontos) {
         (a, b) => new Date(a.localDate || a.date) - new Date(b.localDate || b.date)
       );
       const batidasTimestamps = pontosOrdenados.map(p => p.localDate || p.date);
-      const batidasGeo = pontosOrdenados.map(p => ({
-        t:    p.localDate || p.date,
-        lat:  p.latitude  ?? null,
-        lng:  p.longitude ?? null,
-        foto: p.photo || p.photoUrl || p.foto || p.fotoUrl || p.image || p.imageUrl || p.selfie || p.selfieUrl || null,
-      }));
-
-      if (DRY_RUN && pontosOrdenados.length > 0) {
-        console.log(`  📸 Campos do ponto:`, Object.keys(pontosOrdenados[0]).join(', '));
-      }
+      const PHOTO_BASE = process.env.INPONTO_PHOTO_BASE_URL || null; // ex: https://firebasestorage.googleapis.com/v0/b/BUCKET/o/
+      const batidasGeo = pontosOrdenados.map(p => {
+        const rawFoto = p.pictureFromMobile || p.photo || p.photoUrl || p.foto || p.fotoUrl || null;
+        const foto = rawFoto ? (PHOTO_BASE ? PHOTO_BASE + encodeURIComponent(rawFoto) + '?alt=media' : rawFoto) : null;
+        return { t: p.localDate || p.date, lat: p.latitude ?? null, lng: p.longitude ?? null, foto };
+      });
       const { entrada, saida_almoco, retorno_almoco, saida } = parseBatidas(pontosOrdenados);
       const horasMin = calcularHoras(batidasTimestamps);
       const horasDec = parseFloat((horasMin / 60).toFixed(2));
