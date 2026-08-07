@@ -441,6 +441,90 @@ async function lerContatosEmergencia(page) {
   }).catch(() => []);
 }
 
+// ── Lê documentos da aba Documentos ──────────────────────────────────────────
+
+async function lerDocumentosOI(page) {
+  const baseUrl = BASE_URL;
+  return page.evaluate((baseUrl) => {
+    const docs = [];
+    const tables = Array.from(document.querySelectorAll('table'));
+
+    for (const table of tables) {
+      const headerCells = Array.from(table.querySelectorAll('tr:first-child th, tr:first-child td'))
+        .map(h => h.textContent.trim().toLowerCase());
+      const hasData = headerCells.some(h => h.includes('data'));
+      const hasDesc = headerCells.some(h => h.includes('descri'));
+      if (!hasData || !hasDesc) continue;
+
+      const rows = Array.from(table.querySelectorAll('tr')).slice(1);
+      for (const row of rows) {
+        const cells = Array.from(row.querySelectorAll('td'));
+        if (cells.length < 2) continue;
+
+        const dataCadastro = (cells[0]?.textContent || '').trim();
+        const descricao    = (cells[1]?.textContent || '').trim();
+        if (!descricao) continue;
+
+        let urlOi = null;
+        const link = row.querySelector('a');
+        if (link) {
+          const href = (link.getAttribute('href') || '').trim();
+          if (href.startsWith('http')) {
+            urlOi = href;
+          } else if (href.startsWith('/')) {
+            urlOi = baseUrl + href;
+          } else if (href && !href.startsWith('javascript:')) {
+            urlOi = baseUrl + '/' + href;
+          }
+          // PostBack links: store the employee's current page URL
+          if (!urlOi) urlOi = window.location.href;
+        }
+
+        docs.push({ data_cadastro: dataCadastro, descricao, url_oi: urlOi || window.location.href });
+      }
+      if (docs.length > 0) break;
+    }
+    return docs;
+  }, baseUrl).catch(() => []);
+}
+
+// ── Salva documentos OI no NexusZ ─────────────────────────────────────────────
+
+function parseDateBR(str) {
+  if (!str) return null;
+  const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+async function salvarDocumentosOI(colaboradorId, docs) {
+  if (!docs || docs.length === 0) return { n: 0 };
+
+  // Substitui todos os docs do colaborador (delete + insert)
+  await fetch(`${SUPABASE_URL}/rest/v1/rh_documentos_oi?colaborador_id=eq.${colaboradorId}`, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  });
+
+  const rows = docs.map(d => ({
+    colaborador_id: colaboradorId,
+    data_cadastro:  parseDateBR(d.data_cadastro) || null,
+    descricao:      d.descricao,
+    url_oi:         d.url_oi || null,
+    sincronizado_em: new Date().toISOString(),
+  }));
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rh_documentos_oi`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(rows),
+  });
+  return { ok: res.ok, n: rows.length };
+}
+
 // ── Lê todas as abas ──────────────────────────────────────────────────────────
 
 // Lê endereço da tabela-grade na aba Endereço (o OI mostra endereços em tabela, não em inputs)
@@ -490,6 +574,15 @@ async function lerTudo(profilePage) {
       if (contatos.length > 0) {
         c['_emergencia_nome']     = contatos[0].nome || '';
         c['_emergencia_telefone'] = contatos[0].telefone || '';
+      }
+    }
+
+    // Documentos: lê a lista de documentos da tabela
+    if (aba === 'Documentos') {
+      const docs = await lerDocumentosOI(profilePage);
+      if (docs.length > 0) {
+        camposPorAba['_documentosOI'] = docs;
+        process.stdout.write(` [docs:${docs.length}]`);
       }
     }
 
@@ -805,6 +898,7 @@ async function main() {
         // Abre TODAS as entradas OI e mescla os dados (campo não-nulo prevalece)
         let dadosMesclados = {};
         let totalCamposEncontrados = 0;
+        let docsOI = [];
 
         for (let j = 0; j < entradas.length; j++) {
           const entrada = entradas[j];
@@ -819,6 +913,7 @@ async function main() {
           }
 
           const campos = await lerTudo(profilePage);
+          if (campos._documentosOI) docsOI = docsOI.concat(campos._documentosOI);
           if (profilePage !== page) await profilePage.close().catch(() => {});
 
           const dados = mapear(campos);
@@ -885,6 +980,11 @@ async function main() {
           } else {
             process.stdout.write(`    ❌ HTTP ${res.status}\n`);
             totalErro++;
+          }
+          // Salva documentos OI (metadados apenas, sem arquivos)
+          if (docsOI.length > 0) {
+            const docRes = await salvarDocumentosOI(colaborador.id, docsOI);
+            if (docRes.n > 0) process.stdout.write(`    📄 ${docRes.n} docs OI\n`);
           }
           resultados.push({ nome: nomeDisplay, entradas: entradas.length, colaboradorId: colaborador.id, campos: res.n });
         }
