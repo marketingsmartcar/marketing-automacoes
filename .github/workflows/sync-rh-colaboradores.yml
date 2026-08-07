@@ -2,7 +2,7 @@ name: Sync Cadastro Colaboradores OI → NexusZ
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
       loja:
@@ -10,13 +10,17 @@ on:
         required: false
         default: ''
 
+concurrency:
+  group: sync-rh-colaboradores
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 8
 
     steps:
       - name: Checkout

@@ -285,10 +285,15 @@ function parseBatidas(pontos) {
       );
       const batidasTimestamps = pontosOrdenados.map(p => p.localDate || p.date);
       const batidasGeo = pontosOrdenados.map(p => ({
-        t:   p.localDate || p.date,
-        lat: p.latitude  ?? null,
-        lng: p.longitude ?? null,
+        t:    p.localDate || p.date,
+        lat:  p.latitude  ?? null,
+        lng:  p.longitude ?? null,
+        foto: p.photo || p.photoUrl || p.foto || p.fotoUrl || p.image || p.imageUrl || p.selfie || p.selfieUrl || null,
       }));
+
+      if (DRY_RUN && pontosOrdenados.length > 0) {
+        console.log(`  📸 Campos do ponto:`, Object.keys(pontosOrdenados[0]).join(', '));
+      }
       const { entrada, saida_almoco, retorno_almoco, saida } = parseBatidas(pontosOrdenados);
       const horasMin = calcularHoras(batidasTimestamps);
       const horasDec = parseFloat((horasMin / 60).toFixed(2));
