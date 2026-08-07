@@ -59,8 +59,11 @@ function empresaParaLoja(empresa) {
   return null;
 }
 
-// Nomes a ignorar no sync (donos da empresa)
-const SKIP_NAMES = new Set(['CIBELE REGINA OLIVEIRA', 'FABIO ZACHI', 'CIBELE ZACHI']);
+// Nomes a ignorar no sync (donos da empresa) — verifica se o nome COMEÇA COM qualquer um desses
+const SKIP_NAMES = ['CIBELE REGINA OLIVEIRA', 'CIBELE ZACHI', 'FABIO ZACHI'];
+function deveIgnorar(nomeNorm) {
+  return SKIP_NAMES.some(skip => nomeNorm === skip || nomeNorm.startsWith(skip + ' ') || nomeNorm.startsWith(skip + '-'));
+}
 
 function normNome(n) {
   return (n || '').trim().toUpperCase()
@@ -68,6 +71,14 @@ function normNome(n) {
     .replace(/\s*\(.*$/g, '')       // remove ( sem fechamento
     .replace(/\s+/g, ' ').trim()
     .normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// Remove parênteses do nome preservando maiúsculas/acentos originais
+function limparNome(n) {
+  return (n || '').trim()
+    .replace(/\s*\(.*?\)\s*/g, '')
+    .replace(/\s*\(.*$/, '')
+    .replace(/\s+/g, ' ').trim();
 }
 
 function parseDateBR(str) {
@@ -423,8 +434,11 @@ async function lerContatosEmergencia(page) {
       if (textos.includes('Contato') && textos.includes('Comercial')) continue;
       if (cells.length < 2) { dentroTabela = false; continue; }
 
-      const nome = textos[0];
-      if (!nome || nome.length > 100 || nome.length < 1) continue;
+      const col0 = textos[0] || '';
+      // Ignora linhas de formulário/lixo (labels de upload, selects vazios, textos longos)
+      if (col0.length > 60) continue;
+      if (/selecione|descrição do|informada|arquivo|documento/i.test(col0)) continue;
+      if (!col0 || col0.length < 1) continue;
 
       // Posições: 0=Contato, 1=Comercial, 2=Ramal, 3=Residencial, 4=Celular, 5=E-mail, 6=Departamento
       const comercial   = textos[1] || null;
@@ -433,8 +447,12 @@ async function lerContatosEmergencia(page) {
       const emailC      = textos[5] || null;
 
       const telefone = celular || comercial || residencial || null;
-      if (nome && (telefone || emailC)) {
-        contatos.push({ nome, telefone, email: emailC || null });
+
+      // Ignora se telefone parece texto de formulário
+      if (telefone && /selecione|descrição|arquivo/i.test(telefone)) continue;
+
+      if (col0 && (telefone || emailC)) {
+        contatos.push({ nome: col0, telefone, email: emailC || null });
       }
     }
     return contatos;
@@ -445,7 +463,7 @@ async function lerContatosEmergencia(page) {
 
 async function lerDocumentosOI(page) {
   const baseUrl = BASE_URL;
-  return page.evaluate((baseUrl) => {
+  const result = await page.evaluate((baseUrl) => {
     const docs = [];
     const tables = Array.from(document.querySelectorAll('table'));
 
@@ -466,26 +484,44 @@ async function lerDocumentosOI(page) {
         if (!descricao) continue;
 
         let urlOi = null;
-        const link = row.querySelector('a');
-        if (link) {
-          const href = (link.getAttribute('href') || '').trim();
-          if (href.startsWith('http')) {
-            urlOi = href;
-          } else if (href.startsWith('/')) {
-            urlOi = baseUrl + href;
-          } else if (href && !href.startsWith('javascript:')) {
-            urlOi = baseUrl + '/' + href;
+        const allLinks = Array.from(row.querySelectorAll('a'));
+
+        for (const a of allLinks) {
+          // 1. URL na chamada fncNovaAba('/caminho/doc.pdf') no onclick
+          const onclick = a.getAttribute('onclick') || '';
+          const m = onclick.match(/fncNovaAba\s*\(\s*'([^']+)'/i);
+          if (m) {
+            urlOi = m[1].startsWith('http') ? m[1] : baseUrl + m[1];
+            break;
           }
-          // PostBack links: store the employee's current page URL
-          if (!urlOi) urlOi = window.location.href;
+          // 2. Href direto (não-PostBack)
+          const href = (a.getAttribute('href') || '').trim();
+          if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
+            urlOi = href.startsWith('http') ? href : baseUrl + (href.startsWith('/') ? href : '/' + href);
+            break;
+          }
         }
 
-        docs.push({ data_cadastro: dataCadastro, descricao, url_oi: urlOi || window.location.href });
+        if (docs.length === 0) {
+          window.__docLinkDebug = allLinks.map(a => ({
+            href: a.getAttribute('href'),
+            onclick: (a.getAttribute('onclick') || '').slice(0, 100),
+          }));
+        }
+
+        docs.push({ data_cadastro: dataCadastro, descricao, url_oi: urlOi });
       }
-      if (docs.length > 0) break;
+      if (docs.length > 0) {
+        return { docs, linkDebug: window.__docLinkDebug || [] };
+      }
     }
-    return docs;
-  }, baseUrl).catch(() => []);
+    return { docs: [], linkDebug: [] };
+  }, baseUrl).catch(() => ({ docs: [], linkDebug: [] }));
+
+  if (result.linkDebug && result.linkDebug.length > 0 && result.docs.length > 0) {
+    process.stdout.write(`    [doc-links: ${JSON.stringify(result.linkDebug).slice(0, 400)}]\n`);
+  }
+  return result.docs;
 }
 
 // ── Salva documentos OI no NexusZ ─────────────────────────────────────────────
@@ -568,12 +604,12 @@ async function lerTudo(profilePage) {
       Object.assign(c, tabela); // tabela vence inputs vazios
     }
 
-    // Contato: lê também a tabela de contatos de emergência
+    // Contato: lê todos os contatos de emergência da tabela
     if (aba === 'Contato') {
       const contatos = await lerContatosEmergencia(profilePage);
       if (contatos.length > 0) {
-        c['_emergencia_nome']     = contatos[0].nome || '';
-        c['_emergencia_telefone'] = contatos[0].telefone || '';
+        camposPorAba['_contatosEmergencia'] = contatos;
+        process.stdout.write(` [contatos:${contatos.length}]`);
       }
     }
 
@@ -698,6 +734,7 @@ function mapear(campos) {
 
   return {
     _nomeOI: nomeOI,
+    nome: limparNome(nomeOI), // atualiza nome se tiver parênteses
     cpf,
     cnpj,
     rg:                  get('RG/I.E', 'RG'),
@@ -747,9 +784,26 @@ function mapear(campos) {
     horario_entrada:     get('Entrada'),
     horario_saida:       get('Saída', 'Saida', 'Termino Intervalo', 'Término Intervalo'),
     horario_intervalo:   get('Início Intervalo', 'Inicio Intervalo', 'Intervalo Refeição'),
-    // Contato de emergência (aba Contato — tabela de contatos)
-    emergencia_nome:     get('_emergencia_nome') || null,
-    emergencia_telefone: get('_emergencia_telefone') || null,
+    // Contatos de emergência: popula contatos_principais[] a partir da aba Contato do OI
+    contatos_principais: (() => {
+      const lista = campos['_contatosEmergencia'];
+      if (!Array.isArray(lista) || lista.length === 0) return null;
+      const isPhone = s => s && /^[\d\s\+\-\(\)\.]{6,}$/.test(s.trim());
+      return lista.map(c => {
+        // Detecta e corrige quando nome e telefone estão invertidos
+        const nomeParece    = !isPhone(c.nome)     && isPhone(c.telefone);
+        const telefoneInv   =  isPhone(c.nome)     && !isPhone(c.telefone);
+        const nome    = telefoneInv ? c.telefone : c.nome;
+        const telefone = telefoneInv ? c.nome    : c.telefone;
+        return {
+          nome:             nome     || '',
+          parentesco:       '',
+          telefone_celular: telefone || null,
+          telefone_fixo:    null,
+          endereco:         null,
+        };
+      });
+    })(),
   };
 }
 
@@ -758,6 +812,7 @@ function mapear(campos) {
 async function atualizar(id, dados) {
   const payload = {};
   for (const [k, v] of Object.entries(dados)) {
+    if (k.startsWith('_')) continue; // campos internos (ex: _nomeOI, _contatosEmergencia)
     // Arrays (telefones, enderecos) são incluídos mesmo que vazios não sejam string
     if (Array.isArray(v)) { if (v.length > 0) payload[k] = v; }
     else if (v !== null && v !== undefined && v !== '') payload[k] = v;
@@ -784,10 +839,11 @@ async function inserirNovo(nomeDisplay, lojaKey, dados) {
   const { _nomeOI, ...dadosLimpos } = dados;
   const payload = {};
   for (const [k, v] of Object.entries(dadosLimpos)) {
+    if (k.startsWith('_')) continue; // campos internos
     if (v !== null && v !== undefined && v !== '') payload[k] = v;
   }
 
-  payload.nome      = _nomeOI || nomeDisplay;
+  payload.nome      = limparNome(_nomeOI || nomeDisplay);
   payload.status    = 'ativo';
   payload.unidade_id = unit.unitId;
   payload.oi_loja_key = lojaKey;
@@ -847,7 +903,7 @@ async function main() {
     const porNome = new Map(); // normNome → [entradas]
     filtrada.forEach(f => {
       const n = normNome(f.nome);
-      if (SKIP_NAMES.has(n)) return; // pula donos
+      if (deveIgnorar(n)) return; // pula donos da empresa
       if (!porNome.has(n)) porNome.set(n, []);
       porNome.get(n).push(f);
     });
