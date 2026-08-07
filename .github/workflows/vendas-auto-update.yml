@@ -2,8 +2,8 @@ name: Atualizar Vendas de Pneus (automático)
 
 on:
   schedule:
-    # A cada 10 minutos, 08h–19h BRT (11h–22h UTC), seg–sáb
-    - cron: '*/10 11-22 * * 1-6'
+    # A cada 5 minutos, 08h–19h BRT (11h–22h UTC), seg–sáb
+    - cron: '*/5 11-22 * * 1-6'
     # Domingo 08h BRT (11h UTC): recoleta a semana toda para garantir dados corretos
     - cron: '0 11 * * 0'
   workflow_dispatch:
@@ -100,6 +100,7 @@ jobs:
               status: 'concluido',
               progresso: 100,
               mensagem: 'Coleta automática concluída',
+              iniciado_em: new Date().toISOString(),
               concluido_em: new Date().toISOString()
             });
             const req = https.request({

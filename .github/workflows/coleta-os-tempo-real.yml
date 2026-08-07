@@ -48,18 +48,24 @@ jobs:
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                       >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
 
-      - name: Calcular data
+      - name: Calcular datas
         shell: bash
         id: data
         run: |
           if [ -n "${{ github.event.inputs.data }}" ]; then
-            DE="${{ github.event.inputs.data }}"
+            HOJE="${{ github.event.inputs.data }}"
           else
-            DE=$(node -e "process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()))")
+            HOJE=$(node -e "process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()))")
           fi
-          echo "de=$DE" >> $GITHUB_OUTPUT
-          echo "📅 Coletando OS de: $DE"
+          ONTEM=$(node -e "const d=new Date('${HOJE}');d.setDate(d.getDate()-1);process.stdout.write(d.toISOString().slice(0,10))")
+          echo "hoje=$HOJE" >> $GITHUB_OUTPUT
+          echo "ontem=$ONTEM" >> $GITHUB_OUTPUT
+          echo "📅 Coletando OS de: $ONTEM e $HOJE"
 
-      - name: Coletar OS via API
+      - name: Coletar OS de ontem
         shell: bash
-        run: node tools/coletar-os-api.js ${{ steps.data.outputs.de }}
+        run: node tools/coletar-os-api.js ${{ steps.data.outputs.ontem }}
+
+      - name: Coletar OS de hoje
+        shell: bash
+        run: node tools/coletar-os-api.js ${{ steps.data.outputs.hoje }}
