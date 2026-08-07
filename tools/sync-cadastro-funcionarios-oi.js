@@ -765,8 +765,7 @@ function mapear(campos) {
     agencia:             get('Agência', 'Agencia'),
     conta:               get('N.º Conta', 'Conta Corrente', 'Conta'),
     pix:                 get('PIX', 'Chave PIX'),
-    // Funcionário
-    cargo:               get('Cargo'),
+    // Funcionário — cargo NUNCA é sincronizado (gerenciado pelo usuário no NexusZ)
     data_admissao:       parseDateBR(get('Data de Admissão', 'Admissão', 'Dt. Admissão')),
     data_demissao:       parseDateBR(get('Data de Demissão', 'Demissão')),
     data_registro:       parseDateBR(get('Data de Registro', 'Registro')),
@@ -809,10 +808,14 @@ function mapear(campos) {
 
 // ── Atualiza NexusZ ────────────────────────────────────────────────────────────
 
+// Campos que o sync NUNCA deve sobrescrever — gerenciados pelo usuário no NexusZ
+const CAMPOS_PROTEGIDOS_ATUALIZAR = new Set(['cargo', 'salario']);
+
 async function atualizar(id, dados) {
   const payload = {};
   for (const [k, v] of Object.entries(dados)) {
-    if (k.startsWith('_')) continue; // campos internos (ex: _nomeOI, _contatosEmergencia)
+    if (k.startsWith('_')) continue; // campos internos
+    if (CAMPOS_PROTEGIDOS_ATUALIZAR.has(k)) continue; // campos protegidos
     // Arrays (telefones, enderecos) são incluídos mesmo que vazios não sejam string
     if (Array.isArray(v)) { if (v.length > 0) payload[k] = v; }
     else if (v !== null && v !== undefined && v !== '') payload[k] = v;
@@ -838,8 +841,11 @@ async function inserirNovo(nomeDisplay, lojaKey, dados) {
 
   const { _nomeOI, ...dadosLimpos } = dados;
   const payload = {};
+  // cargo e salario nunca são definidos pelo sync — gerenciados pelo usuário
+  const CAMPOS_PROTEGIDOS = new Set(['cargo', 'salario']);
   for (const [k, v] of Object.entries(dadosLimpos)) {
     if (k.startsWith('_')) continue; // campos internos
+    if (CAMPOS_PROTEGIDOS.has(k)) continue;
     if (v !== null && v !== undefined && v !== '') payload[k] = v;
   }
 
