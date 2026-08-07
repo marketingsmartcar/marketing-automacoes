@@ -54,9 +54,15 @@ async function apiPost(path: string, body: unknown) {
   return r.json();
 }
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type" } });
+    return new Response(null, { headers: CORS });
   }
 
   try {
@@ -128,12 +134,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ ok: true, saved, notFound }), {
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { "Content-Type": "application/json", ...CORS },
     });
   } catch (err: any) {
     return new Response(JSON.stringify({ ok: false, error: err.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { "Content-Type": "application/json", ...CORS },
     });
   }
 });
