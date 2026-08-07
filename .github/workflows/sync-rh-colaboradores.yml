@@ -2,9 +2,13 @@ name: Sync Cadastro Colaboradores OI → NexusZ
 
 on:
   schedule:
-    # A cada hora às :30 (BRT = UTC-3)
-    - cron: '30 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
+    inputs:
+      loja:
+        description: 'Filtrar por loja (BR01, BR03, BR04, PEG1) — omitir para todas'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -44,7 +48,13 @@ jobs:
           echo "NEXUSZ_SUPABASE_ANON_KEY=${{ secrets.NEXUSZ_SUPABASE_ANON_KEY }}"                 >> .env
 
       - name: Sync cadastro colaboradores
-        run: node tools/sync-cadastro-funcionarios-oi.js
+        run: |
+          LOJA="${{ github.event.inputs.loja }}"
+          if [ -n "$LOJA" ]; then
+            node tools/sync-cadastro-funcionarios-oi.js --loja="$LOJA"
+          else
+            node tools/sync-cadastro-funcionarios-oi.js
+          fi
 
       - name: Screenshots de debug (se falhar)
         if: failure()

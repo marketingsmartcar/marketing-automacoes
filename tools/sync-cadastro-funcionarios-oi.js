@@ -26,6 +26,14 @@ const FUNC_URL  = `${BASE_URL}/wfFuncionarioBusca.aspx`;
 const DEBUG_DIR = path.join(__dirname, '..', 'output', 'debug-sync-funcionarios');
 const SLEEP     = ms => new Promise(r => setTimeout(r, ms));
 
+// Unidades NexusZ (IDs fixos do banco)
+const UNIT_MAP = {
+  BR01: { unitId: '20578dc2-ec15-43c5-85b3-90ee82156304', nome: 'BR1 Centro' },
+  BR03: { unitId: 'a8d2a117-3437-4c27-aa9c-059a84e5bc08', nome: 'BR3 Americana' },
+  BR04: { unitId: '056fcb61-01d2-4373-abed-1be209eccd30', nome: 'BR4 S. Carlos' },
+  PEG1: { unitId: 'd2a57bb8-e6d1-4d25-b3d9-e0cf77748dae', nome: 'Peg1 Araraquara' },
+};
+
 const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY || process.env.NEXUSZ_SUPABASE_ANON_KEY;
 
@@ -348,9 +356,19 @@ async function extrairCampos(page) {
 
     // ── Extrações específicas por padrão (fallback para campos que o lbl() não alcança) ──
 
-    // CPF: detecta por padrão ###.###.###-## ou ##############
+    // CPF: 1º tenta seletor direto por ID (OI usa ctl00_cph_txtCPFCNPJ)
     if (!d['CPF/CNPJ'] && !d['CPF']) {
-      Array.from(document.querySelectorAll('input')).forEach(el => {
+      const cpfEl = document.querySelector(
+        '#ctl00_cph_txtCPFCNPJ, input[id$="txtCPFCNPJ"], input[id$="txtCPF"], input[name$="txtCPFCNPJ"]'
+      );
+      if (cpfEl) {
+        const v = (cpfEl.value || '').trim();
+        if (v && v !== '000.000.000-00') d['CPF/CNPJ'] = v;
+      }
+    }
+    // CPF: 2º fallback por padrão numérico em qualquer input visível
+    if (!d['CPF/CNPJ'] && !d['CPF']) {
+      Array.from(document.querySelectorAll('input:not([type=hidden])')).forEach(el => {
         const v = (el.value || '').trim();
         if (/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(v) && v.replace(/\D/g,'').length === 11) {
           d['CPF/CNPJ'] = v;
@@ -358,12 +376,25 @@ async function extrairCampos(page) {
       });
     }
 
-    // Sexo: radio com value M / F (o lbl() pode devolver "M" como chave em vez de "Sexo")
-    const sexoChecked = document.querySelector(
-      'input[type=radio][value="M"]:checked, input[type=radio][value="F"]:checked, ' +
-      'input[type=radio][value="Masculino"]:checked, input[type=radio][value="Feminino"]:checked'
-    );
-    if (sexoChecked) d['Sexo'] = sexoChecked.value;
+    // Sexo: 1º tenta pelo name/id do radio group (OI usa rdSexo)
+    if (!d['Sexo']) {
+      const sexoM = document.querySelector(
+        'input[type=radio][id*="rdSexoM"]:checked, input[type=radio][name*="rdSexo"][value="M"]:checked'
+      );
+      const sexoF = document.querySelector(
+        'input[type=radio][id*="rdSexoF"]:checked, input[type=radio][name*="rdSexo"][value="F"]:checked'
+      );
+      if (sexoM) d['Sexo'] = 'M';
+      else if (sexoF) d['Sexo'] = 'F';
+    }
+    // Sexo: 2º fallback genérico por value M/F/Masculino/Feminino
+    if (!d['Sexo']) {
+      const sexoChecked = document.querySelector(
+        'input[type=radio][value="M"]:checked, input[type=radio][value="F"]:checked, ' +
+        'input[type=radio][value="Masculino"]:checked, input[type=radio][value="Feminino"]:checked'
+      );
+      if (sexoChecked) d['Sexo'] = sexoChecked.value;
+    }
 
     return d;
   }).catch(() => ({}));
@@ -535,7 +566,11 @@ function mapear(campos) {
     ? telFixoRaw.replace(/^(\(?\d{2}\)?\s*[\d\s\-]{8,})\s.*$/, '$1').trim() || null
     : null;
 
+  // Nome completo (usado ao inserir novo colaborador)
+  const nomeOI = get('Nome', 'Nome Completo') || null;
+
   return {
+    _nomeOI: nomeOI,
     cpf,
     cnpj,
     rg:                  get('RG/I.E', 'RG'),
@@ -606,6 +641,34 @@ async function atualizar(id, dados) {
   return { ok: res.ok, status: res.status, n: Object.keys(payload).length };
 }
 
+// ── Insere novo colaborador ────────────────────────────────────────────────────
+
+async function inserirNovo(nomeDisplay, lojaKey, dados) {
+  const unit = UNIT_MAP[lojaKey];
+  if (!unit) return { skipped: true, motivo: `loja ${lojaKey} sem unit_id` };
+
+  const { _nomeOI, ...dadosLimpos } = dados;
+  const payload = {};
+  for (const [k, v] of Object.entries(dadosLimpos)) {
+    if (v !== null && v !== undefined && v !== '') payload[k] = v;
+  }
+
+  payload.nome      = _nomeOI || nomeDisplay;
+  payload.status    = 'ativo';
+  payload.unidade_id = unit.unitId;
+  payload.oi_loja_key = lojaKey;
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rh_colaboradores`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(payload),
+  });
+  return { ok: res.ok, status: res.status, created: true, n: Object.keys(payload).length };
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -674,26 +737,27 @@ async function main() {
     const semMatch  = grupos.filter(g => !g.colaborador);
 
     console.log(`   ✅ ${comMatch.length} com match no NexusZ`);
+    console.log(`   🆕 ${semMatch.length} novos (serão inseridos)`);
     if (semMatch.length) {
-      console.log(`   ⚠️  ${semMatch.length} sem match:`);
-      semMatch.forEach(g => console.log(`      - ${g.entradas[0].nome} (${g.entradas.map(e => e.lojaKey).join(', ')})`));
+      semMatch.forEach(g => console.log(`      + ${g.entradas[0].nome} (${g.entradas.map(e => e.lojaKey).join(', ')})`));
     }
 
-    if (!comMatch.length) {
-      console.log('\n❌ Nenhum para processar.'); return;
-    }
+    // Processa todos: comMatch (PATCH) + semMatch (INSERT)
+    const todosGrupos = [...comMatch, ...semMatch];
+    if (!todosGrupos.length) { console.log('\n❌ Nenhum para processar.'); return; }
 
-    const totalEntradas = comMatch.reduce((s, g) => s + g.entradas.length, 0);
-    console.log(`\n3️⃣  Lendo cadastros (${comMatch.length} funcionários / ${totalEntradas} entradas OI)...\n`);
+    const totalEntradas = todosGrupos.reduce((s, g) => s + g.entradas.length, 0);
+    console.log(`\n3️⃣  Lendo cadastros (${todosGrupos.length} funcionários / ${totalEntradas} entradas OI)...\n`);
 
-    let totalOk = 0, totalErro = 0;
+    let totalOk = 0, totalNovo = 0, totalErro = 0;
     const resultados = [];
 
-    for (let i = 0; i < comMatch.length; i++) {
-      const { entradas, colaborador } = comMatch[i];
+    for (let i = 0; i < todosGrupos.length; i++) {
+      const { entradas, colaborador } = todosGrupos[i];
       const nomeDisplay = entradas[0].nome;
       const isDupl = entradas.length > 1;
-      process.stdout.write(`  [${String(i+1).padStart(2)}/${comMatch.length}] ${nomeDisplay.padEnd(40)}`);
+      const isNovo = !colaborador;
+      process.stdout.write(`  [${String(i+1).padStart(2)}/${todosGrupos.length}] ${isNovo ? '🆕 ' : ''}${nomeDisplay.padEnd(40)}`);
       if (isDupl) process.stdout.write(`(${entradas.length} entradas OI)\n`);
 
       try {
@@ -747,26 +811,42 @@ async function main() {
         }
 
         if (DRY_RUN) {
-          resultados.push({ nome: nomeDisplay, entradas: entradas.length, dados: dadosMesclados });
+          resultados.push({ nome: nomeDisplay, novo: isNovo, entradas: entradas.length, dados: dadosMesclados });
           continue;
         }
 
-        if (!preenchidosFinal.length) {
+        if (!preenchidosFinal.length && !isNovo) {
           process.stdout.write(`    ⏭️  sem dados para salvar\n`);
           continue;
         }
 
-        const res = await atualizar(colaborador.id, dadosMesclados);
-        if (res.skipped) {
-          process.stdout.write(`    ⏭️  sem dados\n`);
-        } else if (res.ok) {
-          process.stdout.write(`    ✅ ${res.n} campos salvos\n`);
-          totalOk++;
+        if (isNovo) {
+          // INSERT: usa a primeira entrada para determinar a loja
+          const lojaKey = entradas[0].lojaKey;
+          const res = await inserirNovo(nomeDisplay, lojaKey, dadosMesclados);
+          if (res.skipped) {
+            process.stdout.write(`    ⏭️  ${res.motivo}\n`);
+          } else if (res.ok) {
+            process.stdout.write(`    🆕 inserido! ${res.n} campos (${lojaKey})\n`);
+            totalNovo++;
+          } else {
+            process.stdout.write(`    ❌ HTTP ${res.status}\n`);
+            totalErro++;
+          }
+          resultados.push({ nome: nomeDisplay, novo: true, entradas: entradas.length, loja: lojaKey });
         } else {
-          process.stdout.write(`    ❌ HTTP ${res.status}\n`);
-          totalErro++;
+          const res = await atualizar(colaborador.id, dadosMesclados);
+          if (res.skipped) {
+            process.stdout.write(`    ⏭️  sem dados\n`);
+          } else if (res.ok) {
+            process.stdout.write(`    ✅ ${res.n} campos salvos\n`);
+            totalOk++;
+          } else {
+            process.stdout.write(`    ❌ HTTP ${res.status}\n`);
+            totalErro++;
+          }
+          resultados.push({ nome: nomeDisplay, entradas: entradas.length, colaboradorId: colaborador.id, campos: res.n });
         }
-        resultados.push({ nome: nomeDisplay, entradas: entradas.length, colaboradorId: colaborador.id, campos: res.n });
 
       } catch (err) {
         process.stdout.write(`    ❌ ${err.message}\n`);
@@ -782,6 +862,7 @@ async function main() {
     console.log(`✅ Concluído!`);
     if (!DRY_RUN) {
       console.log(`   Atualizados: ${totalOk}`);
+      console.log(`   Novos:       ${totalNovo}`);
       console.log(`   Erros:       ${totalErro}`);
     }
 
