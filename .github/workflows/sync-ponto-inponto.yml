@@ -2,8 +2,7 @@ name: Sync Ponto InPonto → NexusZ
 
 on:
   schedule:
-    # A cada 15 minutos (GitHub Actions não é confiável com */5)
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
       modo:
