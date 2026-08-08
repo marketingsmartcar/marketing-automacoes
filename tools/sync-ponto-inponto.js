@@ -215,6 +215,11 @@ function parseBatidas(pontos) {
   let synced = 0, notFound = 0, errors = 0;
   const notFoundList = [];
 
+  // Calcula data de hoje em formato DD/MM/YYYY (BRT) para uso no team-status
+  const nowBRT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const todayKey = `${nowBRT.getFullYear()}-${String(nowBRT.getMonth()+1).padStart(2,"0")}-${String(nowBRT.getDate()).padStart(2,"0")}`;
+  const todayBRTStr = `${String(nowBRT.getDate()).padStart(2,"0")}/${String(nowBRT.getMonth()+1).padStart(2,"0")}/${nowBRT.getFullYear()}`;
+
   for (const empresa of EMPRESAS) {
     const { id: COMPANY, userId: USER_ID } = empresa;
     console.log(`\n📡 Empresa ${COMPANY} — buscando pontos...`);
@@ -328,6 +333,62 @@ function parseBatidas(pontos) {
       }
     }
   } // fim loop employeeEntries
+    // ── Sync complementar via get-team-status (captura sem ocorrência) ──────
+    // Só roda se o período cobre hoje (TODAY_ONLY ou DAYS_BACK >= 0)
+    const abrangeFim = new Date(endDate);
+    const abrangeHoje = abrangeFim >= new Date(todayKey);
+    if (abrangeHoje) {
+      console.log(`  ℹ️  Sincronizando ponto do dia via get-team-status (${todayBRTStr})...`);
+      const tsRes = await httpGet(
+        `${API_BASE}/get-team-status?company-token-pg=${COMPANY}&date=${todayBRTStr}`
+      );
+
+      if (tsRes.status === 200 && Array.isArray(tsRes.body) && tsRes.body.length > 0) {
+        const emJornada = tsRes.body;
+        console.log(`    ${emJornada.length} funcionários em jornada hoje`);
+
+        for (const ts of emJornada) {
+          const empId = ts.employeeId;
+          const entradaHora = ts.time; // "HH:MM"
+          if (!entradaHora) continue;
+
+          // Lookup no NexusZ
+          let colab = inpontoIdMap[empId];
+          if (!colab) {
+            colab = nomeMap[normNome(ts.name)];
+          }
+          if (!colab) {
+            // Já será marcado como notFound no loop de ocorrências
+            continue;
+          }
+
+          const upsert = {
+            colaborador_id: colab.id,
+            data: todayKey,
+            inponto_employee_id: empId,
+            entrada: entradaHora,
+            sincronizado_em: new Date().toISOString(),
+          };
+
+          if (DRY_RUN) {
+            console.log(`    [DRY] team-status: ${ts.name?.trim()} → entrada ${entradaHora}`);
+          } else {
+            // Upsert conservador: apenas seta entrada se ainda não há registro do dia
+            const { error: uErr } = await supabase
+              .from("rh_pontos")
+              .upsert(upsert, { onConflict: "colaborador_id,data", ignoreDuplicates: true });
+            if (uErr) {
+              console.error(`    ❌ team-status upsert ${ts.name?.trim()}: ${uErr.message}`);
+              errors++;
+            } else {
+              synced++;
+            }
+          }
+        }
+      } else {
+        console.log(`    ⚠️  get-team-status: ${tsRes.status} — ${JSON.stringify(tsRes.body).substring(0,100)}`);
+      }
+    }
   } // fim loop EMPRESAS
 
   // ── Resumo ───────────────────────────────────────────────────────────────
