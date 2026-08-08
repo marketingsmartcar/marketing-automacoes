@@ -1446,10 +1446,12 @@ node tools/sync-ponto-inponto.js --dry-run    # sem salvar, apenas exibir
 
 **Observações técnicas:**
 - API requer header `Authorization: <token>` (sem prefixo Bearer)
-- `get-occurrences-from-company-range`: só retorna funcionários com flags de ocorrência (códigos 22/23/24/25/27). Funcionários com ponto limpo (sem atraso, sem geofence) NÃO aparecem nesse endpoint
-- `get-team-status?date=DD/MM/YYYY`: retorna todos os funcionários atualmente "Em Jornada". Usado como complemento para capturar ponto limpo do dia. Upsert com `ignoreDuplicates:true` para não sobrescrever dados mais completos
+- `get-occurrences-from-company-range`: retorna funcionários com flags de ocorrência (códigos **21/22/23/24/25/26/27**). Código 26 = "Ponto não registrado" — contém os pontos JÁ REGISTRADOS do funcionário + flag do que falta. Funcionários com ponto 100% limpo (no horário, dentro do geofence, todos os pontos) NÃO aparecem nesse endpoint
+- `get-team-status?date=DD/MM/YYYY`: retorna todos em jornada com `{employeeId, name, status, time}` — SEM lat/lng. Complemento para capturar ponto limpo do dia
+- **Geofence fallback de localização:** quando team-status insere um registro novo (ponto limpo, sem ocorrência), o sync busca as coordenadas do geofence do funcionário via `get-employee-info` e salva em `batidas_geo`. Se não tiver geofence configurado (ou coords 0,0), batidas_geo fica null. Quando uma ocorrência aparecer depois, `ignoreDuplicates:false` sobrescreve com coordenadas exatas do dispositivo
 - `localDate` nas batidas já está em BRT (não é UTC); extrair hora via regex `T(\d{2}):(\d{2})` sem conversão
 - Upsert com constraint única `(colaborador_id, data)` — atualiza se já existir
-- SMARTCAR BUSSINESS = `INPONTO_COMPANY_1` (v5FmAK1E4yQZDHuc8nwh) — é a empresa do Gustavo
+- SMARTCAR BUSSINESS = `INPONTO_COMPANY_1` (v5FmAK1E4yQZDHuc8nwh) — empresa do Gustavo (Peg Araraquara)
+- Geofence Peg Araraquara: `lat: -21.8020618, lng: -48.1733734`
 
-*Criado: 06/08/2026 — Atualizado: 08/08/2026 — Adicionado get-team-status para capturar ponto limpo sem ocorrência.*
+*Criado: 06/08/2026 — Atualizado: 08/08/2026 — Geofence fallback + filtro completo 21-27.*
