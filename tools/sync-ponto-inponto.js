@@ -133,6 +133,26 @@ function toLocalTime(isoStr) {
   return m ? `${m[1]}:${m[2]}` : null;
 }
 
+// Buscar lat/lng recursivamente em um objeto (usado para extrair coords do geofence)
+// Rejeita 0,0 (coordenada inválida/nula)
+function encontrarCoordenadas(obj, depth = 0) {
+  if (!obj || typeof obj !== "object" || depth > 6) return null;
+  const isValido = (lat, lng) => Math.abs(lat) > 0.001 || Math.abs(lng) > 0.001;
+  if (typeof obj.latitude === "number" && typeof obj.longitude === "number" && isValido(obj.latitude, obj.longitude)) {
+    return { lat: obj.latitude, lng: obj.longitude };
+  }
+  if (typeof obj.lat === "number" && typeof obj.lng === "number" && isValido(obj.lat, obj.lng)) {
+    return { lat: obj.lat, lng: obj.lng };
+  }
+  for (const val of Object.values(obj)) {
+    if (val && typeof val === "object") {
+      const found = encontrarCoordenadas(val, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 // Parsear batidas do dia para os 4 campos: entrada, saida_almoco, retorno_almoco, saida
 function parseBatidas(pontos) {
   if (!pontos || pontos.length === 0) return { entrada: null, saida_almoco: null, retorno_almoco: null, saida: null };
@@ -227,7 +247,7 @@ function parseBatidas(pontos) {
       `get-occurrences-from-company-range?company-token-pg=${COMPANY}&userId=${USER_ID}`,
       {
         companyId: COMPANY,
-        occurrences: ["22", "23", "24", "25", "27"],
+        occurrences: ["21", "22", "23", "24", "25", "26", "27"],
         considerFlexibleAsStrong: true,
         tolerance: "10m",
         startDate: startStr,
@@ -362,27 +382,56 @@ function parseBatidas(pontos) {
             continue;
           }
 
+          // Buscar coordenadas do geofence como fallback de localização
+          // (usado quando o funcionário não tem ocorrências — ponto perfeito)
+          let geoFallback = null;
+          try {
+            const infoRes = await httpGet(
+              `${API_BASE}/get-employee-info?company-token-pg=${COMPANY}&employee-token-pg=${empId}`
+            );
+            if (infoRes.status === 200 && infoRes.body?.journeyRule) {
+              const coords = encontrarCoordenadas(infoRes.body.journeyRule);
+              if (coords) geoFallback = coords;
+            }
+          } catch (_) {}
+
           const upsert = {
             colaborador_id: colab.id,
             data: todayKey,
             inponto_employee_id: empId,
             entrada: entradaHora,
+            ...(geoFallback && {
+              batidas_geo: [{ t: new Date().toISOString(), lat: geoFallback.lat, lng: geoFallback.lng, foto: null }],
+            }),
             sincronizado_em: new Date().toISOString(),
           };
 
           if (DRY_RUN) {
-            console.log(`    [DRY] team-status: ${ts.name?.trim()} → entrada ${entradaHora}`);
+            console.log(`    [DRY] team-status: ${ts.name?.trim()} → entrada ${entradaHora}${geoFallback ? ` (geofence: ${geoFallback.lat},${geoFallback.lng})` : " (sem geo)"}`);
           } else {
-            // Upsert conservador: apenas seta entrada se ainda não há registro do dia
-            const { error: uErr } = await supabase
+            // Verificar se já existe registro para hoje
+            const { data: existente } = await supabase
               .from("rh_pontos")
-              .upsert(upsert, { onConflict: "colaborador_id,data", ignoreDuplicates: true });
-            if (uErr) {
-              console.error(`    ❌ team-status upsert ${ts.name?.trim()}: ${uErr.message}`);
-              errors++;
-            } else {
-              synced++;
+              .select("id, batidas_geo")
+              .eq("colaborador_id", colab.id)
+              .eq("data", todayKey)
+              .maybeSingle();
+
+            if (!existente) {
+              // Sem registro: inserir com geofence coords se disponível
+              const { error: uErr } = await supabase.from("rh_pontos").insert(upsert);
+              if (uErr) { console.error(`    ❌ team-status insert ${ts.name?.trim()}: ${uErr.message}`); errors++; }
+              else synced++;
+            } else if (geoFallback && (!existente.batidas_geo || existente.batidas_geo.length === 0)) {
+              // Registro existe mas sem localização: enriquecer com geofence
+              const { error: uErr } = await supabase
+                .from("rh_pontos")
+                .update({ batidas_geo: upsert.batidas_geo, sincronizado_em: upsert.sincronizado_em })
+                .eq("id", existente.id);
+              if (uErr) { console.error(`    ❌ team-status geo-update ${ts.name?.trim()}: ${uErr.message}`); errors++; }
+              else synced++;
             }
+            // Se já tem batidas_geo: não sobrescrever (preservar coordenadas exatas da ocorrência)
           }
         }
       } else {
