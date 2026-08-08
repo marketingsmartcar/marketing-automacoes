@@ -1411,15 +1411,18 @@ node tools/sync-cadastro-funcionarios-oi.js --loja=BR01  # filtra uma loja
 
 ## 28. Sync Registros de Ponto InPonto → NexusZ (Manual/Agendável)
 
-**O que faz:** Consulta a API REST do InPonto (`pontogoapi-homolog-production.up.railway.app`) e sincroniza os registros de ponto de cada funcionário na tabela `rh_pontos` do NexusZ. Os dados aparecem na aba **Ponto** no perfil de cada colaborador.
+**O que faz:** Consulta a API REST do InPonto e sincroniza os registros de ponto de cada funcionário na tabela `rh_pontos` do NexusZ (aba Ponto no perfil do colaborador). Usa **duas estratégias combinadas**:
+1. `get-occurrences-from-company-range` — histórico dos últimos N dias para funcionários com flags (atraso, cerca virtual)
+2. `get-team-status` — captura do dia atual para funcionários em jornada sem flags (ponto limpo)
 
 | Campo | Valor |
 |-------|-------|
 | Script | `tools/sync-ponto-inponto.js` |
-| Execução | Manual (sob demanda) ou agendável |
+| Edge Function | `sync-ponto` (v11) — invocada pelo botão "Atualizar agora" no NexusZ |
+| GitHub Actions | `sync-ponto-inponto.yml` — roda a cada 5 minutos |
 | API | `pontogoapi-homolog-production.up.railway.app` |
 | Auth | Token estático `INPONTO_TOKEN` no `.env` |
-| Company ID | `INPONTO_COMPANY_ID` no `.env` |
+| Empresas | `INPONTO_COMPANY_1..4` + `INPONTO_USER_1..4` no `.env` |
 | Tabela Supabase | `rh_pontos` |
 
 **Como rodar:**
@@ -1439,13 +1442,14 @@ node tools/sync-ponto-inponto.js --dry-run    # sem salvar, apenas exibir
 - `inponto_employee_id` — ID do funcionário no InPonto (também salvo em `rh_colaboradores`)
 - `sincronizado_em` — timestamp do último sync
 
-**Match funcionário:** por CPF normalizado (somente dígitos). Funcionários InPonto sem CPF no NexusZ ficam na lista "não encontrados" — precisam ser cadastrados manualmente.
+**Match funcionário:** CPF normalizado → `inponto_employee_id` → nome normalizado.
 
 **Observações técnicas:**
 - API requer header `Authorization: <token>` (sem prefixo Bearer)
-- Payload da rota `get-occurrences-from-company-range` exige campo `tolerance: "10m"` (Go duration string) — omissão retorna 422
+- `get-occurrences-from-company-range`: só retorna funcionários com flags de ocorrência (códigos 22/23/24/25/27). Funcionários com ponto limpo (sem atraso, sem geofence) NÃO aparecem nesse endpoint
+- `get-team-status?date=DD/MM/YYYY`: retorna todos os funcionários atualmente "Em Jornada". Usado como complemento para capturar ponto limpo do dia. Upsert com `ignoreDuplicates:true` para não sobrescrever dados mais completos
 - `localDate` nas batidas já está em BRT (não é UTC); extrair hora via regex `T(\d{2}):(\d{2})` sem conversão
 - Upsert com constraint única `(colaborador_id, data)` — atualiza se já existir
-- O InPonto gerencia a equipe Smartcar (14 funcionários); apenas os com CPF cadastrado no NexusZ recebem o sync
+- SMARTCAR BUSSINESS = `INPONTO_COMPANY_1` (v5FmAK1E4yQZDHuc8nwh) — é a empresa do Gustavo
 
-*Criado: 06/08/2026 — Validado com dry-run: 1 colaborador sincronizado (Gustavo Adati), 8 sem match (equipe Smartcar não cadastrada no NexusZ).*
+*Criado: 06/08/2026 — Atualizado: 08/08/2026 — Adicionado get-team-status para capturar ponto limpo sem ocorrência.*
