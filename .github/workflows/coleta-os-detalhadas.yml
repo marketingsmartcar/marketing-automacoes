@@ -31,13 +31,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Instalar dependências do sistema (Chromium/Puppeteer)
+      - name: Instalar dependências do sistema (Chrome/Puppeteer)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
-            libxfixes3 libxrandr2 libgbm1 libasound2
+            libxfixes3 libxrandr2 libgbm1 libasound2t64
 
       - name: Instalar dependências Node
         run: npm ci
