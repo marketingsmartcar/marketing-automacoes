@@ -8,7 +8,9 @@
 //   node tools/coletar-os-detalhadas.js --date 2026-08-01 --ate 2026-08-03  # intervalo
 
 require('dotenv').config();
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 const fs   = require('fs');
@@ -80,9 +82,9 @@ function ensureDebugDir() {
 async function login(page) {
   console.log('  🔐 Login...');
   await page.goto('https://sistemaoficinainteligente.com.br/Entrar.aspx?sair=1', {
-    waitUntil: 'domcontentloaded', timeout: 30000,
+    waitUntil: 'networkidle2', timeout: 45000,
   });
-  await page.waitForSelector('#Login1_UserName', { timeout: 10000 });
+  await page.waitForSelector('#Login1_UserName', { timeout: 20000 });
   await page.type('#Login1_UserName', process.env.OI_EMAIL, { delay: 20 });
   await page.type('#Login1_Password', process.env.OI_SENHA, { delay: 20 });
   await Promise.all([
@@ -136,6 +138,8 @@ function parseOSCards(texto, lojaKey) {
     const responsavelMatch= block.match(/Respons[áa]vel:\s*(.+?)(?:\t|Pesquisa|$)/m);
     const pesquisaMatch   = block.match(/Pesquisa:\s*(.+?)(?:\t|$)/m);
     const obsLines        = block.match(/Observa[çc][õo]es:\s*([\s\S]*?)(?=\n\nProdutos)/m);
+    const horaInicioMatch = block.match(/(?:Hora\s+de\s+)?(?:Abertura|In[íi]cio):\s*(\d{2}:\d{2})/i);
+    const horaFimMatch    = block.match(/(?:Hora\s+de\s+)?(?:Fechamento|Fim):\s*(\d{2}:\d{2})/i);
 
     // Totais
     const totalOSMatch    = block.match(/TOTAL\s+O\.S\.\s+R\$\s+([\d.,]+)\s+LB:\s*([\d.,]+)%/i);
@@ -182,6 +186,8 @@ function parseOSCards(texto, lojaKey) {
       loja_key:       lojaKey,
       os_numero:      osNum,
       data_os:        dataOS,
+      hora_inicio:    horaInicioMatch?.[1] || null,
+      hora_fim:       horaFimMatch?.[1] || null,
       cliente:        clienteMatch?.[1]?.trim() || null,
       tipo:           tipoMatch?.[1]?.trim() || null,
       veiculo:        veiculoMatch?.[1]?.trim() || null,
@@ -327,8 +333,19 @@ async function main() {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-  const page    = await browser.newPage();
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--window-size=1366,768',
+    ],
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1366, height: 768 });
+  await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8' });
   page.setDefaultTimeout(30000);
 
   try {
@@ -343,6 +360,17 @@ async function main() {
     }
 
     console.log('\n✅ Coleta concluída!\n');
+  } catch (err) {
+    // Screenshot de debug antes de fechar
+    try {
+      ensureDebugDir();
+      const ss = path.join(DEBUG_DIR, `error-${Date.now()}.png`);
+      await page.screenshot({ path: ss, fullPage: true });
+      console.error(`📸 Screenshot salvo: ${ss}`);
+      const html = await page.content();
+      fs.writeFileSync(ss.replace('.png', '.html'), html, 'utf8');
+    } catch {}
+    throw err;
   } finally {
     await browser.close();
   }
