@@ -1332,10 +1332,10 @@ O NexusZ (AdminVendasOS) escuta Supabase Realtime na tabela `os_vendas` e atuali
 | Campo | Valor |
 |-------|-------|
 | Script | `tools/coletar-os-detalhadas.js` |
-| GitHub Actions (anterior) | `.github/workflows/coleta-os-detalhadas.yml` |
-| GitHub Actions (hoje) | `.github/workflows/coleta-os-hoje.yml` |
-| Agendamento anterior | Diário às **09h00 BRT** (12h00 UTC) — Segunda a Sábado |
-| Agendamento hoje | **A cada 30 min** das 08h às 18h BRT — Segunda a Sábado |
+| GitHub Actions (diário) | `.github/workflows/coleta-os-detalhadas.yml` |
+| GitHub Actions (30 min) | `.github/workflows/coleta-os-periodica.yml` |
+| Agendamento diário | Diário às **09h00 BRT** (12h00 UTC) — Segunda a Sábado (dia anterior) |
+| Agendamento intradiário | **A cada 30 min** das 08h às 18h BRT — Segunda a Sábado (dia atual) |
 | Lojas | BR01 (469), BR03 (2202), BR04 (1524), PEG1 (3098) |
 | Tabelas Supabase | `os_vendas` (header da OS) + `os_itens` (produtos/serviços) |
 | Debug | `debug/os-detalhadas/` — dump do texto de cada página por loja |
@@ -1360,6 +1360,9 @@ node tools/coletar-os-detalhadas.js --date 2026-08-01 --ate 2026-08-03  # interv
 - Cards: count OS, faturamento, LB% médio, serviços, produtos
 - Tabela expandível: clica na OS para ver itens detalhados
 - **Realtime**: UI atualiza automaticamente via Supabase Realtime (sem polling manual)
+- **Botão "Atualizar OS"**: chama Edge Function `trigger-os-sync` → dispara workflow para o dia atual
+- **Botão "Retroativo"**: abre dialog com seletor de período; dispara `trigger-os-sync` com dataInicio/dataFim
+- **Edge Function**: `trigger-os-sync` (NexusZ) — cria sync_job tipo `os_detalhadas`, dispara `coleta-os-detalhadas.yml` via GitHub API
 
 **Regras importantes:**
 - Seletor OS: `#ctl00_cph_ddlMostrarOS` com valor `"True"` = "Sim"
@@ -1368,7 +1371,7 @@ node tools/coletar-os-detalhadas.js --date 2026-08-01 --ate 2026-08-03  # interv
 - Paginação: verifica botão "Próximo" após cada página (dias com muitas OS)
 - Runner self-hosted obrigatório: o scraper usa Puppeteer + Chrome, não roda em GitHub-hosted
 
-*Criado: 04/08/2026 | Atualizado: 06/08/2026 (realtime + coleta intradiária de hoje)*
+*Criado: 04/08/2026 | Atualizado: 11/08/2026 (workflow periódico + Edge Function + botões UI retroativo)*
 
 ---
 
