@@ -1,10 +1,8 @@
-name: OS Tempo Real — API OI (a cada 2 min)
+name: OS Tempo Real — Edge Function (a cada 5 min)
 
 on:
   schedule:
-    # A cada 2 min, 07:50–18:00 BRT (10:50–21:00 UTC) — Segunda a Sábado
-    # GitHub Actions mínimo é 5 min; para 2 min usamos runner self-hosted com cron do SO
-    # Este workflow delega ao script que roda no cron local do Windows
+    # A cada 5 min, 07:50–18:10 BRT (10:50–21:10 UTC) — Segunda a Sábado
     - cron: '*/5 11-21 * * 1-6'
   workflow_dispatch:
     inputs:
@@ -16,56 +14,33 @@ permissions:
   contents: read
 
 jobs:
-  coletar:
-    runs-on: self-hosted
-    timeout-minutes: 10
+  sincronizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Adicionar Git bash ao PATH
-        shell: powershell
-        run: echo "C:\Program Files\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Instalar dependências
-        shell: bash
-        run: npm ci
-
-      - name: Criar .env
-        shell: bash
+      - name: Chamar Edge Function sync-os-agora
         run: |
-          echo "OI_TOKEN_ALT_BR01_CENTRO=${{ secrets.OI_TOKEN_ALT_BR01_CENTRO }}"             >> .env
-          echo "OI_TOKEN_ALT_BR03_AMERICANA=${{ secrets.OI_TOKEN_ALT_BR03_AMERICANA }}"       >> .env
-          echo "OI_TOKEN_BR04_SAO_CARLOS=${{ secrets.OI_TOKEN_BR04_SAO_CARLOS }}"             >> .env
-          echo "OI_TOKEN_PEG1_ARARAQUARA=${{ secrets.OI_TOKEN_PEG1_ARARAQUARA }}"             >> .env
-          echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                       >> .env
-          echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" >> .env
-
-      - name: Calcular datas
-        shell: bash
-        id: data
-        run: |
-          if [ -n "${{ github.event.inputs.data }}" ]; then
-            HOJE="${{ github.event.inputs.data }}"
-          else
-            HOJE=$(node -e "process.stdout.write(new Intl.DateTimeFormat('sv',{timeZone:'America/Sao_Paulo'}).format(new Date()))")
+          DATA="${{ github.event.inputs.data }}"
+          BODY="{}"
+          if [ -n "$DATA" ]; then
+            BODY="{\"data\":\"$DATA\"}"
           fi
-          ONTEM=$(node -e "const d=new Date('${HOJE}');d.setDate(d.getDate()-1);process.stdout.write(d.toISOString().slice(0,10))")
-          echo "hoje=$HOJE" >> $GITHUB_OUTPUT
-          echo "ontem=$ONTEM" >> $GITHUB_OUTPUT
-          echo "📅 Coletando OS de: $ONTEM e $HOJE"
 
-      - name: Coletar OS de ontem
-        shell: bash
-        run: node tools/coletar-os-api.js ${{ steps.data.outputs.ontem }}
+          HTTP_STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.NEXUSZ_SUPABASE_URL }}/functions/v1/sync-os-agora" \
+            -d "$BODY")
 
-      - name: Coletar OS de hoje
-        shell: bash
-        run: node tools/coletar-os-api.js ${{ steps.data.outputs.hoje }}
+          cat /tmp/resp.json
+          echo ""
+          echo "HTTP Status: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" -ge 400 ]; then
+            echo "❌ Edge Function retornou erro HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+          echo "✅ OS sincronizadas com sucesso"
