@@ -179,6 +179,37 @@ function parseOSCards(texto, lojaKey) {
       }
     }
 
+    // Pagamentos — colunas: Parcela | Vencimento | Forma de Pagamento | $ Parcela
+    // Agrupa por forma: conta parcelas e soma valor total
+    const pagamentos = [];
+    if (pagStart !== -1) {
+      const pagSection = block.slice(pagStart + 'Pagamentos da OS'.length);
+      const totalIdx   = pagSection.search(/^\s*Total\b/m);
+      const pagLines   = (totalIdx !== -1 ? pagSection.slice(0, totalIdx) : pagSection).split('\n');
+      const byForma    = new Map();
+
+      for (const line of pagLines) {
+        const parts = line.split('\t');
+        if (parts.length < 4) continue;
+        const numParcela = parts[0].trim();
+        const forma      = parts[2].trim();
+        const valorStr   = parts[3].trim();
+
+        // Só linhas de dados: parcela numérica, forma presente, não TOTAL PAGO
+        if (!/^\d+$/.test(numParcela) || !forma || forma === 'Forma de Pagamento' || forma === 'TOTAL PAGO') continue;
+
+        const valor = parseBRL(valorStr);
+        if (!byForma.has(forma)) byForma.set(forma, { parcelas: 0, valor: 0 });
+        const entry = byForma.get(forma);
+        entry.parcelas++;
+        entry.valor = Math.round((entry.valor + valor) * 100) / 100;
+      }
+
+      for (const [forma, data] of byForma) {
+        pagamentos.push({ forma, parcelas: data.parcelas, valor: data.valor });
+      }
+    }
+
     const dataOS = displayToISO(dataMatch?.[1]);
     if (!dataOS) continue;
 
@@ -201,6 +232,7 @@ function parseOSCards(texto, lojaKey) {
       total_produtos: produtosMatch  ? parseBRL(produtosMatch[1]) : 0,
       total_os:       totalOSMatch   ? parseBRL(totalOSMatch[1]) : 0,
       lucro_bruto_pct:totalOSMatch   ? parseFloat(totalOSMatch[2].replace(',', '.')) : null,
+      pagamentos:     pagamentos.length > 0 ? pagamentos : null,
       itens,
     });
   }
