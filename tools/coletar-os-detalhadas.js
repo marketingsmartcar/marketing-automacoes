@@ -381,9 +381,14 @@ async function main() {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  const socks5 = process.env.PUPPETEER_SOCKS5;
+  const proxyArgs = socks5 ? [`--proxy-server=socks5://${socks5}`] : [];
+  if (socks5) console.log(`🔒 Puppeteer via Tor SOCKS5 (${socks5})`);
+
   const browser = await puppeteer.launch({
     headless: true,
     args: [
+      ...proxyArgs,
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',

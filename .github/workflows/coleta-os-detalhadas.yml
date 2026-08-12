@@ -31,13 +31,27 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Instalar dependências do sistema (Chrome/Puppeteer)
+      - name: Instalar dependências do sistema (Chrome + Tor)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
-            libxfixes3 libxrandr2 libgbm1 libasound2t64
+            libxfixes3 libxrandr2 libgbm1 libasound2t64 \
+            tor
+
+      - name: Iniciar Tor e aguardar conexão
+        run: |
+          sudo service tor start
+          # Aguardar Tor estabelecer circuito (até 60s)
+          for i in $(seq 1 12); do
+            if curl -s --socks5-hostname 127.0.0.1:9050 https://check.torproject.org/api/ip 2>/dev/null | grep -q '"IsTor":true'; then
+              echo "✅ Tor conectado"
+              break
+            fi
+            echo "⏳ Aguardando Tor... ($i/12)"
+            sleep 5
+          done
 
       - name: Instalar dependências Node
         run: npm ci
@@ -48,6 +62,7 @@ jobs:
           echo "OI_SENHA=${{ secrets.OI_SENHA }}"                                                     >> .env
           echo "NEXUSZ_SUPABASE_URL=${{ secrets.NEXUSZ_SUPABASE_URL }}"                               >> .env
           echo "NEXUSZ_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY }}"     >> .env
+          echo "PUPPETEER_SOCKS5=127.0.0.1:9050"                                                      >> .env
 
       - name: Calcular data (ontem BRT se não informado)
         id: data
