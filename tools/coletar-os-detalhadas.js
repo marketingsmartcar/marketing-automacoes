@@ -316,16 +316,32 @@ async function salvarNoSupabase(supabase, osCards) {
   if (!osCards.length) return;
 
   let inseridos = 0, atualizados = 0, erros = 0;
+  let colunaPagamentosOk = true; // assume que a coluna existe; detecta se der erro
 
   for (const os of osCards) {
     const { itens, ...osData } = os;
 
+    // Se a coluna pagamentos ainda não existir no DB, remove o campo para não falhar
+    if (!colunaPagamentosOk) delete osData.pagamentos;
+
     // Upsert OS principal
-    const { data: osRow, error: osErr } = await supabase
+    let { data: osRow, error: osErr } = await supabase
       .from('os_vendas')
       .upsert(osData, { onConflict: 'loja_key,os_numero', ignoreDuplicates: false })
       .select('id')
       .single();
+
+    // Se erro for "column does not exist", retry sem pagamentos
+    if (osErr && osErr.message?.includes('pagamentos')) {
+      colunaPagamentosOk = false;
+      console.warn('    ⚠️  Coluna pagamentos ausente — rode a migration 20260812120000_os_vendas_pagamentos.sql');
+      delete osData.pagamentos;
+      ({ data: osRow, error: osErr } = await supabase
+        .from('os_vendas')
+        .upsert(osData, { onConflict: 'loja_key,os_numero', ignoreDuplicates: false })
+        .select('id')
+        .single());
+    }
 
     if (osErr) {
       console.error(`    ❌ OS ${os.os_numero}: ${osErr.message}`);
