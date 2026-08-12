@@ -116,6 +116,48 @@ node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
 
 ---
 
+## 2c. Coleta de Dados Gestão Periódica (OS) → Supabase
+
+**O que faz:** Faz login no OI (sistemaoficinainteligente.com.br), acessa o relatório Gestão Periódica para cada loja e upserta os campos `responsavel` e `pesquisa` de cada OS na tabela `os_vendas` do Supabase. Roda na nuvem (sem depender do PC).
+
+| Campo | Valor |
+|-------|-------|
+| Edge Function | `coleta-gestao-periodica` (projeto Supabase `ubiuershczqjnoczcupa`, região `sa-east-1`) |
+| Workflow | `.github/workflows/coleta-gestao-periodica.yml` |
+| Agendamento | Diário às **07h BRT** (10:00 UTC), Seg–Sáb |
+| Tabela Supabase | `os_vendas` (upsert por `loja_key + os_numero`) |
+| Secrets Supabase | `OI_EMAIL`, `OI_SENHA` (configurados no dashboard — nunca no .env) |
+
+**Lojas cobertas:**
+
+| Chave | DDL | Loja |
+|-------|-----|------|
+| BR01 | 469 | BR Pneus Araraquara |
+| BR03 | 2202 | BR Pneus Americana |
+| BR04 | 1524 | BR Pneus São Carlos |
+| PEG1 | 3098 | Peg Pneus Araraquara |
+
+**Como invocar manualmente (retroativo):**
+```bash
+# Ontem (padrão)
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-gestao-periodica \
+  -H "Content-Type: application/json" -d '{}'
+
+# Data específica
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-gestao-periodica \
+  -H "Content-Type: application/json" -d '{"de":"2026-08-01","ate":"2026-08-11"}'
+```
+
+**Regras importantes:**
+- O IP do servidor Supabase `sa-east-1` é brasileiro — contorna o bloqueio de IP do OI
+- Credenciais OI apenas nos Secrets do Supabase, nunca commitadas
+- Login usa `Login1$btnEntrar` (não `Login1$LoginButton`) — botão confirmado via inspeção do HTML
+- O relatório retorna caracteres garbled (U+FFFD) por mismatch de charset — regex usa `.` wildcard
+- Campos `hora_inicio`/`hora_fim` existem na tabela mas não aparecem no Gestão Periódica (ficam null)
+- O botão retroativo no NexusZ (AdminVendasOS) chama esta edge function
+
+---
+
 ## 3. Monitor de Ads
 
 **O que faz:** Verifica saldo de todas as contas de Meta Ads e Google Ads. Se houver saldo baixo ou zerado, envia alerta automático no WhatsApp com instruções de recarga.
