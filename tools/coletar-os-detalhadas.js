@@ -284,16 +284,16 @@ async function coletarLoja(page, loja, deDisplay, ateDisplay) {
     console.log(`    📄 Pág. ${pagina}: ${osNaPage.length} OS`);
     todasOS = todasOS.concat(osNaPage);
 
-    // Verifica paginação (botão "Próximo")
+    // Verifica paginação (botão "Próxima" ou "Próximo")
     const temProximo = await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('input[type=submit], a, button'));
       return btns.some(b =>
-        /pr[oó]ximo|next/i.test((b.textContent || b.value || '').trim())
+        /pr[oó]xim[ao]|next/i.test((b.textContent || b.value || '').trim())
       );
     });
     if (!temProximo) break;
 
-    const proximoSel = 'input[value*="róximo"], input[value*="roximo"], a[href*="Proximo"], button[title*="róximo"]';
+    const proximoSel = 'input[value*="róxim"], input[value*="roxim"], a[href*="Proxim"], button[title*="róxim"]';
     try {
       await Promise.all([
         page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }),
