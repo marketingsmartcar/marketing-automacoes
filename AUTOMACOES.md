@@ -493,27 +493,62 @@ node tools/gerar-arte.js aniversario brpneus "Maria Santos" /path/foto.jpg
 
 ## 7. Agendamento Geral (Windows Task Scheduler)
 
-```
-BRPneus-RelatorioLeads       → diário 18h
-BR Pneus - Vendas Diarias    → diário 7h
-BRPneus-MonitorAds-08h00     → seg–sáb 8h
-BRPneus-MonitorAds-09h00     → seg–sáb 9h
-BRPneus-MonitorAds-10h00     → seg–sáb 10h
-BRPneus-MonitorAds-11h00     → seg–sáb 11h
-BRPneus-MonitorAds-12h00     → seg–sáb 12h
-BRPneus-MonitorAds-13h00     → seg–sáb 13h
-BRPneus-MonitorAds-14h00     → seg–sáb 14h
-BRPneus-MonitorAds-15h00     → seg–sáb 15h
-BRPneus-MonitorAds-16h00     → seg–sáb 16h
-BRPneus-MonitorAds-17h00     → seg–sáb 17h
-BRPneus-MonitorAds-17h30     → seg–sáb 17h30
-BRPneus-ComparativoPrecos   → toda segunda às 8h30 (GitHub Actions)
+> **⚠️ GitHub Actions SUSPENSO (ago/2026)** — todos os workflows migrados para PM2 local + pg_cron Supabase.
+
+**PM2 (todos os agendamentos — arquivo: `ecosystem.config.js`):**
+
+| Nome PM2 | Script | Cron (BRT) | Observação |
+|----------|--------|-----------|------------|
+| `ads-monitor` | `tools/coletar-ads-supabase.js` | `*/15 * * * *` | 24/7 |
+| `estoque-pneus` | `tools/coletar-estoque-pneus.js` | `*/10 8-19 * * 1-6` | API OI |
+| `leads-sync` | `tools/leads-hoje.js --agora` | `0 7-18 * * 1-6` | consolida 3 workflows |
+| `social-media` | `tools/coletar-social-media.js` | `0 8-19 * * 1-6` | |
+| `social-youtube` | `tools/coletar-youtube.js` | `2 8-19 * * 1-6` | deslocado 2 min |
+| `social-video` | `tools/coletar-social-video.js` | `0 8 * * 1-6` | |
+| `relatorio-leads` | `tools/relatorio-mensal-sheets.js` | `30 7-18 * * 1-6` | deslocado 30 min |
+| `crm-coletar` | `tools/coletar-clientes-oi.js` | `0 8 * * 1-6` | |
+| `crm-aniversariantes` | `tools/aniversariantes-crm.js` | `5 8 * * 1-6` | 5 min após crm-coletar |
+| `verificar-token-google` | `tools/verificar-token-google-ci.js` | `0 8 * * 1` | toda segunda |
+| `stories-diarios` | `tools/stories/cloud-scheduler.js` | `0 6 * * 1-6` | requer ffmpeg |
+| `avaliacoes-google` | `tools/coletar-avaliacoes.js` | `0 17 * * 1-6` | Puppeteer |
+| `vendas-diarias` | `tools/coletar-vendas-diarias.js` | `0 20 * * 1-6` | Puppeteer |
+| `coleta-os-detalhadas` | `tools/coletar-os-detalhadas.js` | `0 9 * * 1-6` | Puppeteer |
+| `coleta-os-periodica` | `tools/coletar-os-detalhadas.js --date today` | `*/30 8-18 * * 1-6` | Puppeteer |
+| `oi-colaboradores` | `tools/scraper-oi-colaboradores.js` | `0 8 * * *` | Puppeteer |
+| `sync-rh-colaboradores` | `tools/sync-cadastro-funcionarios-oi.js` | `*/5 * * * *` | Puppeteer |
+| `comparativo-precos` | `tools/comparar-precos-pneustore.js` | `30 8 * * 1` | Puppeteer |
+| `whatsapp-bot` | `tools/whatsapp-bot.js` | permanente | porta 3099 |
+| `leads-hoje` | `tools/leads-hoje.js` | permanente (pre-existente) | |
+
+**Comandos PM2:**
+```bash
+pm2 start ecosystem.config.js    # iniciar tudo
+pm2 ls                           # status
+pm2 logs <nome>                  # logs em tempo real
+pm2 restart <nome>               # reiniciar processo
+pm2 save                         # salvar estado para sobreviver reboot
 ```
 
-**PM2 (sempre ativos):**
-```
-br-pneus-bot       (ID 0) → bot WhatsApp, porta 3099
-server-artes       (ID 2) → servidor de artes NexusZ, porta 3098
+**pg_cron Supabase (3 edge functions — não dependem do PC):**
+
+| Job | Schedule (UTC) | Edge Function |
+|-----|----------------|---------------|
+| `sync-ponto-inponto` | `*/5 * * * *` | `sync-ponto` |
+| `trigger-vendas-sync` | `*/5 11-22 * * 1-6` | `trigger-vendas-sync` |
+| `coleta-gestao-periodica` | `0 10 * * 1-6` | `coleta-gestao-periodica` |
+
+> **⚠️ AÇÃO NECESSÁRIA:** Para que os jobs pg_cron funcionem, inserir o `service_role_key` no Vault do Supabase via SQL Editor:
+> ```sql
+> INSERT INTO vault.secrets (name, secret, description)
+> VALUES ('service_role_key', '<valor de NEXUSZ_SUPABASE_SERVICE_ROLE_KEY do .env>',
+>         'Service role key para pg_cron chamar edge functions')
+> ON CONFLICT (name) DO UPDATE SET secret = EXCLUDED.secret;
+> ```
+
+**Verificar jobs pg_cron:**
+```sql
+SELECT * FROM cron.job;
+SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 20;
 ```
 
 ---
