@@ -425,9 +425,28 @@ async function extrairCampos(page) {
       'input[id*="DataRegistro"]',
       'input[id*="txtRegistro"]');
     dateById('Data de Admissão',
+      '#tab_tapFuncionario_txtDataDeAdmissao', 'input[name*="txtDataDeAdmissao"]',
       '#ctl00_cph_txtDataAdmissao', 'input[id*="DataAdmissao"]', 'input[id*="txtAdmissao"]');
     dateById('Data de Demissão',
+      '#tab_tapFuncionario_txtDataDeDemissao', 'input[name*="txtDataDeDemissao"]',
       '#ctl00_cph_txtDataDemissao', 'input[id*="DataDemissao"]', 'input[id*="txtDemissao"]');
+
+    // Horários de jornada: fallback por seletor direto (lbl() pode falhar por NFD/NFC)
+    const horaById = (key, ...selectors) => {
+      if (d[key]) return;
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && el.value && el.value.trim()) { d[key] = el.value.trim(); return; }
+      }
+    };
+    horaById('Saída',
+      '#tab_tapFuncionario_txtHoraFim', '#tab_tapFuncionario_txtHoraSaida',
+      'input[name*="txtHoraFim"]', 'input[name*="txtHoraSaida"]',
+      'input[id*="HoraFim"]', 'input[id*="HoraSaida"]');
+    horaById('Entrada',
+      '#tab_tapFuncionario_txtHoraInicio', '#tab_tapFuncionario_txtHoraEntrada',
+      'input[name*="txtHoraInicio"]', 'input[name*="txtHoraEntrada"]',
+      'input[id*="HoraInicio"]', 'input[id*="HoraEntrada"]');
 
     // Sexo: 1º tenta pelo name/id do radio group (OI usa rdSexo)
     if (!d['Sexo']) {
@@ -664,6 +683,20 @@ async function lerTudo(profilePage) {
       }
     }
 
+    // Funcionário: captura horários de jornada diretamente pelos IDs (evita bug NFD/NFC no lbl())
+    if (aba === 'Funcionário') {
+      const horas = await profilePage.evaluate(() => {
+        const v = id => (document.querySelector(`#${id}`)?.value || '').trim();
+        return {
+          '_hora_entrada':         v('tab_tapFuncionario_txtHoraEntrada'),
+          '_hora_saida_intervalo': v('tab_tapFuncionario_txtHoraSaidaIntervalo'),
+          '_hora_entrada_intervalo': v('tab_tapFuncionario_txtHoraEntradaIntervalo'),
+          '_hora_saida':           v('tab_tapFuncionario_txtHoraSaida'),
+        };
+      });
+      Object.assign(camposPorAba, horas);
+    }
+
     for (const [k, v] of Object.entries(c)) {
       const jaTemValor = camposPorAba[k] && String(camposPorAba[k]).trim();
       const novoValor  = v && String(v).trim();
@@ -673,14 +706,6 @@ async function lerTudo(profilePage) {
     const novosPreench = Object.entries(c).filter(([,v]) => v && String(v).trim()).length;
     if (novosPreench > 0) process.stdout.write(` [${aba}:${novosPreench}✓]`);
 
-    // Debug da aba Funcionário para diagnosticar campos capturados
-    if (aba === 'Funcionário') {
-      const preenchidos = Object.entries(c).filter(([,v]) => v && String(v).trim());
-      if (preenchidos.length > 0) {
-        const resumo = preenchidos.map(([k,v]) => `"${k}":"${v}"`).join(', ');
-        console.log(`\n    [debug Funcionário] ${resumo}`);
-      }
-    }
   }
   process.stdout.write('\n');
 
@@ -699,8 +724,9 @@ async function lerTudo(profilePage) {
 function mapear(campos) {
   function get(...keys) {
     for (const k of keys) {
+      const kNorm = k.normalize('NFC').toLowerCase();
       const found = Object.entries(campos).find(([key]) =>
-        key.toLowerCase().includes(k.toLowerCase())
+        key.normalize('NFC').toLowerCase().includes(kNorm)
       );
       const v = found?.[1];
       if (v && String(v).trim() && v !== '0,00' && v !== '00/00/0000' && v !== 'Selecione...') return String(v).trim();
@@ -834,10 +860,10 @@ function mapear(campos) {
     certificado_reservista: get('Reservista', 'Certificado de Reservista'),
     estado_civil,
     grau_instrucao,
-    horario_entrada:          get('Entrada'),
-    horario_intervalo:        get('Início Intervalo', 'Inicio Intervalo', 'Início Intervalo Refeição', 'Inicio Intervalo Refeição'),
-    horario_retorno_almoco:   get('Término Intervalo', 'Termino Intervalo', 'Término Intervalo Refeição', 'Termino Intervalo Refeição', 'Retorno Almoço'),
-    horario_saida:            get('Saída', 'Saida'),
+    horario_entrada:          campos['_hora_entrada']          || get('Entrada'),
+    horario_intervalo:        campos['_hora_saida_intervalo']  || get('Início Intervalo', 'Inicio Intervalo', 'Início Intervalo Refeição', 'Inicio Intervalo Refeição'),
+    horario_retorno_almoco:   campos['_hora_entrada_intervalo']|| get('Término Intervalo', 'Termino Intervalo', 'Término Intervalo Refeição', 'Termino Intervalo Refeição', 'Retorno Almoço'),
+    horario_saida:            campos['_hora_saida']            || get('Saída', 'Saida'),
     // Contatos de emergência: popula contatos_principais[] a partir da aba Contato do OI
     contatos_principais: (() => {
       const lista = campos['_contatosEmergencia'];
