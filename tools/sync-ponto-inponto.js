@@ -422,8 +422,8 @@ function parseBatidas(pontos) {
               const { error: uErr } = await supabase.from("rh_pontos").insert(upsert);
               if (uErr) { console.error(`    ❌ team-status insert ${ts.name?.trim()}: ${uErr.message}`); errors++; }
               else synced++;
-            } else if (geoFallback && (!existente.batidas_geo || existente.batidas_geo.length === 0)) {
-              // Registro existe mas sem localização: enriquecer com geofence
+            } else if (geoFallback && (!existente.batidas_geo || existente.batidas_geo.length === 0 || !existente.batidas_geo.some(g => g?.lat && g?.lng))) {
+              // Registro existe mas sem coords válidas: enriquecer com geofence fallback
               const { error: uErr } = await supabase
                 .from("rh_pontos")
                 .update({ batidas_geo: upsert.batidas_geo, sincronizado_em: upsert.sincronizado_em })
