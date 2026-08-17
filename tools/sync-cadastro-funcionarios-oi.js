@@ -160,7 +160,7 @@ function filtrar(lista) {
     const nome = f.nome.toLowerCase().trim();
     if (/^\d/.test(f.nome.trim()))              return false; // começa com número
     if (f.nome.includes('/'))                    return false; // tem barra
-    if (SKIP_WORDS.some(w => nome.startsWith(w))) return false; // palavras proibidas
+    if (SKIP_WORDS.some(w => nome.includes(w))) return false; // palavras proibidas
     const loja = empresaParaLoja(f.empresa);
     if (!loja)                                   return false; // loja não ativa
     if (LOJA_FILTRO && loja !== LOJA_FILTRO)     return false;
@@ -1024,7 +1024,7 @@ function mapearCargo(cargoOI) {
 // ── Atualiza NexusZ ────────────────────────────────────────────────────────────
 
 // Campos que o sync NUNCA deve sobrescrever — gerenciados pelo usuário no NexusZ
-const CAMPOS_PROTEGIDOS_ATUALIZAR = new Set(['cargo', 'salario', 'status']);
+const CAMPOS_PROTEGIDOS_ATUALIZAR = new Set(['cargo', 'salario', 'status', 'unidade_id']);
 
 async function atualizar(id, dados, lojaKey) {
   const payload = {};
@@ -1144,6 +1144,24 @@ async function main() {
       if (!porNome.has(n)) porNome.set(n, []);
       porNome.get(n).push(f);
     });
+
+    // Merge grupos onde nome curto é subconjunto de nome longo (ex: "SANDRO FROIS" ⊂ "SANDRO SANTOS BATISTA FROIS")
+    const norms = [...porNome.keys()].sort((a, b) => b.length - a.length);
+    for (let i = 0; i < norms.length; i++) {
+      const longNorm = norms[i];
+      if (!porNome.has(longNorm)) continue;
+      for (let j = i + 1; j < norms.length; j++) {
+        const shortNorm = norms[j];
+        if (!porNome.has(shortNorm)) continue;
+        const shortToks = shortNorm.split(' ').filter(t => t.length > 2);
+        if (shortToks.length >= 2 && shortToks.every(t => longNorm.includes(t))) {
+          // Mescla entradas do nome curto no grupo do nome longo
+          porNome.get(longNorm).push(...porNome.get(shortNorm));
+          porNome.delete(shortNorm);
+          console.log(`   ↪ Merge: "${shortNorm}" → "${longNorm}"`);
+        }
+      }
+    }
 
     const totalNomes   = porNome.size;
     const totalDupls   = [...porNome.values()].filter(v => v.length > 1).length;

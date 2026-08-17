@@ -197,7 +197,63 @@ client.on('ready', async () => {
 
   // Parabéns automático de aniversariantes (diário às 8h)
   agendarAniversarios();
+
+  // Avisos de pagamento mensais (3CX dia 10, Algar dia 22)
+  agendarAvisosPagamento();
 });
+
+// ─── Avisos de pagamento mensais ─────────────────────────────────────────────
+
+function agendarAvisosPagamento() {
+  const PAGAMENTOS = [
+    { dia: 10, nome: '3CX Telefonia', icone: '📞', aviso: 9  },
+    { dia: 22, nome: 'Algar',         icone: '📡', aviso: 21 },
+  ];
+
+  function msAte9h() {
+    const agora = new Date();
+    const alvo  = new Date(agora);
+    alvo.setHours(9, 0, 0, 0);
+    if (alvo <= agora) alvo.setDate(alvo.getDate() + 1);
+    return alvo - agora;
+  }
+
+  async function verificar() {
+    if (!GRUPO_ALERTAS_ID) return;
+    const hoje = new Date().getDate();
+
+    for (const p of PAGAMENTOS) {
+      if (hoje === p.aviso) {
+        const msg =
+          `${p.icone} *Lembrete de pagamento — amanhã!*\n\n` +
+          `Amanhã (dia ${p.dia}) vence o pagamento da *${p.nome}*.\n\n` +
+          `Providencie o pagamento com antecedência.`;
+        await client.sendMessage(GRUPO_ALERTAS_ID, msg);
+        console.log(`💳 Aviso D-1 enviado: ${p.nome}`);
+      }
+      if (hoje === p.dia) {
+        const msg =
+          `${p.icone} *Pagamento vence HOJE — dia ${p.dia}!*\n\n` +
+          `Hoje é o dia do pagamento da *${p.nome}*.\n\n` +
+          `Não esqueça de pagar para evitar interrupção do serviço.`;
+        await client.sendMessage(GRUPO_ALERTAS_ID, msg);
+        console.log(`💳 Aviso dia do vencimento enviado: ${p.nome}`);
+      }
+    }
+  }
+
+  function loop() {
+    const ms = msAte9h();
+    const h  = Math.round(ms / 3600000);
+    console.log(`💳 Avisos de pagamento ativos (3CX dia 10, Algar dia 22) — próxima checagem em ~${h}h.`);
+    setTimeout(async () => {
+      await verificar();
+      loop();
+    }, ms);
+  }
+
+  loop();
+}
 
 // ─── Helpers de formatação ────────────────────────────────────────────────────
 
@@ -812,8 +868,7 @@ client.on('disconnected', (reason) => {
 // ─── Processar mensagens ───────────────────────────────────────────────────────
 
 async function responder(msg, texto) {
-  const chat = await msg.getChat();
-  return chat.sendMessage(texto);
+  return client.sendMessage(msg.from, texto);
 }
 
 async function processarMensagem(msg) {
@@ -1593,13 +1648,18 @@ async function processarMensagem(msg) {
 
   // COMANDO: !grupos
   if (corpo === '!grupos' || corpo === 'grupos') {
-    const chats = await client.getChats();
-    const grupos = chats.filter(c => c.isGroup);
-    if (grupos.length === 0) { await responder(msg,'Nenhum grupo encontrado.'); return; }
+    const grupos = await client.pupPage.evaluate(() => {
+      const models = window.Store && window.Store.Chat ? window.Store.Chat.getModelsArray() : [];
+      return models
+        .filter(c => c.id && c.id._serialized && c.id._serialized.endsWith('@g.us'))
+        .map(c => ({ id: c.id._serialized, nome: c.formattedTitle || c.name || '' }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+    });
+    if (!grupos || grupos.length === 0) { await responder(msg,'Nenhum grupo encontrado.'); return; }
     let lista = '📋 *Grupos disponíveis:*\n\n';
-    for (const g of grupos) lista += `• *${g.name}*\n  ID: \`${g.id._serialized}\`\n\n`;
+    for (const g of grupos) lista += `• *${g.nome}*\n  ID: \`${g.id}\`\n\n`;
     lista += 'Configure no .env:\n`WHATSAPP_GRUPO_ID` → mensagens agendadas\n`WHATSAPP_GRUPO_AUTOMACAO_ID` → relatórios de Ads';
-    await responder(msg,lista);
+    await responder(msg, lista);
     return;
   }
 
@@ -2467,11 +2527,14 @@ const apiServer = http.createServer((req, res) => {
   // Listar grupos
   if (req.method === 'GET' && req.url === '/grupos') {
     (async () => {
-      const chats = await client.getChats();
-      const grupos = chats
-        .filter(c => c.isGroup)
-        .map(c => ({ id: c.id._serialized, nome: c.name }))
-        .sort((a, b) => a.nome.localeCompare(b.nome));
+      // Acessa Store diretamente — sem getChatModel que falha por groupMetadata.update
+      const grupos = await client.pupPage.evaluate(() => {
+        const models = window.Store && window.Store.Chat ? window.Store.Chat.getModelsArray() : [];
+        return models
+          .filter(c => c.id && c.id._serialized && c.id._serialized.endsWith('@g.us'))
+          .map(c => ({ id: c.id._serialized, nome: c.formattedTitle || c.name || '' }))
+          .sort((a, b) => a.nome.localeCompare(b.nome));
+      });
       res.writeHead(200, CORS_HEADERS);
       res.end(JSON.stringify(grupos, null, 2));
     })().catch(e => {

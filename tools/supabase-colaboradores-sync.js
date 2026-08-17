@@ -35,6 +35,13 @@ async function syncColaboradoresOI(lojaKey, lojaLabel, startStr, endStr, colabs)
     return;
   }
 
+  // Filtra entradas de sistema que o OI injeta como "colaboradores"
+  const SKIP_RE = /^(material\s+interno|material\s+externo|exclu[ií]d[ao]|desist[eê]ncia|total\s+geral|sem\s+grupo)/i;
+  colabs = colabs.filter(c => {
+    const n = (c.nome_base || c.nome || '').trim();
+    return n.length >= 3 && !SKIP_RE.test(n);
+  });
+
   const dataInicio = parseDateBR(startStr);
   const dataFim    = parseDateBR(endStr);
 

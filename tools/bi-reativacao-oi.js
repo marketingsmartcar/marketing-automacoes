@@ -27,7 +27,7 @@ const BASE_URL  = 'https://sistemaoficinainteligente.com.br';
 const LOGIN_URL = `${BASE_URL}/Entrar.aspx?sair=1`;
 const BI_URL    = `${BASE_URL}/wfCRMBI.aspx`;
 const BOT_URL   = 'http://127.0.0.1:3099';
-const GRUPO_ID       = '5516996337606-1627903605@g.us'; // ☎️ Comercial
+const GRUPO_ID       = '120363429155837879@g.us'; // COMERCIAL AGENDAMENTO
 const GRUPO_AUTOMACAO_ID = process.env.WHATSAPP_GRUPO_AUTOMACAO_ID || '120363407521841023@g.us';
 const DEBUG_DIR = path.join(__dirname, '..', 'output', 'debug-bi');
 const SLEEP     = ms => new Promise(r => setTimeout(r, ms));
