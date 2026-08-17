@@ -387,19 +387,19 @@ async function extrairCampos(page) {
       });
     }
 
-    // E-mail: fallback por seletor direto (OI usa txtEmail / txtEMail)
+    // E-mail: 1º fallback por seletor direto (OI usa txtEmail / txtEMail / txtPessoaEmail)
     if (!d['E-mail'] && !d['Email']) {
       const emailEl = document.querySelector(
-        '#ctl00_cph_txtEmail, #ctl00_cph_txtEMail, ' +
+        '#ctl00_cph_txtEmail, #ctl00_cph_txtEMail, #ctl00_cph_txtPessoaEmail, ' +
         'textarea[id*="txtEmail"], textarea[id*="txtEMail"], ' +
-        'input[id*="txtEmail"], input[id*="txtEMail"]'
+        'input[id*="txtEmail"], input[id*="txtEMail"], input[id*="Email"]'
       );
       if (emailEl) {
         const v = (emailEl.value || '').trim();
         if (v && v.includes('@')) d['E-mail'] = v;
       }
     }
-    // E-mail: 2º fallback por padrão de email em qualquer input/textarea visível
+    // E-mail: 2º fallback — varrer todos inputs/textareas por padrão de e-mail
     if (!d['E-mail'] && !d['Email']) {
       Array.from(document.querySelectorAll('input:not([type=hidden]), textarea')).forEach(el => {
         const v = (el.value || '').trim();
@@ -408,6 +408,21 @@ async function extrairCampos(page) {
         }
       });
     }
+
+    // Datas Funcionário: fallback por seletor OI quando lbl() não alcança
+    const dateById = (key, ...selectors) => {
+      if (d[key]) return; // já foi capturado
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && el.value && el.value.trim()) { d[key] = el.value.trim(); return; }
+      }
+    };
+    dateById('Data de Registro',
+      '#ctl00_cph_txtDataRegistro', 'input[id*="DataRegistro"]', 'input[id*="txtRegistro"]');
+    dateById('Data de Admissão',
+      '#ctl00_cph_txtDataAdmissao', 'input[id*="DataAdmissao"]', 'input[id*="txtAdmissao"]');
+    dateById('Data de Demissão',
+      '#ctl00_cph_txtDataDemissao', 'input[id*="DataDemissao"]', 'input[id*="txtDemissao"]');
 
     // Sexo: 1º tenta pelo name/id do radio group (OI usa rdSexo)
     if (!d['Sexo']) {
@@ -791,7 +806,7 @@ function mapear(campos) {
     _cargoOI:            get('Cargo', 'Função', 'Funcao', 'Função/Cargo', 'Ocupação', 'Ocupacao'),
     data_admissao:       parseDateBR(get('Data de Admissão', 'Admissão', 'Dt. Admissão')),
     data_demissao:       parseDateBR(get('Data de Demissão', 'Demissão')),
-    data_registro:       parseDateBR(get('Data de Registro', 'Registro')),
+    data_registro:       parseDateBR(get('Data de Registro', 'Dt. Registro', 'Data Registro', 'Dt Registro', 'Registro')),
     salario:             parseNum(get('Salário')),
     matricula:           get('Matrícula', 'Matricula', 'Código'),
     pis:                 get('PIS', 'PIS/PASEP'),
