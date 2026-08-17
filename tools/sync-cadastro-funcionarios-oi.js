@@ -387,6 +387,28 @@ async function extrairCampos(page) {
       });
     }
 
+    // E-mail: fallback por seletor direto (OI usa txtEmail / txtEMail)
+    if (!d['E-mail'] && !d['Email']) {
+      const emailEl = document.querySelector(
+        '#ctl00_cph_txtEmail, #ctl00_cph_txtEMail, ' +
+        'textarea[id*="txtEmail"], textarea[id*="txtEMail"], ' +
+        'input[id*="txtEmail"], input[id*="txtEMail"]'
+      );
+      if (emailEl) {
+        const v = (emailEl.value || '').trim();
+        if (v && v.includes('@')) d['E-mail'] = v;
+      }
+    }
+    // E-mail: 2º fallback por padrão de email em qualquer input/textarea visível
+    if (!d['E-mail'] && !d['Email']) {
+      Array.from(document.querySelectorAll('input:not([type=hidden]), textarea')).forEach(el => {
+        const v = (el.value || '').trim();
+        if (v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && !d['E-mail']) {
+          d['E-mail'] = v;
+        }
+      });
+    }
+
     // Sexo: 1º tenta pelo name/id do radio group (OI usa rdSexo)
     if (!d['Sexo']) {
       const sexoM = document.querySelector(
