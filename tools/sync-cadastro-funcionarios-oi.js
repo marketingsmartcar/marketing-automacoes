@@ -660,11 +660,22 @@ async function lerTudo(profilePage) {
     }
 
     for (const [k, v] of Object.entries(c)) {
-      if (v && String(v).trim() && !camposPorAba[k]) camposPorAba[k] = v;
-      else if (!camposPorAba[k]) camposPorAba[k] = v;
+      const jaTemValor = camposPorAba[k] && String(camposPorAba[k]).trim();
+      const novoValor  = v && String(v).trim();
+      if (novoValor && !jaTemValor) camposPorAba[k] = v; // novo não-vazio vence vazio anterior
+      else if (!(k in camposPorAba)) camposPorAba[k] = v; // chave nova: aceita qualquer valor
     }
     const novosPreench = Object.entries(c).filter(([,v]) => v && String(v).trim()).length;
     if (novosPreench > 0) process.stdout.write(` [${aba}:${novosPreench}✓]`);
+
+    // Debug da aba Funcionário para diagnosticar campos capturados
+    if (aba === 'Funcionário') {
+      const preenchidos = Object.entries(c).filter(([,v]) => v && String(v).trim());
+      if (preenchidos.length > 0) {
+        const resumo = preenchidos.map(([k,v]) => `"${k}":"${v}"`).join(', ');
+        console.log(`\n    [debug Funcionário] ${resumo}`);
+      }
+    }
   }
   process.stdout.write('\n');
 
