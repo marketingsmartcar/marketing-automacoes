@@ -418,7 +418,12 @@ async function extrairCampos(page) {
       }
     };
     dateById('Data de Registro',
-      '#ctl00_cph_txtDataRegistro', 'input[id*="DataRegistro"]', 'input[id*="txtRegistro"]');
+      '#tab_tapFuncionario_txtDataDeRegistro',
+      'input[name*="txtDataDeRegistro"]',
+      'input[id*="DataDeRegistro"]',
+      '#ctl00_cph_txtDataRegistro',
+      'input[id*="DataRegistro"]',
+      'input[id*="txtRegistro"]');
     dateById('Data de Admissão',
       '#ctl00_cph_txtDataAdmissao', 'input[id*="DataAdmissao"]', 'input[id*="txtAdmissao"]');
     dateById('Data de Demissão',
@@ -817,7 +822,7 @@ function mapear(campos) {
     _cargoOI:            get('Cargo', 'Função', 'Funcao', 'Função/Cargo', 'Ocupação', 'Ocupacao'),
     data_admissao:       parseDateBR(get('Data de Admissão', 'Admissão', 'Dt. Admissão')),
     data_demissao:       parseDateBR(get('Data de Demissão', 'Demissão')),
-    data_registro:       parseDateBR(get('Data de Registro', 'Dt. Registro', 'Data Registro', 'Dt Registro', 'Registro')),
+    data_registro:       parseDateBR(get('Data de Registro', 'Dt. Registro', 'Data Registro', 'Dt Registro', 'Registro', 'tab$tapFuncionario$txtDataDeRegistro')),
     salario:             parseNum(get('Salário')),
     matricula:           get('Matrícula', 'Matricula', 'Código'),
     pis:                 get('PIS', 'PIS/PASEP'),
