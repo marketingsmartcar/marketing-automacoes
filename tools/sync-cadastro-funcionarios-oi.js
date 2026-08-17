@@ -686,12 +686,49 @@ async function lerTudo(profilePage) {
     // Funcionário: captura horários de jornada diretamente pelos IDs (evita bug NFD/NFC no lbl())
     if (aba === 'Funcionário') {
       const horas = await profilePage.evaluate(() => {
-        const v = id => (document.querySelector(`#${id}`)?.value || '').trim();
+        // Tenta múltiplos prefixos que o ASP.NET pode gerar
+        const v = (...ids) => {
+          for (const id of ids) {
+            const el = document.querySelector(`#${id}`);
+            if (el && el.value && el.value.trim()) return el.value.trim();
+          }
+          // Fallback: busca qualquer input cujo id termina com o sufixo
+          return '';
+        };
+        const bySuffix = (suffix) => {
+          const el = document.querySelector(`[id$="${suffix}"]`);
+          return el && el.value ? el.value.trim() : '';
+        };
         return {
-          '_hora_entrada':         v('tab_tapFuncionario_txtHoraEntrada'),
-          '_hora_saida_intervalo': v('tab_tapFuncionario_txtHoraSaidaIntervalo'),
-          '_hora_entrada_intervalo': v('tab_tapFuncionario_txtHoraEntradaIntervalo'),
-          '_hora_saida':           v('tab_tapFuncionario_txtHoraSaida'),
+          '_hora_entrada': v(
+            'tab_tapFuncionario_txtHoraEntrada',
+            'ctl00_cph_tab_tapFuncionario_txtHoraEntrada',
+            'ctl00_cph_txtHoraEntrada',
+          ) || bySuffix('txtHoraEntrada') || bySuffix('txtHoraInicio'),
+
+          '_hora_saida_intervalo': v(
+            'tab_tapFuncionario_txtHoraSaidaIntervalo',
+            'ctl00_cph_tab_tapFuncionario_txtHoraSaidaIntervalo',
+            'ctl00_cph_txtHoraSaidaIntervalo',
+            'tab_tapFuncionario_txtHoraInicioIntervalo',
+            'ctl00_cph_txtHoraInicioIntervalo',
+          ) || bySuffix('txtHoraSaidaIntervalo') || bySuffix('txtHoraInicioIntervalo'),
+
+          '_hora_entrada_intervalo': v(
+            'tab_tapFuncionario_txtHoraEntradaIntervalo',
+            'ctl00_cph_tab_tapFuncionario_txtHoraEntradaIntervalo',
+            'ctl00_cph_txtHoraEntradaIntervalo',
+            'tab_tapFuncionario_txtHoraFimIntervalo',
+            'ctl00_cph_txtHoraFimIntervalo',
+          ) || bySuffix('txtHoraEntradaIntervalo') || bySuffix('txtHoraFimIntervalo'),
+
+          '_hora_saida': v(
+            'tab_tapFuncionario_txtHoraSaida',
+            'ctl00_cph_tab_tapFuncionario_txtHoraSaida',
+            'ctl00_cph_txtHoraSaida',
+            'tab_tapFuncionario_txtHoraFim',
+            'ctl00_cph_txtHoraFim',
+          ) || bySuffix('txtHoraSaida') || bySuffix('txtHoraFim'),
         };
       });
       Object.assign(camposPorAba, horas);
@@ -990,10 +1027,8 @@ async function atualizar(id, dados, lojaKey) {
 
   // unidade_id e cargo são gerenciados manualmente no NexusZ — não sincronizar da OI
 
-  // Se OI registra demissão, marca como demitido (única exceção ao campo protegido status)
-  if (dados.data_demissao) {
-    payload.status = 'demitido';
-  }
+  // status é campo protegido — nunca sobrescrever automaticamente.
+  // data_demissao é salvo como data (para histórico), mas NÃO altera o status.
 
   // Registrar quais campos foram preenchidos pelo OI (exclui status e campos de controle)
   const CAMPOS_CONTROLE = new Set(['status', 'oi_loja_key', 'oi_responsavel', 'oi_campos_sync']);
