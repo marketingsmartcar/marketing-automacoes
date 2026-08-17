@@ -814,9 +814,16 @@ function mapear(campos) {
   // Nome completo (usado ao inserir novo colaborador)
   const nomeOI = get('Nome', 'Nome Completo') || null;
 
+  // Remove texto não-numérico que o OI às vezes inclui após o número (ex: "16 981512021 MÃE")
+  function limparTelefone(raw) {
+    if (!raw) return null;
+    const m = raw.match(/^(\(?\d{2}\)?\s*[\d\s\-\.]{6,})/);
+    return m ? m[1].trim() : raw;
+  }
+
   // Campos flat de telefone
-  const tel_celular   = get('Celular(SMS)', 'Celular');
-  const tel_cel2      = get('Telefone 2', 'Telefone 3', 'Telefone 4');
+  const tel_celular   = limparTelefone(get('Celular(SMS)', 'Celular'));
+  const tel_cel2      = limparTelefone(get('Telefone 2', 'Telefone 3', 'Telefone 4'));
 
   // Array `telefones` — formato que a UI do NexusZ exibe
   const telefonesArr = [];
@@ -848,6 +855,10 @@ function mapear(campos) {
     });
   }
 
+  // Se o campo flat de celular ficou vazio mas o array tem um celular, deriva dele
+  const tel_celular_final = tel_celular
+    || limparTelefone(telefonesArr.find(t => t.tipo === 'celular')?.numero || null);
+
   return {
     _nomeOI: nomeOI,
     nome: limparNome(nomeOI), // atualiza nome se tiver parênteses
@@ -859,7 +870,7 @@ function mapear(campos) {
     apelido:             get('Apelido'),
     email:               get('E-mail', 'Email'),
     // Campos flat (compatibilidade)
-    telefone_celular:    tel_celular,
+    telefone_celular:    tel_celular_final,
     telefone_fixo,
     telefone_celular_2:  tel_cel2,
     // Array dinâmico que a UI exibe
