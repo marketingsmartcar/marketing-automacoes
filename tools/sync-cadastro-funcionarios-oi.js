@@ -858,6 +858,13 @@ function mapear(campos) {
     titulo_eleitor_zona: get('Zona'),
     titulo_eleitor_secao:get('Seção', 'Secao'),
     certificado_reservista: get('Reservista', 'Certificado de Reservista'),
+    tipo_pessoa: (() => {
+      const v = get('Física/Jurídica', 'Fisica/Juridica', 'Físico/Jurídico', 'Tipo de Pessoa');
+      if (!v) return null;
+      if (v === 'F' || /f[íi]si/i.test(v)) return 'fisico';
+      if (v === 'J' || /jur[íi]/i.test(v)) return 'juridico';
+      return null;
+    })(),
     estado_civil,
     grau_instrucao,
     horario_entrada:          campos['_hora_entrada']          || get('Entrada'),
