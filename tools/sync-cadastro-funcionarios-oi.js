@@ -53,9 +53,11 @@ async function screenshot(page, nome) {
 function empresaParaLoja(empresa) {
   const e = empresa.toUpperCase();
   if (e.includes('BR01') || (e.includes('CENTRO') && !e.includes('PEG'))) return 'BR01';
-  if (e.includes('BR03') || e.includes('AMERICANA'))                       return 'BR03';
-  if (e.includes('BR04') || (e.includes('S') && e.includes('CARLOS')))    return 'BR04';
-  if (e.includes('PEG') || e.includes('ATACAREJO'))                        return 'PEG1';
+  // BR04 / São Carlos deve ser verificado ANTES de BR03 — OI usa "3 - BR03 São Carlos" para S. Carlos
+  if (e.includes('BR04') || e.includes('SAO CARLOS') || e.includes('SÃO CARLOS') ||
+      e.includes('S. CARLOS') || (e.includes('S') && e.includes('CARLOS')))  return 'BR04';
+  if (e.includes('BR03') || e.includes('AMERICANA'))                          return 'BR03';
+  if (e.includes('PEG') || e.includes('ATACAREJO'))                           return 'PEG1';
   return null;
 }
 
