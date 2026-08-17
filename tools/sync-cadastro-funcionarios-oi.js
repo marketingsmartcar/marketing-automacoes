@@ -781,9 +781,10 @@ function mapear(campos) {
     certificado_reservista: get('Reservista', 'Certificado de Reservista'),
     estado_civil,
     grau_instrucao,
-    horario_entrada:     get('Entrada'),
-    horario_saida:       get('Saída', 'Saida', 'Termino Intervalo', 'Término Intervalo'),
-    horario_intervalo:   get('Início Intervalo', 'Inicio Intervalo', 'Intervalo Refeição'),
+    horario_entrada:          get('Entrada'),
+    horario_intervalo:        get('Início Intervalo', 'Inicio Intervalo', 'Início Intervalo Refeição', 'Inicio Intervalo Refeição'),
+    horario_retorno_almoco:   get('Término Intervalo', 'Termino Intervalo', 'Término Intervalo Refeição', 'Termino Intervalo Refeição', 'Retorno Almoço'),
+    horario_saida:            get('Saída', 'Saida'),
     // Contatos de emergência: popula contatos_principais[] a partir da aba Contato do OI
     contatos_principais: (() => {
       const lista = campos['_contatosEmergencia'];
@@ -889,7 +890,7 @@ function mapearCargo(cargoOI) {
 // ── Atualiza NexusZ ────────────────────────────────────────────────────────────
 
 // Campos que o sync NUNCA deve sobrescrever — gerenciados pelo usuário no NexusZ
-const CAMPOS_PROTEGIDOS_ATUALIZAR = new Set(['cargo', 'salario']);
+const CAMPOS_PROTEGIDOS_ATUALIZAR = new Set(['cargo', 'salario', 'status']);
 
 async function atualizar(id, dados, lojaKey) {
   const payload = {};
@@ -901,18 +902,17 @@ async function atualizar(id, dados, lojaKey) {
     else if (v !== null && v !== undefined && v !== '') payload[k] = v;
   }
 
-  // Atualizar loja se o colaborador foi transferido
-  if (lojaKey && UNIT_MAP[lojaKey]) {
-    payload.unidade_id  = UNIT_MAP[lojaKey].unitId;
-    payload.oi_loja_key = lojaKey;
-  }
+  // unidade_id e cargo são gerenciados manualmente no NexusZ — não sincronizar da OI
 
-  // Derivar status a partir da data de demissão
+  // Se OI registra demissão, marca como demitido (única exceção ao campo protegido status)
   if (dados.data_demissao) {
     payload.status = 'demitido';
-  } else if (!payload.status) {
-    payload.status = 'ativo';
   }
+
+  // Registrar quais campos foram preenchidos pelo OI (exclui status e campos de controle)
+  const CAMPOS_CONTROLE = new Set(['status', 'oi_loja_key', 'oi_responsavel', 'oi_campos_sync']);
+  const camposOI = Object.keys(payload).filter(k => !CAMPOS_CONTROLE.has(k));
+  if (camposOI.length > 0) payload.oi_campos_sync = camposOI;
 
   if (!Object.keys(payload).length) return { skipped: true };
 
@@ -943,14 +943,15 @@ async function inserirNovo(nomeDisplay, lojaKey, dados) {
     if (v !== null && v !== undefined && v !== '') payload[k] = v;
   }
 
-  // Cargo: mapeia o valor da OI para a nomenclatura cadastrada no NexusZ
-  const cargoMapeado = mapearCargo(_cargoOI);
-  if (cargoMapeado) payload.cargo = cargoMapeado;
-
-  payload.nome      = limparNome(_nomeOI || nomeDisplay);
-  payload.status    = 'ativo';
-  payload.unidade_id = unit.unitId;
+  // cargo e unidade_id são gerenciados manualmente no NexusZ — não preencher da OI
+  payload.nome        = limparNome(_nomeOI || nomeDisplay);
+  payload.status      = 'ativo';
   payload.oi_loja_key = lojaKey;
+
+  // Registrar quais campos foram preenchidos pelo OI
+  const CAMPOS_CONTROLE_INS = new Set(['nome', 'status', 'oi_loja_key', 'oi_campos_sync']);
+  const camposOI = Object.keys(payload).filter(k => !CAMPOS_CONTROLE_INS.has(k));
+  if (camposOI.length > 0) payload.oi_campos_sync = camposOI;
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rh_colaboradores`, {
     method: 'POST',
