@@ -116,17 +116,28 @@ node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
 
 ---
 
-## 2c. Coleta de Dados Gestão Periódica (OS) → Supabase
+## 2c. Coleta de Enriquecimento de OS (busca + detalhes) → Supabase
 
-**O que faz:** Faz login no OI (sistemaoficinainteligente.com.br), acessa o relatório Gestão Periódica para cada loja e upserta os campos `responsavel` e `pesquisa` de cada OS na tabela `os_vendas` do Supabase. Roda na nuvem (sem depender do PC).
+**O que faz:** Faz login no OI, acessa a página de **Busca de OS** (`wfOrdemDeServicoBusca.aspx`) para cada loja e atualiza `os_vendas` com campos que a API JSON não retorna: `hora_inicio`, `hora_fim`, `responsavel`, `pesquisa`. No modo `detalhe:true` (23h), também acessa cada OS individualmente para pegar `executor` (os_itens) e `pagamentos` (JSONB).
 
 | Campo | Valor |
 |-------|-------|
-| Edge Function | `coleta-gestao-periodica` (projeto Supabase `ubiuershczqjnoczcupa`, região `sa-east-1`) |
-| Workflow | `.github/workflows/coleta-gestao-periodica.yml` |
-| Agendamento | Diário às **07h BRT** (10:00 UTC), Seg–Sáb |
-| Tabela Supabase | `os_vendas` (upsert por `loja_key + os_numero`) |
-| Secrets Supabase | `OI_EMAIL`, `OI_SENHA` (configurados no dashboard — nunca no .env) |
+| Edge Function | `coleta-gestao-periodica` v40 (projeto `ubiuershczqjnoczcupa`) |
+| Agendamento básico | pg_cron `coleta-gestao-periodica`: **a cada 30 min das 8h–22h** (Seg–Sáb) |
+| Agendamento detalhe | pg_cron `coleta-os-detalhe`: **23h** (Seg–Sáb) — chama a mesma função com `{"detalhe":true}` |
+| Tabela Supabase | `os_vendas` (UPDATE por `loja_key + os_numero`), `os_itens` (UPDATE executor por `os_vendas_id + codigo`) |
+| Secrets Supabase | `OI_EMAIL`, `OI_SENHA`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+
+**Campos preenchidos por cron:**
+
+| Campo | Origem | Frequência |
+|-------|--------|-----------|
+| `hora_inicio` | Tabela busca (col Início) | a cada 30 min |
+| `hora_fim` | Tabela busca (col Fim) | a cada 30 min |
+| `responsavel` | Tabela busca (col Responsável) | a cada 30 min |
+| `pesquisa` | Tabela busca (col Pesquisa) | a cada 30 min |
+| `pagamentos` (JSONB) | Página individual OS | 23h (modo detalhe) |
+| `executor` (os_itens) | Página individual OS | 23h (modo detalhe) |
 
 **Lojas cobertas:**
 
@@ -137,23 +148,27 @@ node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
 | BR04 | 1524 | BR Pneus São Carlos |
 | PEG1 | 3098 | Peg Pneus Araraquara |
 
-**Como invocar manualmente (retroativo):**
+**Como invocar manualmente:**
 ```bash
-# Ontem (padrão)
+# Campos básicos (hoje)
 curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-gestao-periodica \
   -H "Content-Type: application/json" -d '{}'
 
-# Data específica
+# Campos básicos (data específica)
 curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-gestao-periodica \
-  -H "Content-Type: application/json" -d '{"de":"2026-08-01","ate":"2026-08-11"}'
+  -H "Content-Type: application/json" -d '{"de":"2026-08-01"}'
+
+# Tudo (básico + executor + pagamentos)
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-gestao-periodica \
+  -H "Content-Type: application/json" -d '{"de":"2026-08-19","detalhe":true}'
 ```
 
 **Regras importantes:**
-- O IP do servidor Supabase `sa-east-1` é brasileiro — contorna o bloqueio de IP do OI
-- Credenciais OI apenas nos Secrets do Supabase, nunca commitadas
-- Login usa `Login1$btnEntrar` (não `Login1$LoginButton`) — botão confirmado via inspeção do HTML
-- O relatório retorna caracteres garbled (U+FFFD) por mismatch de charset — regex usa `.` wildcard
-- Campos `hora_inicio`/`hora_fim` existem na tabela mas não aparecem no Gestão Periódica (ficam null)
+- Usa `wfOrdemDeServicoBusca.aspx` (NÃO o relatório Gestão Periódica) — retorna OS abertas e fechadas do dia
+- A API JSON do OI NÃO retorna `responsavel`, `pesquisa`, `hora_inicio`, `hora_fim`, `executor` — só a busca HTML tem
+- Login usa `Login1$btnEntrar` confirmado via inspeção HTML do OI
+- `parseBuscaTable`: tabela `ctl00_cph_grd`, linhas `RowStyle*`, colunas fixas por posição (0=codigo, 2=inicio, 3=fim, 8=responsavel, 9=pesquisa)
+- Modo `detalhe:true`: acessa cada OS via URL do `fncNovaAba()`, converte `</td>` → `\t` para parsear itens tab-separated
 - O botão retroativo no NexusZ (AdminVendasOS) chama esta edge function
 
 ---
@@ -1535,3 +1550,63 @@ node tools/sync-ponto-inponto.js --dry-run    # sem salvar, apenas exibir
 - Geofence Peg Araraquara: `lat: -21.8020618, lng: -48.1733734`
 
 *Criado: 06/08/2026 — Atualizado: 08/08/2026 — Geofence fallback + filtro completo 21-27.*
+
+---
+
+## 29. Coleta OS Detalhadas — Edge Function `coleta-gestao-periodica` (Nuvem)
+
+**O que faz:** Faz scraping de cada OS de venda no sistema OI (Oficina Inteligente) para extrair dados detalhados que o endpoint de listagem não retorna. Alimenta as tabelas `os_vendas` e `os_itens` no Supabase (projeto Marketing), consumidas pela página **Conferências** do NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Edge Function | `coleta-gestao-periodica` (v43) — projeto Marketing Supabase |
+| Supabase projeto | Marketing (`ubiuershczqjnoczcupa`) |
+| Tabelas | `os_vendas`, `os_itens` |
+| Trigger | Chamada manual via painel NexusZ (Conferências) ou direto via REST |
+| Auth OI | Secrets Supabase: `OI_TOKEN_BR01`, `OI_TOKEN_BR03`, `OI_TOKEN_BR04`, `OI_TOKEN_PEG1` |
+
+**Lojas coletadas:** BR01 (Araraquara), BR03 (Americana), BR04 (São Carlos), PEG1 (Peg Araraquara)
+
+**Fluxo:**
+1. Busca lista de OS por loja e período via API OI (`/api/Gestao/...`)
+2. Para cada OS com `detalhe: true`, acessa a página HTML da OS no OI e faz parsing
+3. Salva na tabela `os_vendas` (upsert por `loja_key + os_numero`)
+4. Salva itens na tabela `os_itens` (apaga e reinsere por `os_vendas_id`)
+
+**Campos extraídos por OS (v43):**
+- `data_os`, `hora_inicio`, `hora_fim` — timestamps da OS
+- `cliente`, `tipo`, `veiculo`, `placa`, `hodometro`, `ano` — identificação
+- `responsavel`, `pesquisa`, `observacoes` — atendimento
+- `total_os` — valor total
+- `pagamentos` — JSONB array `{forma, parcelas, valor}` extraído do HTML
+- `documentos` — JSONB array `{nome, url, tipo}` — links reais dos docs da OS no OI (v42)
+- `orcamento_id` — ID do orçamento vinculado (link `/wfOrcamento.aspx?OrcamentoID=N`) (v43)
+- `cliente_oi_id` — ID do cliente no OI (link `/wfCliente.aspx?ClienteID=N`) (v43)
+- `cpf` — CPF do cliente extraído do HTML da OS (v43)
+- `os_path` — URL relativa da OS no OI
+
+**Itens por OS (`os_itens`):**
+- `descricao`, `grupo`, `quantidade`, `valor_total`, `executor`
+
+**Como disparar manualmente:**
+```bash
+# Via curl (substituir TOKEN pelo service_role key)
+curl -X POST \
+  "https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-gestao-periodica" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"loja":"BR01","de":"2026-08-01","ate":"2026-08-19","detalhe":true}'
+```
+
+**Observações técnicas:**
+- OI usa ASP.NET WebForms; scraping via fetch (sem Puppeteer) — extrai campos via regex no HTML
+- `documentos` extraídos do link `wfDocumentosOS.aspx` dentro da página da OS
+- `orcamento_id` e `cliente_oi_id` extraídos de links `href` na seção "Mais Informações"
+- CPF extraído via regex `\d{3}\.\d{3}\.\d{3}-\d{2}` na página HTML
+- Credenciais OI nunca no `.env` — apenas em Secrets do Supabase
+- Tabela `os_vendas` criada diretamente no Supabase (sem migration de CREATE TABLE)
+- Colunas novas adicionadas via migration MCP: `documentos JSONB` (v42), `orcamento_id TEXT`, `cliente_oi_id TEXT`, `cpf TEXT` (v43)
+
+**Página que consome:** NexusZ → Conferências (`/admin/conferencia-os`) → `AdminConferenciaOS.tsx`
+
+*Criado: agosto/2026 — v43 com campos orcamento_id, cliente_oi_id, cpf.*
