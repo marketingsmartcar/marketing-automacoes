@@ -1,4 +1,4 @@
-// v62: extrai URL S3 dos documentos direto do HTML (onclick fncNovaAba) — sem POST
+// v63: modo básico (30 min) só salva da lista de busca (sem visita individual) — evita timeout. Modo detalhe (23h) continua visitando cada OS.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -506,100 +506,118 @@ Deno.serve(async (req: Request) => {
         s.busca = rows.length;
         log.push(`  busca: ${rows.length} OS`);
 
-        for (const row of rows) {
-          try {
-            // 1) hora_inicio / hora_fim da tabela de busca
-            const update: Record<string, string | null> = {};
-            if (row.hora_inicio) update.hora_inicio = row.hora_inicio;
-            if (row.hora_fim) update.hora_fim = row.hora_fim;
-            if (Object.keys(update).length > 0) {
-              const { error } = await supabase
-                .from("os_vendas")
-                .update(update)
-                .eq("loja_key", loja.key)
-                .eq("os_numero", row.os_numero);
-              if (error) s.errors.push(`OS${row.os_numero}: ${error.message}`);
-              else s.atualizadas++;
-            }
-
-            // 2) Sempre acessa página individual — responsavel, pesquisa, tipo, cpf, pagamentos, docs, etc.
+        // Modo básico (30 min): atualiza em lote da lista — sem visitar página individual
+        // Modo detalhe (23h): visita cada OS individualmente para executor, pagamentos, etc.
+        if (!detalhe) {
+          // Upsert em lote: hora_inicio, hora_fim, responsavel, pesquisa de uma só vez
+          const batchUpdates = rows
+            .filter(row => row.hora_inicio || row.hora_fim || row.responsavel || row.pesquisa)
+            .map(row => ({
+              loja_key: loja.key,
+              os_numero: row.os_numero,
+              ...(row.hora_inicio ? { hora_inicio: row.hora_inicio } : {}),
+              ...(row.hora_fim ? { hora_fim: row.hora_fim } : {}),
+              ...(row.responsavel ? { responsavel: row.responsavel } : {}),
+              ...(row.pesquisa ? { pesquisa: row.pesquisa } : {}),
+            }));
+          if (batchUpdates.length > 0) {
+            const { error } = await supabase
+              .from("os_vendas")
+              .upsert(batchUpdates, { onConflict: "loja_key,os_numero", ignoreDuplicates: false });
+            if (error) s.errors.push(`batch: ${error.message}`);
+            else s.atualizadas = batchUpdates.length;
+          }
+          log.push(`  atualizado em lote: ${s.atualizadas} OS`);
+        } else {
+          // Modo detalhe: visita cada OS individualmente
+          for (const row of rows) {
             try {
-              const { data: osRow } = await supabase
-                .from("os_vendas")
-                .select("id")
-                .eq("loja_key", loja.key)
-                .eq("os_numero", row.os_numero)
-                .single();
+              // hora_inicio / hora_fim da lista
+              const update: Record<string, string | null> = {};
+              if (row.hora_inicio) update.hora_inicio = row.hora_inicio;
+              if (row.hora_fim) update.hora_fim = row.hora_fim;
+              if (row.responsavel) (update as Record<string, string | null>).responsavel = row.responsavel;
+              if (row.pesquisa) (update as Record<string, string | null>).pesquisa = row.pesquisa;
+              if (Object.keys(update).length > 0) {
+                const { error } = await supabase
+                  .from("os_vendas")
+                  .update(update)
+                  .eq("loja_key", loja.key)
+                  .eq("os_numero", row.os_numero);
+                if (error) s.errors.push(`OS${row.os_numero}: ${error.message}`);
+                else s.atualizadas++;
+              }
 
-              if (osRow) {
-                // Usa o path real capturado da tabela de busca (tem o OrdemDeServicoID interno)
-                // Se os_path for null, fallback para o número visível
-                const rawPath = row.os_path ?? `wfOrdemDeServico.aspx?OrdemDeServicoID=${row.os_numero}`;
-                const osUrl = rawPath.startsWith("http") ? rawPath : `${OI_BASE}/${rawPath.replace(/^\//, "")}`;
-                const rDet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
-                const finalOsUrl = rDet.url || osUrl; // URL real após redirects (parâmetros encriptados)
-                const hDet = await rDet.text();
-                const det = parseOSPage(hDet);
+              // Página individual — executor, pagamentos, tipo, cpf, docs, totais
+              try {
+                const { data: osRow } = await supabase
+                  .from("os_vendas")
+                  .select("id")
+                  .eq("loja_key", loja.key)
+                  .eq("os_numero", row.os_numero)
+                  .single();
 
-                const upd: Record<string, unknown> = {};
-                if (det.responsavel) upd.responsavel = det.responsavel;
-                if (det.pesquisa) upd.pesquisa = det.pesquisa;
-                if (det.tipo) upd.tipo = det.tipo;
-                if (det.cpf) upd.cpf = det.cpf;
-                if (det.orcamento_id) upd.orcamento_id = det.orcamento_id;
-                if (det.cliente_oi_id) upd.cliente_oi_id = det.cliente_oi_id;
-                if (det.pagamentos.length > 0) upd.pagamentos = det.pagamentos;
-                if (det.total_os > 0) upd.total_os = det.total_os;
-                if (det.total_servicos > 0) upd.total_servicos = det.total_servicos;
-                if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
-                if (det.observacoes) upd.observacoes = det.observacoes;
-                if (det.tem_nota_fiscal !== null) upd.tem_nota_fiscal = det.tem_nota_fiscal;
-                if (det.documentos.length > 0) {
-                  // URLs S3 já extraídas diretamente do HTML pela parseDocumentos (v62)
-                  upd.documentos = det.documentos.map((doc) => ({
-                    descricao: doc.descricao,
-                    data_cadastro: doc.data_cadastro,
-                    url: doc.url,
-                    eventTarget: doc.eventTarget ?? undefined,
-                  }));
+                if (osRow) {
+                  const rawPath = row.os_path ?? `wfOrdemDeServico.aspx?OrdemDeServicoID=${row.os_numero}`;
+                  const osUrl = rawPath.startsWith("http") ? rawPath : `${OI_BASE}/${rawPath.replace(/^\//, "")}`;
+                  const rDet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
+                  const hDet = await rDet.text();
+                  const det = parseOSPage(hDet);
+
+                  const upd: Record<string, unknown> = {};
+                  if (det.responsavel) upd.responsavel = det.responsavel;
+                  if (det.pesquisa) upd.pesquisa = det.pesquisa;
+                  if (det.tipo) upd.tipo = det.tipo;
+                  if (det.cpf) upd.cpf = det.cpf;
+                  if (det.orcamento_id) upd.orcamento_id = det.orcamento_id;
+                  if (det.cliente_oi_id) upd.cliente_oi_id = det.cliente_oi_id;
+                  if (det.pagamentos.length > 0) upd.pagamentos = det.pagamentos;
+                  if (det.total_os > 0) upd.total_os = det.total_os;
+                  if (det.total_servicos > 0) upd.total_servicos = det.total_servicos;
+                  if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
+                  if (det.observacoes) upd.observacoes = det.observacoes;
+                  if (det.tem_nota_fiscal !== null) upd.tem_nota_fiscal = det.tem_nota_fiscal;
+                  if (det.documentos.length > 0) {
+                    upd.documentos = det.documentos.map((doc) => ({
+                      descricao: doc.descricao,
+                      data_cadastro: doc.data_cadastro,
+                      url: doc.url,
+                      eventTarget: doc.eventTarget ?? undefined,
+                    }));
+                  }
+
+                  if (det.cliente_oi_id) {
+                    try {
+                      const clientUrl = `${OI_BASE}/wfCliente.aspx?ClienteID=${det.cliente_oi_id}`;
+                      const rCli = await fetch(clientUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
+                      const hCli = await rCli.text();
+                      const clienteData = parseClientePage(hCli);
+                      if (clienteData.nome || clienteData.cpf) upd.cliente_cadastro = clienteData;
+                    } catch (_) { /* silencioso */ }
+                  }
+
+                  if (Object.keys(upd).length > 0) {
+                    await supabase.from("os_vendas").update(upd).eq("id", osRow.id);
+                  }
+
+                  for (const item of det.itens) {
+                    if (!item.executor) continue;
+                    await supabase
+                      .from("os_itens")
+                      .update({ executor: item.executor })
+                      .eq("os_vendas_id", osRow.id)
+                      .eq("codigo", item.codigo);
+                  }
+
+                  s.detalhe++;
+                  log.push(`    OS${row.os_numero}: exec=${det.itens.filter(i=>i.executor).length} pag=${det.pagamentos.length}`);
                 }
-
-                // Busca dados cadastrais do cliente para verificação no NexusZ
-                if (det.cliente_oi_id) {
-                  try {
-                    const clientUrl = `${OI_BASE}/wfCliente.aspx?ClienteID=${det.cliente_oi_id}`;
-                    const rCli = await fetch(clientUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
-                    const hCli = await rCli.text();
-                    const clienteData = parseClientePage(hCli);
-                    // Só salva se tiver pelo menos nome ou CPF (confirmação de que a página carregou)
-                    if (clienteData.nome || clienteData.cpf) {
-                      upd.cliente_cadastro = clienteData;
-                    }
-                  } catch (_) { /* silencioso */ }
-                }
-
-                if (Object.keys(upd).length > 0) {
-                  await supabase.from("os_vendas").update(upd).eq("id", osRow.id);
-                }
-
-                // Executores e codigo de itens — sempre coleta
-                for (const item of det.itens) {
-                  if (!item.executor) continue;
-                  await supabase
-                    .from("os_itens")
-                    .update({ executor: item.executor })
-                    .eq("os_vendas_id", osRow.id)
-                    .eq("codigo", item.codigo);
-                }
-
-                s.detalhe++;
-                log.push(`    OS${row.os_numero}: itens=${det.itens.length} exec=${det.itens.filter(i=>i.executor).length} pag=${det.pagamentos.length}`);
+              } catch (e) {
+                s.errors.push(`paginaOS${row.os_numero}: ${String(e).slice(0, 80)}`);
               }
             } catch (e) {
-              s.errors.push(`paginaOS${row.os_numero}: ${String(e).slice(0, 80)}`);
+              s.errors.push(`OS${row.os_numero}: ${String(e).slice(0, 80)}`);
             }
-          } catch (e) {
-            s.errors.push(`OS${row.os_numero}: ${String(e).slice(0, 80)}`);
           }
         }
       } catch (e) {
