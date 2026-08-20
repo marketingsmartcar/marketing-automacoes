@@ -1,4 +1,4 @@
-// v57: resolveDocUrl — inspeciona body (window.open/href/meta) além do Location header
+// v59: resolveDocUrl usa finalOsUrl (rDet.url) após redirect — não mais a URL encriptada original
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -367,9 +367,15 @@ function parseOSPage(html: string): {
 
 async function resolveDocUrl(osUrl: string, hDet: string, eventTarget: string, ck: string): Promise<string | null> {
   try {
+    const tksm = ph(hDet, "tksm_HiddenField");
     const r = await fetch(osUrl, {
       method: "POST",
-      headers: { ...BASE_H, "Content-Type": "application/x-www-form-urlencoded", Cookie: ck },
+      headers: {
+        ...BASE_H,
+        "Content-Type": "application/x-www-form-urlencoded",
+        Cookie: ck,
+        Referer: osUrl,
+      },
       body: new URLSearchParams({
         __EVENTTARGET: eventTarget,
         __EVENTARGUMENT: "",
@@ -377,23 +383,34 @@ async function resolveDocUrl(osUrl: string, hDet: string, eventTarget: string, c
         __VIEWSTATE: ph(hDet, "__VIEWSTATE"),
         __VIEWSTATEGENERATOR: ph(hDet, "__VIEWSTATEGENERATOR"),
         __EVENTVALIDATION: ph(hDet, "__EVENTVALIDATION"),
+        ...(tksm ? { tksm_HiddenField: tksm } : {}),
       }).toString(),
       redirect: "manual",
     });
-    // Caso 1: redirect direto para S3
+    // Caso 1: redirect (302/301/303/307) para URL absoluta
     const loc = r.headers.get("location");
-    if (loc && loc.startsWith("http")) { await r.body?.cancel(); return loc; }
-    // Caso 2: resposta HTML com URL S3 em window.open, href, src ou meta refresh
+    if (loc) {
+      const full = loc.startsWith("http") ? loc : `${OI_BASE}/${loc.replace(/^\//, "")}`;
+      await r.body?.cancel();
+      console.log(`[resolveDocUrl] redirect → ${full.slice(0, 120)}`);
+      return full;
+    }
+    // Caso 2: 200 com URL no body (window.open, location.href, meta refresh, href s3)
     const body = await r.text();
-    const s3M = body.match(/https?:\/\/[^"'\s>]+\.s3[^"'\s>]+/i)
-      ?? body.match(/https?:\/\/apldoc[^"'\s>]+/i)
-      ?? body.match(/content="0;\s*url=([^"]+)"/i);
+    console.log(`[resolveDocUrl] status=${r.status} body[:300]=${body.slice(0, 300)}`);
+    const s3M = body.match(/https?:\/\/apldoc[^"'\s<>]+/i)
+      ?? body.match(/https?:\/\/[^"'\s<>]+\.s3[^"'\s<>]+/i)
+      ?? body.match(/window\.open\(['"]([^'"]+)['"]/i)
+      ?? body.match(/(?:location\.href|top\.location)\s*=\s*['"]([^'"]+)['"]/i)
+      ?? body.match(/content=["']0;\s*url=([^"']+)["']/i);
     if (s3M) {
-      const url = s3M[1] ?? s3M[0];
+      const url = (s3M[1] ?? s3M[0]).trim();
+      console.log(`[resolveDocUrl] encontrou URL no body: ${url.slice(0, 120)}`);
       return url.startsWith("http") ? url : null;
     }
     return null;
-  } catch {
+  } catch (e) {
+    console.log(`[resolveDocUrl] erro: ${e}`);
     return null;
   }
 }
@@ -553,6 +570,7 @@ Deno.serve(async (req: Request) => {
                 const rawPath = row.os_path ?? `wfOrdemDeServico.aspx?OrdemDeServicoID=${row.os_numero}`;
                 const osUrl = rawPath.startsWith("http") ? rawPath : `${OI_BASE}/${rawPath.replace(/^\//, "")}`;
                 const rDet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
+                const finalOsUrl = rDet.url || osUrl; // URL real após redirects (parâmetros encriptados)
                 const hDet = await rDet.text();
                 const det = parseOSPage(hDet);
 
@@ -573,7 +591,7 @@ Deno.serve(async (req: Request) => {
                   const docsResolved = await Promise.all(det.documentos.map(async (doc) => {
                     let url: string | null = null;
                     if (doc.eventTarget) {
-                      url = await resolveDocUrl(osUrl, hDet, doc.eventTarget, ck);
+                      url = await resolveDocUrl(finalOsUrl, hDet, doc.eventTarget, ck);
                     }
                     return { descricao: doc.descricao, data_cadastro: doc.data_cadastro, url };
                   }));
