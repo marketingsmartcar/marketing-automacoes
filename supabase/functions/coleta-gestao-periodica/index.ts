@@ -1,4 +1,4 @@
-// v46: + corrige parsing de pagamentos (colunas OI: Parcela|Vencimento|Forma|Valor|NrOp|NrCheque)
+// v51: parser de itens com executor em linha isolada; URL via os_path encriptado
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -103,7 +103,9 @@ function parseBuscaTable(html: string): BuscaRow[] {
     if (!osNum) continue;
     const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) => stripHtml(c[1]));
     if (cells.length < 10) continue;
-    const pathMatch = rowHtml.match(/fncNovaAba\('([^']+)'\)/);
+    // OI usa &#39; em vez de ' no onclick — decodificar antes do regex
+    const rowDecoded = rowHtml.replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+    const pathMatch = rowDecoded.match(/fncNovaAba\('([^']+)'\)/);
     result.push({
       os_numero: osNum,
       hora_inicio: cells[2] || null,
@@ -262,21 +264,40 @@ function parseOSPage(html: string): {
 
   const itens: Array<{ codigo: string; executor: string | null }> = [];
   const pagamentos: Array<{ parcela: number; vencimento: string | null; forma: string; valor: number; nro_operacao: string | null; nro_cheque: string | null }> = [];
-
   const prodIdx = texto.search(/Produtos\s+e\s+Servi/i);
   const pagIdx = texto.search(/Pagamentos\s+da\s+OS/i);
+  // Palavras que indicam que uma linha isolada NÃO é executor
+  const NAO_EXECUTOR = /^(Associados|Similares|Produto nas outras|Documentos anexados|Total da OS|TOTAL|Pago=>|Pcls|Valor|Restante|Vencimentos|Parcela|Documento|Nota|Histórico|Garantia|Agendamento|Visualizar|XML|e-mail|Sim,|Não|NFe|NFCe|NFSe)/i;
 
   if (prodIdx !== -1) {
     const secEnd = pagIdx > prodIdx ? pagIdx : texto.length;
     const sec = texto.slice(prodIdx + 20, secEnd);
-    for (const line of sec.split("\n")) {
-      const parts = line.split("\t").map((s) => s.trim());
-      if (parts.length < 5) continue;
-      const codigo = parts[0];
-      if (!codigo || /^C.{0,6}digo$/i.test(codigo) || codigo === "TOTAL") continue;
-      const descricao = parts[1] || "";
-      if (!descricao || descricao.length < 2) continue;
-      itens.push({ codigo, executor: parts[8] || null });
+    const linhas = sec.split("\n");
+
+    let idx = 0;
+    while (idx < linhas.length) {
+      const parts = linhas[idx].split("\t").map(s => s.trim());
+      // Linha de item: ≥3 colunas, partes[2] numérica (quantidade), partes[1] tem texto (descrição)
+      if (parts.length >= 3 && /^\d+$/.test(parts[2]) && parts[0] && parts[1] && parts[1].length > 2) {
+        // Código pode vir como "13754 BIC0TR414" — pegar só o primeiro token (antes do primeiro espaço)
+        const codigoRaw = parts[0];
+        const codigo = codigoRaw.includes(" ") ? codigoRaw.split(" ")[0] : codigoRaw;
+        if (!codigo || /^C.{0,6}digo$/i.test(codigo) || codigo === "TOTAL") { idx++; continue; }
+
+        // Busca executor nas próximas 6 linhas: linha isolada (1 célula) que não seja marcador
+        let executor: string | null = null;
+        for (let j = idx + 1; j <= idx + 7 && j < linhas.length; j++) {
+          const np = linhas[j].split("\t").map(s => s.trim()).filter(s => s.length > 0);
+          if (np.length === 1 && np[0].length >= 2 && !NAO_EXECUTOR.test(np[0]) && !/^[\d.,]+$/.test(np[0]) && !/^\d{2}\/\d{2}\//.test(np[0])) {
+            executor = np[0];
+            break;
+          }
+          // Para ao encontrar próxima linha de item
+          if (np.length >= 3 && /^\d+$/.test(np[2])) break;
+        }
+        itens.push({ codigo, executor });
+      }
+      idx++;
     }
   }
 
@@ -484,7 +505,10 @@ Deno.serve(async (req: Request) => {
                 .single();
 
               if (osRow) {
-                const osUrl = `${OI_BASE}/wfOrdemDeServico.aspx?OrdemDeServicoID=${row.os_numero}`;
+                // Usa o path real capturado da tabela de busca (tem o OrdemDeServicoID interno)
+                // Se os_path for null, fallback para o número visível
+                const rawPath = row.os_path ?? `wfOrdemDeServico.aspx?OrdemDeServicoID=${row.os_numero}`;
+                const osUrl = rawPath.startsWith("http") ? rawPath : `${OI_BASE}/${rawPath.replace(/^\//, "")}`;
                 const rDet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
                 const hDet = await rDet.text();
                 const det = parseOSPage(hDet);
@@ -532,7 +556,7 @@ Deno.serve(async (req: Request) => {
                 }
 
                 s.detalhe++;
-                log.push(`    OS${row.os_numero}: resp=${det.responsavel ?? "-"}, pes=${det.pesquisa ?? "-"}, tipo=${det.tipo ?? "-"}, cpf=${det.cpf ? "✓" : "-"}, pag=${det.pagamentos.length}, docs=${det.documentos?.length ?? 0}`);
+                log.push(`    OS${row.os_numero}: itens=${det.itens.length} exec=${det.itens.filter(i=>i.executor).length} pag=${det.pagamentos.length}`);
               }
             } catch (e) {
               s.errors.push(`paginaOS${row.os_numero}: ${String(e).slice(0, 80)}`);
