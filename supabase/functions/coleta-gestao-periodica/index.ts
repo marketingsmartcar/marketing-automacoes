@@ -1,4 +1,4 @@
-// v59: resolveDocUrl usa finalOsUrl (rDet.url) após redirect — não mais a URL encriptada original
+// v60: resolveDocUrl faz GET fresco antes do POST (ViewState válido) + ignora wfErro
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -365,39 +365,44 @@ function parseOSPage(html: string): {
   };
 }
 
-async function resolveDocUrl(osUrl: string, hDet: string, eventTarget: string, ck: string): Promise<string | null> {
+async function resolveDocUrl(osUrl: string, eventTarget: string, ck: string): Promise<string | null> {
   try {
-    const tksm = ph(hDet, "tksm_HiddenField");
-    const r = await fetch(osUrl, {
+    // GET fresco da OS page para obter ViewState/EventValidation válidos para esta sessão
+    const rGet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
+    const freshHtml = await rGet.text();
+    const freshUrl = rGet.url || osUrl;
+    const tksm = ph(freshHtml, "tksm_HiddenField");
+    // POST imediatamente com os campos frescos
+    const r = await fetch(freshUrl, {
       method: "POST",
       headers: {
         ...BASE_H,
         "Content-Type": "application/x-www-form-urlencoded",
         Cookie: ck,
-        Referer: osUrl,
+        Referer: freshUrl,
       },
       body: new URLSearchParams({
         __EVENTTARGET: eventTarget,
         __EVENTARGUMENT: "",
         __LASTFOCUS: "",
-        __VIEWSTATE: ph(hDet, "__VIEWSTATE"),
-        __VIEWSTATEGENERATOR: ph(hDet, "__VIEWSTATEGENERATOR"),
-        __EVENTVALIDATION: ph(hDet, "__EVENTVALIDATION"),
+        __VIEWSTATE: ph(freshHtml, "__VIEWSTATE"),
+        __VIEWSTATEGENERATOR: ph(freshHtml, "__VIEWSTATEGENERATOR"),
+        __EVENTVALIDATION: ph(freshHtml, "__EVENTVALIDATION"),
         ...(tksm ? { tksm_HiddenField: tksm } : {}),
       }).toString(),
       redirect: "manual",
     });
-    // Caso 1: redirect (302/301/303/307) para URL absoluta
+    // Caso 1: redirect → S3
     const loc = r.headers.get("location");
     if (loc) {
       const full = loc.startsWith("http") ? loc : `${OI_BASE}/${loc.replace(/^\//, "")}`;
       await r.body?.cancel();
-      console.log(`[resolveDocUrl] redirect → ${full.slice(0, 120)}`);
+      // Ignora redirecionamentos para páginas de erro do OI
+      if (full.includes("wfErro")) return null;
       return full;
     }
-    // Caso 2: 200 com URL no body (window.open, location.href, meta refresh, href s3)
+    // Caso 2: URL no body (window.open, location.href, meta, href S3)
     const body = await r.text();
-    console.log(`[resolveDocUrl] status=${r.status} body[:300]=${body.slice(0, 300)}`);
     const s3M = body.match(/https?:\/\/apldoc[^"'\s<>]+/i)
       ?? body.match(/https?:\/\/[^"'\s<>]+\.s3[^"'\s<>]+/i)
       ?? body.match(/window\.open\(['"]([^'"]+)['"]/i)
@@ -405,12 +410,11 @@ async function resolveDocUrl(osUrl: string, hDet: string, eventTarget: string, c
       ?? body.match(/content=["']0;\s*url=([^"']+)["']/i);
     if (s3M) {
       const url = (s3M[1] ?? s3M[0]).trim();
-      console.log(`[resolveDocUrl] encontrou URL no body: ${url.slice(0, 120)}`);
+      if (url.includes("wfErro")) return null;
       return url.startsWith("http") ? url : null;
     }
     return null;
-  } catch (e) {
-    console.log(`[resolveDocUrl] erro: ${e}`);
+  } catch {
     return null;
   }
 }
@@ -591,7 +595,7 @@ Deno.serve(async (req: Request) => {
                   const docsResolved = await Promise.all(det.documentos.map(async (doc) => {
                     let url: string | null = null;
                     if (doc.eventTarget) {
-                      url = await resolveDocUrl(finalOsUrl, hDet, doc.eventTarget, ck);
+                      url = await resolveDocUrl(finalOsUrl, doc.eventTarget, ck);
                     }
                     return { descricao: doc.descricao, data_cadastro: doc.data_cadastro, url };
                   }));
