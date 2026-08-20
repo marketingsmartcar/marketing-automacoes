@@ -1,4 +1,4 @@
-// v51: parser de itens com executor em linha isolada; URL via os_path encriptado
+// v52: filtrar "Preencher Executor..." como nulo
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -267,7 +267,7 @@ function parseOSPage(html: string): {
   const prodIdx = texto.search(/Produtos\s+e\s+Servi/i);
   const pagIdx = texto.search(/Pagamentos\s+da\s+OS/i);
   // Palavras que indicam que uma linha isolada NÃO é executor
-  const NAO_EXECUTOR = /^(Associados|Similares|Produto nas outras|Documentos anexados|Total da OS|TOTAL|Pago=>|Pcls|Valor|Restante|Vencimentos|Parcela|Documento|Nota|Histórico|Garantia|Agendamento|Visualizar|XML|e-mail|Sim,|Não|NFe|NFCe|NFSe)/i;
+  const NAO_EXECUTOR = /^(Associados|Similares|Produto nas outras|Documentos anexados|Total da OS|TOTAL|Pago=>|Pcls|Valor|Restante|Vencimentos|Parcela|Documento|Nota|Histórico|Garantia|Agendamento|Visualizar|XML|e-mail|Sim,|Não|NFe|NFCe|NFSe|Preencher Executor)/i;
 
   if (prodIdx !== -1) {
     const secEnd = pagIdx > prodIdx ? pagIdx : texto.length;
