@@ -183,7 +183,12 @@ function extrairDropdown(html: string, fieldPattern: string): string | null {
   if (!selM) return null;
   const optM = /<option[^>]+selected[^>]*>([\s\S]*?)<\/option>/i.exec(selM[1]);
   if (!optM) return null;
-  return optM[1].replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").trim() || null;
+  return optM[1]
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
+    .replace(/&#x([0-9a-fA-F]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .trim() || null;
 }
 
 function extrairResponsavel(html: string): string | null {
