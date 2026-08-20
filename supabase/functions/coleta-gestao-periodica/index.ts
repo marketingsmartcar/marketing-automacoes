@@ -1,4 +1,4 @@
-// v52: filtrar "Preencher Executor..." como nulo
+// v56: documentos — parser por coluna (descricao+data_cadastro) + resolve URL real S3 via POST WebForm
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -118,39 +118,32 @@ function parseBuscaTable(html: string): BuscaRow[] {
   return result;
 }
 
-function parseDocumentos(html: string): Array<{ nome: string; url: string; tipo?: string }> | null {
-  const docs: Array<{ nome: string; url: string; tipo?: string }> = [];
-  // Procura links para visualização de documentos (padrão OI)
-  const docSection = html.match(/[Dd]ocumentos[\s\S]{0,5000}?(?=<div\s+class="tab-pane|id="ctl00_cph_TabGeral)/)?.[0]
-    ?? html;
-  const linkRe = /<a\s[^>]*href="([^"]*(?:Documento|Arquivo|Visualizar|wfDoc)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+function parseDocumentos(html: string): Array<{ descricao: string; data_cadastro: string | null; eventTarget: string | null }> {
+  const docs: Array<{ descricao: string; data_cadastro: string | null; eventTarget: string | null }> = [];
+  function decodeHtmlEntities(s: string): string {
+    return s.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+            .replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+            .replace(/&#(\d+);/g, (_: string, n: string) => String.fromCharCode(parseInt(n))).trim();
+  }
+  // Percorre todas as <tr> procurando linhas com "Ordem de Serviço" na 1ª célula
+  const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let m: RegExpExecArray | null;
-  while ((m = linkRe.exec(docSection)) !== null) {
-    const url = m[1].trim();
-    const nome = m[2].replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
-    if (!nome || nome.length < 2 || nome.length > 200) continue;
-    docs.push({ nome, url: url.startsWith("http") ? url : `/${url.replace(/^\//, "")}` });
+  while ((m = trRe.exec(html)) !== null) {
+    const rowHtml = m[1];
+    const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => decodeHtmlEntities(c[1]));
+    if (cells.length < 3) continue;
+    if (!/ordem\s+de\s+servi[çc]o/i.test(cells[0])) continue;
+    const data_cadastro = /^\d{2}\/\d{2}\/\d{4}$/.test(cells[1]) ? cells[1] : null;
+    const descricao = cells[2] || "";
+    if (!descricao) continue;
+    // Extrai __EVENTTARGET do javascript:WebForm_PostBackOptions na célula "Visualizar"
+    // O href pode ter entidades HTML (&quot;) ou aspas literais
+    const etM = rowHtml.match(/WebForm_PostBackOptions\s*\(\s*&quot;([^&]+)&quot;/i)
+      ?? rowHtml.match(/WebForm_PostBackOptions\s*\(\s*"([^"]+)"/i);
+    const eventTarget = etM?.[1] ?? null;
+    docs.push({ descricao, data_cadastro, eventTarget });
   }
-  // Fallback: tabela genérica na seção de documentos
-  if (docs.length === 0) {
-    const secRe = /[Dd]ocumentos[\s\S]{0,100}<table[\s\S]{0,3000}?<\/table>/;
-    const sec = secRe.exec(html)?.[0];
-    if (sec) {
-      const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-      let rowM: RegExpExecArray | null;
-      while ((rowM = rowRe.exec(sec)) !== null) {
-        const row = rowM[1];
-        const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c =>
-          c[1].replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim()
-        );
-        const linkM = row.match(/href="([^"]+)"/i);
-        if (cells[0] && cells[0].length > 2 && linkM) {
-          docs.push({ nome: cells[0], url: linkM[1].startsWith("http") ? linkM[1] : `/${linkM[1].replace(/^\//, "")}` });
-        }
-      }
-    }
-  }
-  return docs.length > 0 ? docs : null;
+  return docs;
 }
 
 function extrairOrcamentoId(html: string): string | null {
@@ -240,7 +233,7 @@ function parseOSPage(html: string): {
   pagamentos: Array<{ parcela: number; vencimento: string | null; forma: string; valor: number; nro_operacao: string | null; nro_cheque: string | null }>;
   total_os: number; total_servicos: number; total_produtos: number;
   observacoes: string | null;
-  documentos: Array<{ nome: string; url: string; tipo?: string }> | null;
+  documentos: Array<{ descricao: string; data_cadastro: string | null; eventTarget: string | null }>;
   orcamento_id: string | null;
   cliente_oi_id: string | null;
   cpf: string | null;
@@ -264,25 +257,24 @@ function parseOSPage(html: string): {
 
   const itens: Array<{ codigo: string; executor: string | null }> = [];
   const pagamentos: Array<{ parcela: number; vencimento: string | null; forma: string; valor: number; nro_operacao: string | null; nro_cheque: string | null }> = [];
-  const prodIdx = texto.search(/Produtos\s+e\s+Servi/i);
-  const pagIdx = texto.search(/Pagamentos\s+da\s+OS/i);
+
   // Palavras que indicam que uma linha isolada NÃO é executor
   const NAO_EXECUTOR = /^(Associados|Similares|Produto nas outras|Documentos anexados|Total da OS|TOTAL|Pago=>|Pcls|Valor|Restante|Vencimentos|Parcela|Documento|Nota|Histórico|Garantia|Agendamento|Visualizar|XML|e-mail|Sim,|Não|NFe|NFCe|NFSe|Preencher Executor)/i;
 
-  if (prodIdx !== -1) {
-    const secEnd = pagIdx > prodIdx ? pagIdx : texto.length;
-    const sec = texto.slice(prodIdx + 20, secEnd);
-    const linhas = sec.split("\n");
-
+  // Escaneia o texto completo para itens — independente de prodIdx.
+  // Filtra células vazias antes de checar colunas, pois o OI pode ter células extras.
+  // Identifica a região de itens pela maior janela contínua de linhas-item.
+  {
+    const linhas = texto.split("\n");
     let idx = 0;
     while (idx < linhas.length) {
-      const parts = linhas[idx].split("\t").map(s => s.trim());
-      // Linha de item: ≥3 colunas, partes[2] numérica (quantidade), partes[1] tem texto (descrição)
-      if (parts.length >= 3 && /^\d+$/.test(parts[2]) && parts[0] && parts[1] && parts[1].length > 2) {
+      const parts = linhas[idx].split("\t").map(s => s.trim()).filter(s => s.length > 0);
+      // Linha de item: ≥3 colunas, parts[2] numérica (quantidade ≤ 999), parts[1] tem texto (descrição)
+      if (parts.length >= 3 && /^\d+$/.test(parts[2]) && parseInt(parts[2]) < 1000 && parts[0] && parts[1] && parts[1].length > 2) {
         // Código pode vir como "13754 BIC0TR414" — pegar só o primeiro token (antes do primeiro espaço)
         const codigoRaw = parts[0];
         const codigo = codigoRaw.includes(" ") ? codigoRaw.split(" ")[0] : codigoRaw;
-        if (!codigo || /^C.{0,6}digo$/i.test(codigo) || codigo === "TOTAL") { idx++; continue; }
+        if (!codigo || codigo.length > 25 || /^C.{0,6}digo$/i.test(codigo) || codigo === "TOTAL") { idx++; continue; }
 
         // Busca executor nas próximas 6 linhas: linha isolada (1 célula) que não seja marcador
         let executor: string | null = null;
@@ -301,21 +293,39 @@ function parseOSPage(html: string): {
     }
   }
 
-  if (pagIdx !== -1) {
-    // Tabela OI: Parcela | Vencimento | Forma de Pagamento | Valor | Nº Operação | Nº Cheque | Lançamento Financeiro?
-    const sec = texto.slice(pagIdx + 16, pagIdx + 2000);
-    for (const line of sec.split("\n").slice(1, 50)) {
-      const parts = line.split("\t").map((s) => s.trim());
-      if (parts.length < 4) continue;
-      const parcelaNum = parseInt(parts[0]);
-      if (isNaN(parcelaNum) || parcelaNum <= 0) continue;
-      const vencimento = parts[1] || null;
-      const forma = parts[2] || "";
-      const valor = parseBRL(parts[3]);
-      const nro_operacao = parts[4]?.trim() || null;
-      const nro_cheque = parts[5]?.trim() || null;
-      if (!forma || forma.length < 3 || valor <= 0) continue;
-      pagamentos.push({ parcela: parcelaNum, vencimento, forma, valor, nro_operacao, nro_cheque });
+  // Pagamentos: extrai direto do HTML (<tr> da seção de pagamentos)
+  // Mais robusto que usar texto — não depende da estrutura de tabs.
+  {
+    const FORMAS_PAG = /\b(pix|dinheiro|cart[aã]o|boleto|cheque|credi[aá]rio|transfer[eê]ncia|dep[oó]sito|financiamento|debito|débito|crédito|credito|pagseguro|vale|convenio|conv[eê]nio)\b/i;
+    // Extrai células de uma <tr>
+    function trCells(trHtml: string): string[] {
+      const cells: string[] = [];
+      const re = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(trHtml)) !== null) {
+        const txt = m[1].replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&").replace(/&quot;/g, '"')
+          .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
+          .trim();
+        cells.push(txt);
+      }
+      return cells;
+    }
+    const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let trM: RegExpExecArray | null;
+    while ((trM = trRe.exec(html)) !== null) {
+      const cells = trCells(trM[1]).filter(c => c.length > 0);
+      if (cells.length < 3) continue;
+      const parcelaNum = parseInt(cells[0]);
+      if (isNaN(parcelaNum) || parcelaNum <= 0 || parcelaNum > 99) continue;
+      const formaCell = cells.find(c => FORMAS_PAG.test(c));
+      if (!formaCell) continue;
+      const formaIdx = cells.indexOf(formaCell);
+      const vencimento = formaIdx > 1 && /^\d{2}\/\d{2}\/\d{4}$/.test(cells[1]) ? cells[1] : null;
+      const valor = parseBRL(cells[formaIdx + 1] || "");
+      const nro_operacao = cells[formaIdx + 2]?.trim() || null;
+      if (valor <= 0) continue;
+      pagamentos.push({ parcela: parcelaNum, vencimento, forma: formaCell, valor, nro_operacao, nro_cheque: null });
     }
   }
 
@@ -353,6 +363,29 @@ function parseOSPage(html: string): {
     total_servicos: servM ? parseBRL(servM[1]) : 0,
     total_produtos: prodM ? parseBRL(prodM[1]) : 0,
   };
+}
+
+async function resolveDocUrl(osUrl: string, hDet: string, eventTarget: string, ck: string): Promise<string | null> {
+  try {
+    const r = await fetch(osUrl, {
+      method: "POST",
+      headers: { ...BASE_H, "Content-Type": "application/x-www-form-urlencoded", Cookie: ck },
+      body: new URLSearchParams({
+        __EVENTTARGET: eventTarget,
+        __EVENTARGUMENT: "",
+        __LASTFOCUS: "",
+        __VIEWSTATE: ph(hDet, "__VIEWSTATE"),
+        __VIEWSTATEGENERATOR: ph(hDet, "__VIEWSTATEGENERATOR"),
+        __EVENTVALIDATION: ph(hDet, "__EVENTVALIDATION"),
+      }).toString(),
+      redirect: "manual",
+    });
+    await r.body?.cancel();
+    const loc = r.headers.get("location");
+    return loc && loc.startsWith("http") ? loc : null;
+  } catch {
+    return null;
+  }
 }
 
 async function login(email: string, senha: string): Promise<string> {
@@ -525,7 +558,17 @@ Deno.serve(async (req: Request) => {
                 if (det.total_servicos > 0) upd.total_servicos = det.total_servicos;
                 if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
                 if (det.observacoes) upd.observacoes = det.observacoes;
-                if (det.documentos) upd.documentos = det.documentos;
+                if (det.documentos.length > 0) {
+                  // Resolve URLs reais dos documentos via POST WebForm → redirect S3
+                  const docsResolved = await Promise.all(det.documentos.map(async (doc) => {
+                    let url: string | null = null;
+                    if (doc.eventTarget) {
+                      url = await resolveDocUrl(osUrl, hDet, doc.eventTarget, ck);
+                    }
+                    return { descricao: doc.descricao, data_cadastro: doc.data_cadastro, url };
+                  }));
+                  upd.documentos = docsResolved;
+                }
 
                 // Busca dados cadastrais do cliente para verificação no NexusZ
                 if (det.cliente_oi_id) {
