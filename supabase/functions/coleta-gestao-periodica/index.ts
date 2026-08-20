@@ -359,9 +359,16 @@ function parseOSPage(html: string): {
   const pesquisa = extrairPesquisa(html);
   const tipo = extrairTipoOS(html);
 
+  // Nota fiscal: aba tapFiscal presente no HTML?
+  // "Nenhuma Nota relacionada a esta O.S." → false; sem mensagem de vazio → true; aba ausente → null
+  let tem_nota_fiscal: boolean | null = null;
+  if (html.includes("tapFiscal")) {
+    tem_nota_fiscal = !html.includes("Nenhuma Nota relacionada");
+  }
+
   return {
     itens, pagamentos, observacoes, documentos, orcamento_id, cliente_oi_id, cpf,
-    responsavel, pesquisa, tipo,
+    responsavel, pesquisa, tipo, tem_nota_fiscal,
     total_os: totalOSM ? parseBRL(totalOSM[1]) : 0,
     total_servicos: servM ? parseBRL(servM[1]) : 0,
     total_produtos: prodM ? parseBRL(prodM[1]) : 0,
@@ -541,6 +548,7 @@ Deno.serve(async (req: Request) => {
                 if (det.total_servicos > 0) upd.total_servicos = det.total_servicos;
                 if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
                 if (det.observacoes) upd.observacoes = det.observacoes;
+                if (det.tem_nota_fiscal !== null) upd.tem_nota_fiscal = det.tem_nota_fiscal;
                 if (det.documentos.length > 0) {
                   // URLs S3 já extraídas diretamente do HTML pela parseDocumentos (v62)
                   upd.documentos = det.documentos.map((doc) => ({
