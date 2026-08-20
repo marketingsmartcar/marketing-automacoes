@@ -186,69 +186,43 @@ Deno.serve(async (req: Request) => {
     // 2. Troca para a loja correta
     ck = await trocarLoja(ddl, ck);
 
-    // 3. Busca URL real da OS (parâmetros encriptados)
+    // 3. Busca URL encriptada da OS via search (URL direta sem params encriptados retorna 500)
     const [y, mo, d] = data_os.split("-");
     const deBR = `${d}/${mo}/${y}`;
     const osPath = await buscarOsUrl(os_numero, deBR, ck);
-    const osUrl = osPath
-      ? (osPath.startsWith("http") ? osPath : `${OI_BASE}/${osPath.replace(/^\//, "")}`)
-      : `${OI_BASE}/wfOrdemDeServico.aspx?OrdemDeServicoID=${os_numero}`;
+    if (!osPath) {
+      return new Response(JSON.stringify({ ok: false, error: "OS não encontrada na busca" }), {
+        status: 404, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    const osUrl = osPath.startsWith("http") ? osPath : `${OI_BASE}/${osPath.replace(/^\//, "")}`;
 
-    // 4. GET da página da OS (ViewState fresco)
+    // 4. GET da página da OS — as URLs S3 já estão no HTML como onclick="fncNovaAba('https://apldoc...')"
     const rGet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
-    const freshHtml = await rGet.text();
-    const freshUrl = rGet.url || osUrl;
-    const tksm = ph(freshHtml, "tksm_HiddenField");
+    const html = await rGet.text();
 
-    // 5. POST para disparar o Visualizar do documento
-    const rPost = await fetch(freshUrl, {
-      method: "POST",
-      headers: {
-        ...BASE_H,
-        "Content-Type": "application/x-www-form-urlencoded",
-        Cookie: ck,
-        Referer: freshUrl,
-      },
-      body: new URLSearchParams({
-        __EVENTTARGET: event_target,
-        __EVENTARGUMENT: "",
-        __LASTFOCUS: "",
-        __VIEWSTATE: ph(freshHtml, "__VIEWSTATE"),
-        __VIEWSTATEGENERATOR: ph(freshHtml, "__VIEWSTATEGENERATOR"),
-        __EVENTVALIDATION: ph(freshHtml, "__EVENTVALIDATION"),
-        ...(tksm ? { tksm_HiddenField: tksm } : {}),
-      }).toString(),
-      redirect: "manual",
-    });
+    // 5. Extrai todas as URLs S3 dos atributos onclick do GridView de documentos
+    // Padrão: fncNovaAba(&#39;https://apldoc...&#39;) — com &amp; para os & do query string
+    const s3Re = /fncNovaAba\(&#39;(https?:\/\/apldoc(?:[^&]|&amp;)*?)&#39;\)/gi;
+    const s3Urls: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = s3Re.exec(html)) !== null) {
+      s3Urls.push(m[1].replace(/&amp;/g, "&"));
+    }
 
-    // 6. Captura URL do documento
-    const loc = rPost.headers.get("location");
-    if (loc && !loc.includes("wfErro")) {
-      const full = loc.startsWith("http") ? loc : `${OI_BASE}/${loc.replace(/^\//, "")}`;
-      await rPost.body?.cancel();
-      return new Response(JSON.stringify({ ok: true, url: full }), {
-        headers: { ...CORS, "Content-Type": "application/json" },
+    if (s3Urls.length === 0) {
+      return new Response(JSON.stringify({ ok: false, error: "Nenhuma URL S3 encontrada no HTML da OS" }), {
+        status: 404, headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
 
-    // 7. Fallback: procura URL S3 no body
-    const postBody = await rPost.text();
-    const s3M = postBody.match(/https?:\/\/apldoc[^"'\s<>]+/i)
-      ?? postBody.match(/https?:\/\/[^"'\s<>]+\.s3[^"'\s<>]+/i)
-      ?? postBody.match(/window\.open\(['"]([^'"]+)['"]/i)
-      ?? postBody.match(/(?:location\.href|top\.location)\s*=\s*['"]([^'"]+)['"]/i);
+    // 6. Determina o índice do documento pelo eventTarget (ctl02=0, ctl03=1, ctl04=2...)
+    const ctlMatch = event_target.match(/ctl0?(\d+)\$/i);
+    const docIdx = ctlMatch ? Math.max(0, parseInt(ctlMatch[1]) - 2) : 0;
+    const url = s3Urls[docIdx] ?? s3Urls[0];
 
-    if (s3M) {
-      const url = (s3M[1] ?? s3M[0]).trim();
-      if (!url.includes("wfErro") && url.startsWith("http")) {
-        return new Response(JSON.stringify({ ok: true, url }), {
-          headers: { ...CORS, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    return new Response(JSON.stringify({ ok: false, error: "URL do documento não encontrada", loc, bodySnippet: postBody.slice(0, 300) }), {
-      status: 404, headers: { ...CORS, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ ok: true, url, total: s3Urls.length, idx: docIdx }), {
+      headers: { ...CORS, "Content-Type": "application/json" },
     });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), {

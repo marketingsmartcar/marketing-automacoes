@@ -1,4 +1,4 @@
-// v61: resolução de docs sequencial + guarda eventTarget no DB para diagnóstico
+// v62: extrai URL S3 dos documentos direto do HTML (onclick fncNovaAba) — sem POST
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -118,8 +118,8 @@ function parseBuscaTable(html: string): BuscaRow[] {
   return result;
 }
 
-function parseDocumentos(html: string): Array<{ descricao: string; data_cadastro: string | null; eventTarget: string | null }> {
-  const docs: Array<{ descricao: string; data_cadastro: string | null; eventTarget: string | null }> = [];
+function parseDocumentos(html: string): Array<{ descricao: string; data_cadastro: string | null; eventTarget: string | null; url: string | null }> {
+  const docs: Array<{ descricao: string; data_cadastro: string | null; eventTarget: string | null; url: string | null }> = [];
   function decodeHtmlEntities(s: string): string {
     return s.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
             .replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">")
@@ -136,12 +136,15 @@ function parseDocumentos(html: string): Array<{ descricao: string; data_cadastro
     const data_cadastro = /^\d{2}\/\d{2}\/\d{4}$/.test(cells[1]) ? cells[1] : null;
     const descricao = cells[2] || "";
     if (!descricao) continue;
-    // Extrai __EVENTTARGET do javascript:WebForm_PostBackOptions na célula "Visualizar"
-    // O href pode ter entidades HTML (&quot;) ou aspas literais
+    // Extrai __EVENTTARGET do javascript:WebForm_PostBackOptions
     const etM = rowHtml.match(/WebForm_PostBackOptions\s*\(\s*&quot;([^&]+)&quot;/i)
       ?? rowHtml.match(/WebForm_PostBackOptions\s*\(\s*"([^"]+)"/i);
     const eventTarget = etM?.[1] ?? null;
-    docs.push({ descricao, data_cadastro, eventTarget });
+    // Extrai URL S3 do onclick="fncNovaAba(&#39;https://apldoc...&#39;)" — já presente no HTML
+    const urlM = rowHtml.match(/fncNovaAba\(&#39;(https?:\/\/apldoc(?:[^&]|&amp;)*?)&#39;\)/i)
+      ?? rowHtml.match(/fncNovaAba\('(https?:\/\/apldoc[^']+)'/i);
+    const url = urlM ? urlM[1].replace(/&amp;/g, "&") : null;
+    docs.push({ descricao, data_cadastro, eventTarget, url });
   }
   return docs;
 }
@@ -365,59 +368,7 @@ function parseOSPage(html: string): {
   };
 }
 
-async function resolveDocUrl(osUrl: string, eventTarget: string, ck: string): Promise<string | null> {
-  try {
-    // GET fresco da OS page para obter ViewState/EventValidation válidos para esta sessão
-    const rGet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
-    const freshHtml = await rGet.text();
-    const freshUrl = rGet.url || osUrl;
-    const tksm = ph(freshHtml, "tksm_HiddenField");
-    // POST imediatamente com os campos frescos
-    const r = await fetch(freshUrl, {
-      method: "POST",
-      headers: {
-        ...BASE_H,
-        "Content-Type": "application/x-www-form-urlencoded",
-        Cookie: ck,
-        Referer: freshUrl,
-      },
-      body: new URLSearchParams({
-        __EVENTTARGET: eventTarget,
-        __EVENTARGUMENT: "",
-        __LASTFOCUS: "",
-        __VIEWSTATE: ph(freshHtml, "__VIEWSTATE"),
-        __VIEWSTATEGENERATOR: ph(freshHtml, "__VIEWSTATEGENERATOR"),
-        __EVENTVALIDATION: ph(freshHtml, "__EVENTVALIDATION"),
-        ...(tksm ? { tksm_HiddenField: tksm } : {}),
-      }).toString(),
-      redirect: "manual",
-    });
-    // Caso 1: redirect → S3
-    const loc = r.headers.get("location");
-    if (loc) {
-      const full = loc.startsWith("http") ? loc : `${OI_BASE}/${loc.replace(/^\//, "")}`;
-      await r.body?.cancel();
-      // Ignora redirecionamentos para páginas de erro do OI
-      if (full.includes("wfErro")) return null;
-      return full;
-    }
-    // Caso 2: URL no body (window.open, location.href, meta, href S3)
-    const body = await r.text();
-    const s3M = body.match(/https?:\/\/apldoc[^"'\s<>]+/i)
-      ?? body.match(/https?:\/\/[^"'\s<>]+\.s3[^"'\s<>]+/i)
-      ?? body.match(/window\.open\(['"]([^'"]+)['"]/i)
-      ?? body.match(/(?:location\.href|top\.location)\s*=\s*['"]([^'"]+)['"]/i)
-      ?? body.match(/content=["']0;\s*url=([^"']+)["']/i);
-    if (s3M) {
-      const url = (s3M[1] ?? s3M[0]).trim();
-      if (url.includes("wfErro")) return null;
-      return url.startsWith("http") ? url : null;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
+// resolveDocUrl removida (v62): URLs S3 estão no HTML da OS como onclick fncNovaAba
 
 async function login(email: string, senha: string): Promise<string> {
   const r1 = await fetch(LOGIN_URL, { redirect: "manual", headers: BASE_H });
@@ -591,16 +542,13 @@ Deno.serve(async (req: Request) => {
                 if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
                 if (det.observacoes) upd.observacoes = det.observacoes;
                 if (det.documentos.length > 0) {
-                  // Resolve URLs sequencialmente (sessão OI é state-based — paralelo causa conflitos)
-                  const docsResolved: Array<{ descricao: string; data_cadastro: string | null; url: string | null; eventTarget?: string }> = [];
-                  for (const doc of det.documentos) {
-                    let url: string | null = null;
-                    if (doc.eventTarget) {
-                      url = await resolveDocUrl(finalOsUrl, doc.eventTarget, ck);
-                    }
-                    docsResolved.push({ descricao: doc.descricao, data_cadastro: doc.data_cadastro, url, eventTarget: doc.eventTarget ?? undefined });
-                  }
-                  upd.documentos = docsResolved;
+                  // URLs S3 já extraídas diretamente do HTML pela parseDocumentos (v62)
+                  upd.documentos = det.documentos.map((doc) => ({
+                    descricao: doc.descricao,
+                    data_cadastro: doc.data_cadastro,
+                    url: doc.url,
+                    eventTarget: doc.eventTarget ?? undefined,
+                  }));
                 }
 
                 // Busca dados cadastrais do cliente para verificação no NexusZ
