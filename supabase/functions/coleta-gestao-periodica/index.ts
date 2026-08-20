@@ -1,4 +1,4 @@
-// v60: resolveDocUrl faz GET fresco antes do POST (ViewState válido) + ignora wfErro
+// v61: resolução de docs sequencial + guarda eventTarget no DB para diagnóstico
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -591,14 +591,15 @@ Deno.serve(async (req: Request) => {
                 if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
                 if (det.observacoes) upd.observacoes = det.observacoes;
                 if (det.documentos.length > 0) {
-                  // Resolve URLs reais dos documentos via POST WebForm → redirect S3
-                  const docsResolved = await Promise.all(det.documentos.map(async (doc) => {
+                  // Resolve URLs sequencialmente (sessão OI é state-based — paralelo causa conflitos)
+                  const docsResolved: Array<{ descricao: string; data_cadastro: string | null; url: string | null; eventTarget?: string }> = [];
+                  for (const doc of det.documentos) {
                     let url: string | null = null;
                     if (doc.eventTarget) {
                       url = await resolveDocUrl(finalOsUrl, doc.eventTarget, ck);
                     }
-                    return { descricao: doc.descricao, data_cadastro: doc.data_cadastro, url };
-                  }));
+                    docsResolved.push({ descricao: doc.descricao, data_cadastro: doc.data_cadastro, url, eventTarget: doc.eventTarget ?? undefined });
+                  }
                   upd.documentos = docsResolved;
                 }
 
