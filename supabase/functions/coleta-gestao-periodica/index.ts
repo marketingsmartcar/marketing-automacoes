@@ -1,4 +1,4 @@
-// v56: documentos — parser por coluna (descricao+data_cadastro) + resolve URL real S3 via POST WebForm
+// v57: resolveDocUrl — inspeciona body (window.open/href/meta) além do Location header
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -380,9 +380,19 @@ async function resolveDocUrl(osUrl: string, hDet: string, eventTarget: string, c
       }).toString(),
       redirect: "manual",
     });
-    await r.body?.cancel();
+    // Caso 1: redirect direto para S3
     const loc = r.headers.get("location");
-    return loc && loc.startsWith("http") ? loc : null;
+    if (loc && loc.startsWith("http")) { await r.body?.cancel(); return loc; }
+    // Caso 2: resposta HTML com URL S3 em window.open, href, src ou meta refresh
+    const body = await r.text();
+    const s3M = body.match(/https?:\/\/[^"'\s>]+\.s3[^"'\s>]+/i)
+      ?? body.match(/https?:\/\/apldoc[^"'\s>]+/i)
+      ?? body.match(/content="0;\s*url=([^"]+)"/i);
+    if (s3M) {
+      const url = s3M[1] ?? s3M[0];
+      return url.startsWith("http") ? url : null;
+    }
+    return null;
   } catch {
     return null;
   }
