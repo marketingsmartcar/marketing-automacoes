@@ -104,6 +104,10 @@ function supabaseRequest(method, path, body) {
 
 function buildOSRecord(os, lojaKey) {
   const dataISO = parseOIDate(os.Data);
+  // IMPORTANTE: NÃO incluir campos de scraper (tipo, responsavel, pesquisa,
+  // observacoes, lucro_bruto_pct, total_servicos, total_produtos) no payload.
+  // PostgREST merge-duplicates sobrescreve TODOS os campos presentes no payload.
+  // Se incluirmos null aqui, a API apaga o que o scraper Puppeteer já preencheu.
   return {
     loja_key:          lojaKey,
     os_numero:         os.OrdemDeServicoID,
@@ -114,13 +118,6 @@ function buildOSRecord(os, lojaKey) {
     ano:               os.AnoDoVeiculo    || null,
     hodometro:         os.KMDoVeiculo     || null,
     total_os:          os.ValorDaOrdemDeServico || 0,
-    total_servicos:    null,   // não disponível via API
-    total_produtos:    null,   // não disponível via API
-    lucro_bruto_pct:   null,   // não disponível via API
-    tipo:              os.SituacaoDaOrdemDeServico || null,
-    responsavel:       null,   // não disponível via API (preenchido pelo scraper Puppeteer)
-    pesquisa:          null,
-    observacoes:       null,
     scraped_at:        new Date().toISOString(),
   };
 }
@@ -160,6 +157,7 @@ async function processarLoja(loja, dataISO) {
     String(os.EmpresaID) === String(loja.empresaId)
   );
 
+
   console.log(`  📦 ${loja.key}: ${osList.length} OS`);
 
   if (!osList.length || DRY_RUN) return { upserted: osList.length, items: 0 };
@@ -196,7 +194,9 @@ async function processarLoja(loja, dataISO) {
   const idMap = new Map(JSON.parse(fetchRes.body).map(r => [r.os_numero, r.id]));
   let totalItems = 0;
 
-  // Upsert itens em lotes de 50 OS por vez
+  // Inserir itens APENAS para OS que ainda não têm itens no banco.
+  // NÃO usar DELETE + reinsert: isso apagaria executor/grupo/custo_total
+  // que o scraper Puppeteer já preencheu.
   for (const os of osList) {
     const osId = idMap.get(os.OrdemDeServicoID);
     if (!osId || !(os.Itens || []).length) continue;
@@ -204,8 +204,15 @@ async function processarLoja(loja, dataISO) {
     const itemRecs = buildItemRecords(os, osId, loja.key);
     if (!itemRecs.length) continue;
 
-    // Deleta itens antigos e re-insere (mesma lógica do scraper Puppeteer)
-    await supabaseRequest('DELETE', `/rest/v1/os_itens?os_vendas_id=eq.${osId}`, null);
+    // Verifica se já existem itens (para não sobrescrever dados do scraper)
+    const existRes = await supabaseRequest(
+      'GET',
+      `/rest/v1/os_itens?os_vendas_id=eq.${osId}&select=id&limit=1`,
+      null
+    );
+    const jaTemItens = existRes.status === 200 && JSON.parse(existRes.body || '[]').length > 0;
+    if (jaTemItens) continue; // scraper já preencheu — não tocar
+
     const insertRes = await supabaseRequest('POST', '/rest/v1/os_itens', itemRecs);
     if (insertRes.status < 400) totalItems += itemRecs.length;
   }
