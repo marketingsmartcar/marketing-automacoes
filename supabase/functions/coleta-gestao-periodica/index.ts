@@ -1,4 +1,4 @@
-// v63: modo básico (30 min) só salva da lista de busca (sem visita individual) — evita timeout. Modo detalhe (23h) continua visitando cada OS.
+// v69: fix executor inline (qtyIdx+1), tipo protegido de sobrescrita, rowsToDetail checa executor faltando.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -273,27 +273,42 @@ function parseOSPage(html: string): {
   // Filtra células vazias antes de checar colunas, pois o OI pode ter células extras.
   // Identifica a região de itens pela maior janela contínua de linhas-item.
   {
+    const isName = (s: string) =>
+      s.length >= 2 && !NAO_EXECUTOR.test(s) && !/^R?\$?[\d.,]+$/.test(s) && !/^\d{2}\/\d{2}\//.test(s) && !/^\d+$/.test(s);
+
     const linhas = texto.split("\n");
     let idx = 0;
     while (idx < linhas.length) {
       const parts = linhas[idx].split("\t").map(s => s.trim()).filter(s => s.length > 0);
-      // Linha de item: ≥3 colunas, parts[2] numérica (quantidade ≤ 999), parts[1] tem texto (descrição)
+
+      // Layout A: código(+ref merged) | descrição | qty | ...
+      // Layout B: código | referência | descrição | qty | ...  (tabela OI com Referência separada)
+      let qtyIdx = -1;
       if (parts.length >= 3 && /^\d+$/.test(parts[2]) && parseInt(parts[2]) < 1000 && parts[0] && parts[1] && parts[1].length > 2) {
-        // Código pode vir como "13754 BIC0TR414" — pegar só o primeiro token (antes do primeiro espaço)
+        qtyIdx = 2;
+      } else if (parts.length >= 4 && /^\d+$/.test(parts[3]) && parseInt(parts[3]) < 1000 && parts[0] && parts[2] && parts[2].length > 2) {
+        qtyIdx = 3;
+      }
+
+      if (qtyIdx >= 0) {
         const codigoRaw = parts[0];
         const codigo = codigoRaw.includes(" ") ? codigoRaw.split(" ")[0] : codigoRaw;
         if (!codigo || codigo.length > 25 || /^C.{0,6}digo$/i.test(codigo) || codigo === "TOTAL") { idx++; continue; }
 
-        // Busca executor nas próximas 6 linhas: linha isolada (1 célula) que não seja marcador
+        // Executor pode estar inline como última célula da mesma linha (após qty)
         let executor: string | null = null;
-        for (let j = idx + 1; j <= idx + 7 && j < linhas.length; j++) {
-          const np = linhas[j].split("\t").map(s => s.trim()).filter(s => s.length > 0);
-          if (np.length === 1 && np[0].length >= 2 && !NAO_EXECUTOR.test(np[0]) && !/^[\d.,]+$/.test(np[0]) && !/^\d{2}\/\d{2}\//.test(np[0])) {
-            executor = np[0];
-            break;
+        const lastCell = parts[parts.length - 1];
+        if (parts.length > qtyIdx + 1 && isName(lastCell)) {
+          executor = lastCell;
+        }
+
+        // Senão, busca nas próximas linhas como linha isolada
+        if (!executor) {
+          for (let j = idx + 1; j <= idx + 7 && j < linhas.length; j++) {
+            const np = linhas[j].split("\t").map(s => s.trim()).filter(s => s.length > 0);
+            if (np.length === 1 && isName(np[0])) { executor = np[0]; break; }
+            if (np.length >= 3 && (/^\d+$/.test(np[2]) || (np.length >= 4 && /^\d+$/.test(np[3])))) break;
           }
-          // Para ao encontrar próxima linha de item
-          if (np.length >= 3 && /^\d+$/.test(np[2])) break;
         }
         itens.push({ codigo, executor });
       }
@@ -506,118 +521,137 @@ Deno.serve(async (req: Request) => {
         s.busca = rows.length;
         log.push(`  busca: ${rows.length} OS`);
 
-        // Modo básico (30 min): atualiza em lote da lista — sem visitar página individual
-        // Modo detalhe (23h): visita cada OS individualmente para executor, pagamentos, etc.
-        if (!detalhe) {
-          // Upsert em lote: hora_inicio, hora_fim, responsavel, pesquisa de uma só vez
-          const batchUpdates = rows
-            .filter(row => row.hora_inicio || row.hora_fim || row.responsavel || row.pesquisa)
-            .map(row => ({
-              loja_key: loja.key,
-              os_numero: row.os_numero,
-              ...(row.hora_inicio ? { hora_inicio: row.hora_inicio } : {}),
-              ...(row.hora_fim ? { hora_fim: row.hora_fim } : {}),
-              ...(row.responsavel ? { responsavel: row.responsavel } : {}),
-              ...(row.pesquisa ? { pesquisa: row.pesquisa } : {}),
-            }));
-          if (batchUpdates.length > 0) {
-            const { error } = await supabase
-              .from("os_vendas")
-              .upsert(batchUpdates, { onConflict: "loja_key,os_numero", ignoreDuplicates: false });
-            if (error) s.errors.push(`batch: ${error.message}`);
-            else s.atualizadas = batchUpdates.length;
-          }
-          log.push(`  atualizado em lote: ${s.atualizadas} OS`);
+        // PASSO 1: Batch upsert da lista — sempre rápido, toda run
+        const batchUpdates = rows.map(row => ({
+          loja_key: loja.key,
+          os_numero: row.os_numero,
+          data_os: de,
+          ...(row.hora_inicio ? { hora_inicio: row.hora_inicio } : {}),
+          ...(row.hora_fim ? { hora_fim: row.hora_fim } : {}),
+          ...(row.responsavel ? { responsavel: row.responsavel } : {}),
+          ...(row.pesquisa ? { pesquisa: row.pesquisa } : {}),
+        }));
+        if (batchUpdates.length > 0) {
+          const { error } = await supabase
+            .from("os_vendas")
+            .upsert(batchUpdates, { onConflict: "loja_key,os_numero", ignoreDuplicates: false });
+          if (error) s.errors.push(`batch: ${error.message}`);
+          else s.atualizadas = batchUpdates.length;
+        }
+        log.push(`  batch: ${s.atualizadas} OS`);
+
+        // PASSO 2: Visita individual
+        // detalhe=true (retroativo): visita todas as OS
+        // Normal (5 min): visita OS que ainda não têm tipo/total_os (nunca visitadas)
+        //                  OU OS fechadas que ainda não têm pagamentos
+        let rowsToDetail: BuscaRow[];
+        if (detalhe) {
+          rowsToDetail = rows;
+          log.push(`  detalhe=true: visitando todas as ${rows.length} OS`);
         } else {
-          // Modo detalhe: visita cada OS individualmente
-          for (const row of rows) {
-            try {
-              // hora_inicio / hora_fim da lista
-              const update: Record<string, string | null> = {};
-              if (row.hora_inicio) update.hora_inicio = row.hora_inicio;
-              if (row.hora_fim) update.hora_fim = row.hora_fim;
-              if (row.responsavel) (update as Record<string, string | null>).responsavel = row.responsavel;
-              if (row.pesquisa) (update as Record<string, string | null>).pesquisa = row.pesquisa;
-              if (Object.keys(update).length > 0) {
-                const { error } = await supabase
-                  .from("os_vendas")
-                  .update(update)
-                  .eq("loja_key", loja.key)
-                  .eq("os_numero", row.os_numero);
-                if (error) s.errors.push(`OS${row.os_numero}: ${error.message}`);
-                else s.atualizadas++;
+          const allNums = rows.map(r => r.os_numero);
+          const { data: existingOS } = await supabase
+            .from("os_vendas")
+            .select("id, os_numero, tipo, total_os, pagamentos, responsavel, pesquisa")
+            .eq("loja_key", loja.key)
+            .in("os_numero", allNums);
+          const existingMap = new Map((existingOS ?? []).map(o => [o.os_numero, o]));
+
+          // OS que têm algum item sem executor (para re-coletar executor)
+          const osIds = (existingOS ?? []).map(o => o.id).filter(Boolean);
+          let idsComExecutorFaltando = new Set<string>();
+          if (osIds.length > 0) {
+            const { data: semExec } = await supabase
+              .from("os_itens").select("os_vendas_id")
+              .in("os_vendas_id", osIds).is("executor", null).limit(500);
+            idsComExecutorFaltando = new Set((semExec ?? []).map((i: any) => i.os_vendas_id));
+          }
+
+          rowsToDetail = rows.filter(row => {
+            const db = existingMap.get(row.os_numero);
+            if (!db) return true;
+            if (!db.tipo) return true;                         // nunca visitada para tipo
+            if (!db.total_os || db.total_os <= 0) return true;
+            if (!db.pagamentos) return true;
+            if (!db.responsavel) return true;
+            if (!db.pesquisa) return true;
+            if (idsComExecutorFaltando.has(db.id)) return true; // tem item sem executor
+            return false;                                      // completo — pular
+          });
+          log.push(`  detalhe: ${rowsToDetail.length} OS incompletas (de ${rows.length})`);
+        }
+
+        for (const row of rowsToDetail) {
+          try {
+            const { data: osRow } = await supabase
+              .from("os_vendas")
+              .select("id, tipo")
+              .eq("loja_key", loja.key)
+              .eq("os_numero", row.os_numero)
+              .single();
+
+            if (osRow) {
+              const rawPath = row.os_path ?? `wfOrdemDeServico.aspx?OrdemDeServicoID=${row.os_numero}`;
+              const osUrl = rawPath.startsWith("http") ? rawPath : `${OI_BASE}/${rawPath.replace(/^\//, "")}`;
+              const rDet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
+              const hDet = await rDet.text();
+              const det = parseOSPage(hDet);
+
+              const upd: Record<string, unknown> = { data_os: de };
+              if (det.responsavel) upd.responsavel = det.responsavel;
+              if (det.pesquisa) upd.pesquisa = det.pesquisa;
+              // Só sobrescreve tipo se o atual for nulo ou genérico (Aberta/Fechada)
+              if (det.tipo) {
+                const tipoAtual = (osRow as any).tipo as string | null;
+                const tipoRealJaExiste = tipoAtual && tipoAtual !== "Aberta" && tipoAtual !== "Fechada";
+                if (!tipoRealJaExiste) upd.tipo = det.tipo;
+              }
+              if (det.cpf) upd.cpf = det.cpf;
+              if (det.orcamento_id) upd.orcamento_id = det.orcamento_id;
+              if (det.cliente_oi_id) upd.cliente_oi_id = det.cliente_oi_id;
+              if (det.pagamentos.length > 0) upd.pagamentos = det.pagamentos;
+              if (det.total_os > 0) upd.total_os = det.total_os;
+              if (det.total_servicos > 0) upd.total_servicos = det.total_servicos;
+              if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
+              if (det.observacoes) upd.observacoes = det.observacoes;
+              if (det.tem_nota_fiscal !== null) upd.tem_nota_fiscal = det.tem_nota_fiscal;
+              if (det.documentos.length > 0) {
+                upd.documentos = det.documentos.map((doc) => ({
+                  descricao: doc.descricao,
+                  data_cadastro: doc.data_cadastro,
+                  url: doc.url,
+                  eventTarget: doc.eventTarget ?? undefined,
+                }));
               }
 
-              // Página individual — executor, pagamentos, tipo, cpf, docs, totais
-              try {
-                const { data: osRow } = await supabase
-                  .from("os_vendas")
-                  .select("id")
-                  .eq("loja_key", loja.key)
-                  .eq("os_numero", row.os_numero)
-                  .single();
-
-                if (osRow) {
-                  const rawPath = row.os_path ?? `wfOrdemDeServico.aspx?OrdemDeServicoID=${row.os_numero}`;
-                  const osUrl = rawPath.startsWith("http") ? rawPath : `${OI_BASE}/${rawPath.replace(/^\//, "")}`;
-                  const rDet = await fetch(osUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
-                  const hDet = await rDet.text();
-                  const det = parseOSPage(hDet);
-
-                  const upd: Record<string, unknown> = {};
-                  if (det.responsavel) upd.responsavel = det.responsavel;
-                  if (det.pesquisa) upd.pesquisa = det.pesquisa;
-                  if (det.tipo) upd.tipo = det.tipo;
-                  if (det.cpf) upd.cpf = det.cpf;
-                  if (det.orcamento_id) upd.orcamento_id = det.orcamento_id;
-                  if (det.cliente_oi_id) upd.cliente_oi_id = det.cliente_oi_id;
-                  if (det.pagamentos.length > 0) upd.pagamentos = det.pagamentos;
-                  if (det.total_os > 0) upd.total_os = det.total_os;
-                  if (det.total_servicos > 0) upd.total_servicos = det.total_servicos;
-                  if (det.total_produtos > 0) upd.total_produtos = det.total_produtos;
-                  if (det.observacoes) upd.observacoes = det.observacoes;
-                  if (det.tem_nota_fiscal !== null) upd.tem_nota_fiscal = det.tem_nota_fiscal;
-                  if (det.documentos.length > 0) {
-                    upd.documentos = det.documentos.map((doc) => ({
-                      descricao: doc.descricao,
-                      data_cadastro: doc.data_cadastro,
-                      url: doc.url,
-                      eventTarget: doc.eventTarget ?? undefined,
-                    }));
-                  }
-
-                  if (det.cliente_oi_id) {
-                    try {
-                      const clientUrl = `${OI_BASE}/wfCliente.aspx?ClienteID=${det.cliente_oi_id}`;
-                      const rCli = await fetch(clientUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
-                      const hCli = await rCli.text();
-                      const clienteData = parseClientePage(hCli);
-                      if (clienteData.nome || clienteData.cpf) upd.cliente_cadastro = clienteData;
-                    } catch (_) { /* silencioso */ }
-                  }
-
-                  if (Object.keys(upd).length > 0) {
-                    await supabase.from("os_vendas").update(upd).eq("id", osRow.id);
-                  }
-
-                  for (const item of det.itens) {
-                    if (!item.executor) continue;
-                    await supabase
-                      .from("os_itens")
-                      .update({ executor: item.executor })
-                      .eq("os_vendas_id", osRow.id)
-                      .eq("codigo", item.codigo);
-                  }
-
-                  s.detalhe++;
-                  log.push(`    OS${row.os_numero}: exec=${det.itens.filter(i=>i.executor).length} pag=${det.pagamentos.length}`);
-                }
-              } catch (e) {
-                s.errors.push(`paginaOS${row.os_numero}: ${String(e).slice(0, 80)}`);
+              if (det.cliente_oi_id) {
+                try {
+                  const clientUrl = `${OI_BASE}/wfCliente.aspx?ClienteID=${det.cliente_oi_id}`;
+                  const rCli = await fetch(clientUrl, { headers: { ...BASE_H, Cookie: ck }, redirect: "follow" });
+                  const hCli = await rCli.text();
+                  const clienteData = parseClientePage(hCli);
+                  if (clienteData.nome || clienteData.cpf) upd.cliente_cadastro = clienteData;
+                } catch (_) { /* silencioso */ }
               }
-            } catch (e) {
-              s.errors.push(`OS${row.os_numero}: ${String(e).slice(0, 80)}`);
+
+              if (Object.keys(upd).length > 0) {
+                await supabase.from("os_vendas").update(upd).eq("id", osRow.id);
+              }
+
+              for (const item of det.itens) {
+                if (!item.executor) continue;
+                await supabase
+                  .from("os_itens")
+                  .update({ executor: item.executor })
+                  .eq("os_vendas_id", osRow.id)
+                  .eq("codigo", item.codigo);
+              }
+
+              s.detalhe++;
+              log.push(`    OS${row.os_numero}: exec=${det.itens.filter(i=>i.executor).length} pag=${det.pagamentos.length}`);
             }
+          } catch (e) {
+            s.errors.push(`paginaOS${row.os_numero}: ${String(e).slice(0, 80)}`);
           }
         }
       } catch (e) {
