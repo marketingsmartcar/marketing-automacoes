@@ -206,6 +206,61 @@ curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-ven
 
 ---
 
+## 4c. Colaboradores OI — Participação por Consultor
+
+**O que faz:** Faz login no OI e coleta o relatório **Gestão Periódica → Participação por Consultor** para cada loja (do dia 1 do mês até hoje). Salva em `oi_colaboradores_resumo` (por colaborador) e `oi_colaboradores_grupos` (linhas de grupo). Dados aparecem no NexusZ em **Desempenho de Colaboradores**.
+
+| Campo | Valor |
+|-------|-------|
+| Edge Function | `coleta-colaboradores-oi` (projeto `ubiuershczqjnoczcupa`) |
+| Agendamento | pg_cron `coleta-colaboradores-oi-diario`: **9h BRT (12h UTC)**, Seg–Sáb |
+| Período | 1º do mês corrente até hoje (default); aceita `{"data_inicio":"DD/MM/YYYY","data_fim":"DD/MM/YYYY"}` |
+| Tabelas Supabase | `oi_colaboradores_resumo` (upsert por `loja_key,data_inicio,data_fim,nome`), `oi_colaboradores_grupos` (DELETE+INSERT por loja/período) |
+| Secrets Vault | `OI_EMAIL`, `OI_SENHA` |
+
+**Lojas:** BR1, BR3, BR4, PEG1 — mesmas chaves que `coleta-vendas-diarias`
+
+**Não coleta:** `oi_colaboradores_os` (requer "Mostrar O.S." com Puppeteer — não portável para Deno)
+
+**Como rodar manualmente:**
+```bash
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-colaboradores-oi \
+  -H "Content-Type: application/json" -d '{}'
+# Com período específico:
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-colaboradores-oi \
+  -H "Content-Type: application/json" -d '{"data_inicio":"01/08/2026","data_fim":"25/08/2026"}'
+```
+
+---
+
+## 4d. Sync RH Colaboradores OI → NexusZ
+
+**O que faz:** Faz login no OI, lista todos os funcionários via `wfFuncionarioBusca.aspx`, abre o perfil de cada um (PostBack `lkbAbrir`), navega para as abas **Funcionário** e **Dados Bancários**, extrai CPF / datas de admissão-demissão-registro / dados bancários, e faz PATCH na tabela `rh_colaboradores` do NexusZ.
+
+**Regra crítica:** NUNCA modifica `cargo` nem `unidade_id`. Apenas: `cpf`, `data_admissao`, `data_demissao`, `data_registro`, `banco`, `agencia`, `conta`, `pix`, `sincronizado_oi_em`.
+
+| Campo | Valor |
+|-------|-------|
+| Edge Function | `sync-rh-colaboradores` (projeto `ubiuershczqjnoczcupa`) |
+| Agendamento | 4 jobs pg_cron, um por loja, seg–sáb: |
+| BR01 | `sync-rh-colaboradores-br01`: **8h BRT (11h UTC)** |
+| BR03 | `sync-rh-colaboradores-br03`: **8h30 BRT (11h30 UTC)** |
+| BR04 | `sync-rh-colaboradores-br04`: **9h BRT (12h UTC)** |
+| PEG1 | `sync-rh-colaboradores-peg1`: **9h30 BRT (12h30 UTC)** |
+| Tabela Supabase | `rh_colaboradores` (PATCH por `id`) |
+| Secrets Vault | `OI_EMAIL`, `OI_SENHA`, `SUPABASE_SERVICE_ROLE_KEY` |
+
+**Matching:** por CPF (prioritário) ou por nome normalizado (tokenização). Ignora CIBELE ZACHI, FABIO ZACHI, CIBELE REGINA OLIVEIRA.
+
+**Como rodar manualmente (por loja):**
+```bash
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-rh-colaboradores \
+  -H "Content-Type: application/json" -d '{"loja":"BR01"}'
+# Valores válidos: BR01, BR03, BR04, PEG1
+```
+
+---
+
 ## 5. CPA — Custo por Lead (NexusZ AdminAds)
 
 **O que faz:** Seção "💰 CPA" na página Dashboard ADS do NexusZ. Cruza automaticamente o gasto diário estimado de ADS (spend_7d ÷ 7) com os leads do dia da tabela `leads_diarios`. Exibe por loja: gasto Meta, gasto Google, total/dia e CPA em R$.
