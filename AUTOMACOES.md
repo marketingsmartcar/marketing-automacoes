@@ -4,126 +4,14 @@ Documento de referência para todas as automações ativas. Atualizar sempre que
 
 ---
 
-## 1. Planilha de Leads
-
-**O que faz:** Busca todos os tickets do mês no Deskrio (BR Pneus + Peg Pneus), atualiza a aba do mês atual com tickets por loja, por atendente e novos contatos.
-
-| Campo | Valor |
-|-------|-------|
-| Script | `tools/relatorio-mensal-sheets.js` |
-| Bat | `relatorio-leads.bat` |
-| Planilha | `1so_-C0e_awN9vlXVueViIjgijNEYks7DIwkBbUPd0vw` |
-| Log | `logs/relatorio-leads.log` |
-| Agendamento | Diário às **18h** — Task: `BRPneus-RelatorioLeads` |
-
-**Como rodar manualmente:**
-```bash
-node tools/relatorio-mensal-sheets.js          # mês atual
-node tools/relatorio-mensal-sheets.js 4 2026   # mês/ano específico
-```
-
-**Regra importante:** o dia atual **é incluído**. Ao rodar no dia 24/04 às 18h, a planilha aparece com dados até 24/04.
-
----
-
-## 1b. Leads do Dia — Atualização Horária
-
-**O que faz:** Busca os leads do **dia atual** no Deskrio (BR Pneus + Peg Pneus) e atualiza a aba "📅 Hoje" na planilha de leads com KPIs, tickets por loja e por atendente.
-
-| Campo | Valor |
-|-------|-------|
-| Script | `tools/leads-hoje.js` |
-| Planilha | `1so_-C0e_awN9vlXVueViIjgijNEYks7DIwkBbUPd0vw` (aba "📅 Hoje") |
-| Agendamento | **Todo início de hora das 07h às 18h** (Seg–Sáb) — PM2: `leads-hoje` |
-| Executa ao iniciar | Sim — roda imediatamente se horário estiver entre 07h e 18h |
-
-**Como rodar manualmente:**
-```bash
-node tools/leads-hoje.js --agora   # executa uma vez agora
-npm run leads:hoje                 # alias
-```
-
-**PM2:**
-```bash
-pm2 start tools/leads-hoje.js --name leads-hoje   # iniciar
-pm2 restart leads-hoje                            # reiniciar
-pm2 logs leads-hoje                               # ver logs
-```
-
----
-
-## 2. Coleta de Vendas Diárias → Supabase
-
-**O que faz:** Acessa o Oficina Inteligente (OI) via Puppeteer para cada uma das 9 lojas, coleta faturamento/lucro/OS/pneus do dia e sincroniza no Supabase (NexusZ). **Não grava na planilha Google Sheets** (removido em mai/2026). **Não envia WhatsApp** (removido em mai/2026).
-
-| Campo | Valor |
-|-------|-------|
-| Script principal | `tools/coletar-vendas-diarias.js` |
-| Log | `output/relatorios/vendas-diarias.log` |
-| Agendamento | **GitHub Actions** — todo dia às **20h BRT** (Seg–Sáb) |
-| Workflow | `.github/workflows/vendas-diarias.yml` |
-
-**4 Lojas ativas (jul/2026):**
-
-| Chave | Label OI | Cidade |
-|-------|----------|--------|
-| BR1 | BR01 CENTRO | Araraquara (Loja 1) |
-| BR3 | BR03 AMERICANA | Americana |
-| BR4 | BR04 SAO CARLOS | São Carlos |
-| PEG1 | PEG11 ARARAQUARA | Peg Pneus Araraquara |
-
-> Lojas encerradas e removidas: BR2 (Araraquara Vila, jul/2026), BR5 (Maringá, jul/2026), PEG2 (Sorocaba, jun/2026), BR6 (Jaú, mai/2026), BR7 (Ibitinga, mai/2026).
-
-**Como rodar manualmente:**
-```bash
-node tools/coletar-vendas-diarias.js              # ontem (padrão)
-node tools/coletar-vendas-diarias.js 2026-05-06   # data específica
-```
-
-**Regras importantes:**
-- Coleta o dia anterior por padrão; se cair num domingo, usa o sábado anterior
-- Tempo total: ~10-15 min para as 9 lojas
-- Apenas Supabase — Google Sheets não é mais atualizada
-
----
-
-## 2b. Coleta de Vendas de Pneus Detalhada → Supabase
-
-**O que faz:** Acessa a API OI (OrdemDeServicoJSON) para cada uma das 7 lojas, extrai os itens de pneu de cada OS do dia e grava na tabela `vendas_pneus` do Supabase com grupo/descricao/medida/marca/qtd/faturamento por produto. É a fonte de dados do menu "Vendas de Pneus" no NexusZ.
-
-| Campo | Valor |
-|-------|-------|
-| Script | `tools/coletar-vendas-pneus.js` |
-| Agendamento | Manual por enquanto — rodar após `coletar-vendas-diarias.js` |
-
-**Como rodar:**
-```bash
-node tools/coletar-vendas-pneus.js                  # ontem (padrão)
-node tools/coletar-vendas-pneus.js 2026-05-28        # data específica
-node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
-```
-
-**Regras importantes:**
-- Usa a API REST OI diretamente (não Puppeteer) — muito mais rápido (~30s total)
-- Filtra itens com `DescricaoDoItem` começando com "PNEU" (exclui serviços, peças, etc.)
-- Exclui "PNEU USADO (RETIRADA PNEU)" — não é venda
-- Medida extraída com regex do formato OI: `"PNEU NNN NN RR MARCA MODELO"`
-- Marca = primeira palavra após as 3 dimensões da medida
-- Grupo determinado por keywords na descrição + aspect ratio + marca nacional/importada
-- Delete + insert por loja/dia — reexecução é segura
-- Tokens: mesmos `OI_TOKEN_*` do `.env` (BR01 e BR03 usam token ALT)
-- Lojas cobertas: BR01, BR03, BR04, PEG1 (4 lojas ativas — BR02, BR05, SOR1 encerradas)
-
----
-
-## 2c. Coleta de Enriquecimento de OS (busca + detalhes) → Supabase
+## 1. Coleta de Enriquecimento de OS (busca + detalhes) → Supabase
 
 **O que faz:** Faz login no OI, acessa a página de **Busca de OS** (`wfOrdemDeServicoBusca.aspx`) para cada loja e atualiza `os_vendas` com campos que a API JSON não retorna: `hora_inicio`, `hora_fim`, `responsavel`, `pesquisa`. No modo `detalhe:true` (23h), também acessa cada OS individualmente para pegar `executor` (os_itens) e `pagamentos` (JSONB).
 
 | Campo | Valor |
 |-------|-------|
 | Edge Function | `coleta-gestao-periodica` v40 (projeto `ubiuershczqjnoczcupa`) |
-| Agendamento básico | pg_cron `coleta-gestao-periodica`: **a cada 30 min das 8h–22h** (Seg–Sáb) |
+| Agendamento básico | pg_cron `coleta-gestao-periodica`: **a cada 5 min das 8h–19h BRT** (Seg–Sáb) |
 | Agendamento detalhe | pg_cron `coleta-os-detalhe`: **23h** (Seg–Sáb) — chama a mesma função com `{"detalhe":true}` |
 | Tabela Supabase | `os_vendas` (UPDATE por `loja_key + os_numero`), `os_itens` (UPDATE executor por `os_vendas_id + codigo`) |
 | Secrets Supabase | `OI_EMAIL`, `OI_SENHA`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
@@ -136,8 +24,8 @@ node tools/coletar-vendas-pneus.js --inspecionar     # mostra itens sem gravar
 | `hora_fim` | Tabela busca (col Fim) | a cada 30 min |
 | `responsavel` | Tabela busca (col Responsável) | a cada 30 min |
 | `pesquisa` | Tabela busca (col Pesquisa) | a cada 30 min |
-| `pagamentos` (JSONB) | Página individual OS | 23h (modo detalhe) |
-| `executor` (os_itens) | Página individual OS | 23h (modo detalhe) |
+| `pagamentos` (JSONB) | Página individual OS | a cada 5 min (OS fechadas sem pagamento) |
+| `executor` (os_itens) | Página individual OS | a cada 5 min (OS sem tipo) |
 
 **Lojas cobertas:**
 
@@ -173,7 +61,7 @@ curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-ges
 
 ---
 
-## 3. Monitor de Ads
+## 2. Monitor de Ads
 
 **O que faz:** Verifica saldo de todas as contas de Meta Ads e Google Ads. Se houver saldo baixo ou zerado, envia alerta automático no WhatsApp com instruções de recarga.
 
@@ -206,7 +94,7 @@ node tools/agendar-monitor.js 8-17-1730   # reagendar tarefas
 
 ---
 
-## 4. WhatsApp Bot
+## 3. WhatsApp Bot
 
 **O que faz:** Bot central que envia relatórios automáticos, alertas de ads, cobranças de vídeo e responde comandos manuais.
 
@@ -262,32 +150,63 @@ pm2 start br-pneus-bot
 
 ---
 
-## 9. Avaliações Google (nota média por loja)
+## 4. Avaliações Google (nota média + reviews por loja)
 
-**O que faz:** Scrapa a nota média e total de avaliações de cada loja no Google Business e salva na tabela `google_ratings` do Supabase. Os dados aparecem na tela **Social Media** do NexusZ.
+**O que faz:** Busca nota média, total de avaliações e até 5 reviews de cada loja via **Google Places API (New)**. Salva em `google_ratings` e `google_reviews` no Supabase. Dados aparecem em **Social Media** do NexusZ.
 
 | Campo | Valor |
 |-------|-------|
-| Script | `tools/coletar-avaliacoes.js` |
-| Workflow | `.github/workflows/avaliacoes-google.yml` |
-| Agendamento | Seg–Sáb às **17h BRT** (20:00 UTC) |
-| Tabela Supabase | `google_ratings` |
+| Edge Function | `coleta-avaliacoes-google` (projeto `ubiuershczqjnoczcupa`) |
+| Agendamento | pg_cron `coleta-avaliacoes-google-diario`: **8h30 BRT (11h30 UTC)**, Seg–Sáb |
+| Tabelas Supabase | `google_ratings`, `google_reviews` |
+| Secrets Vault | `GOOGLE_PLACES_API_KEY` ⚠️, `GOOGLE_PLACE_ID_BR_ARARAQUARA1`, `GOOGLE_PLACE_ID_BR_SAO_CARLOS`, `GOOGLE_PLACE_ID_BR_AMERICANA`, `GOOGLE_PLACE_ID_PEG_ARARAQUARA` |
+
+> ⚠️ **`GOOGLE_PLACES_API_KEY` ainda não configurado.** Criar em [Google Cloud Console → APIs → Places API (New)](https://console.cloud.google.com/apis/library/places-backend.googleapis.com) e adicionar ao Vault: `npx supabase secrets set GOOGLE_PLACES_API_KEY="AIza..." --project-ref ubiuershczqjnoczcupa`
+
+**Limitação:** Places API retorna até 5 reviews por loja (as mais relevantes). Respostas do proprietário (`reply_text`) não são retornadas pela API.
 
 **Como rodar manualmente:**
 ```bash
-node tools/coletar-avaliacoes.js
-# ou
-npm run avaliacoes
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-avaliacoes-google \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" -d '{}'
 ```
-
-**Pré-requisito (uma única vez):** rodar o SQL em `supabase/migrations/create_google_ratings.sql` no Supabase SQL Editor.
-
-**Secrets necessários no GitHub Actions:**
-`NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY`, todos os `GOOGLE_PLACE_ID_*`.
 
 ---
 
-## 10. CPA — Custo por Lead (NexusZ AdminAds)
+## 4b. Vendas Diárias OI (faturamento + lucro por loja)
+
+**O que faz:** Faz login no OI, navega até o relatório **Gestão Periódica** para cada loja e extrai: faturamento total, lucro bruto, e contagem de OS por tipo (carro/retira/revisão × porta/agendamento). Salva em `vendas_diarias_oi` no Supabase. Dados aparecem em **Consolidado Mês** do NexusZ.
+
+| Campo | Valor |
+|-------|-------|
+| Edge Function | `coleta-vendas-diarias` (projeto `ubiuershczqjnoczcupa`) |
+| Agendamento | pg_cron `coleta-vendas-diarias-diario`: **7h BRT (10h UTC)**, Seg–Sáb |
+| Coleta | ontem (D-1) por padrão; aceita `{"data":"YYYY-MM-DD"}` no body |
+| Tabela Supabase | `vendas_diarias_oi` (upsert por `data + loja_key`) |
+| Secrets Vault | `OI_EMAIL`, `OI_SENHA` (mesmos da coleta-gestao-periodica) |
+
+**Lojas:** BR1 (Araraquara), BR3 (Americana), BR4 (São Carlos), PEG1 (Araraquara)
+
+**Campos coletados:** `faturamento`, `lucro_bruto`, `carro_porta`, `retira_porta`, `revisao_porta`, `carro_agendamento`, `retira_agendamento`, `revisao_agendamento`  
+**Não coletado:** `pneu_vendidos` (fica `null` — requer PDF via Puppeteer, não disponível em Deno)
+
+**Como rodar manualmente:**
+```bash
+# Ontem (padrão)
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-vendas-diarias \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" -d '{}'
+
+# Data específica
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-vendas-diarias \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" -d '{"data":"2026-08-24"}'
+```
+
+---
+
+## 5. CPA — Custo por Lead (NexusZ AdminAds)
 
 **O que faz:** Seção "💰 CPA" na página Dashboard ADS do NexusZ. Cruza automaticamente o gasto diário estimado de ADS (spend_7d ÷ 7) com os leads do dia da tabela `leads_diarios`. Exibe por loja: gasto Meta, gasto Google, total/dia e CPA em R$.
 
