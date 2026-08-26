@@ -130,7 +130,7 @@ function parseOSCards(texto, lojaKey) {
 
     const dataMatch       = block.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})/);
     const clienteMatch    = block.match(/Cliente:\s*(.+?)(?:\t|$)/m);
-    const tipoMatch       = block.match(/Tipo:\s*(.+?)(?:\t|$)/m);
+    const tipoMatch       = block.match(/Tipo de OS:\s*(.+?)(?:\t|$)/m) || block.match(/Tipo:\s*(.+?)(?:\t|$)/m);
     const veiculoMatch    = block.match(/Ve[íi]culo:\s*(.+?)(?:\t|$)/m);
     const placaMatch      = block.match(/Placa:\s*(.+?)(?:\t|$)/m);
     const hodometroMatch  = block.match(/Hod[ôo]metro:\s*(\d+)/);
