@@ -793,31 +793,54 @@ node tools/coletar-social-video.js
 
 **O que faz:** Coleta saldo, spend e métricas de performance (CTR, CPC, impressões, cliques, conversões) de todas as contas Meta Ads e Google Ads e salva snapshots em `ads_snapshots` no Supabase. **Também detecta e registra recargas automaticamente** em `ads_recargas`, eliminando a necessidade de entrada manual.
 
+### 13a. Meta Ads — Supabase Edge Function (migrado ago/2026)
+
 | Campo | Valor |
 |-------|-------|
-| Script | `tools/coletar-ads-supabase.js` |
+| Edge Function | `coleta-meta-ads` v1 (projeto `ubiuershczqjnoczcupa`) |
 | Tabelas | `ads_snapshots` + `ads_recargas` (NexusZ) |
-| Agendamento | **GitHub Actions** — toda hora das **08h às 19h BRT** (seg–sáb) |
-| Workflow | `.github/workflows/ads-monitor.yml` |
-| Env vars necessárias | `META_ACCESS_TOKEN_BR`, `META_ACCESS_TOKEN_PEG`, `META_ACCOUNT_BR_*` (4), `META_ACCOUNT_PEG_*` (2), `GOOGLE_ADS_*` (5 vars), `GOOGLE_ACCOUNT_BR_*` (4), `GOOGLE_ACCOUNT_PEG_*` (2), `NEXUSZ_SUPABASE_URL`, `NEXUSZ_SUPABASE_SERVICE_ROLE_KEY` |
+| Agendamento | pg_cron `coleta-meta-ads`: **a cada 2h das 08h–18h BRT** (Seg–Sáb) |
+| PC necessário | ❌ Não (100% Supabase — fetch puro para Meta Graph API) |
+
+**Secrets Supabase necessários (adicionar em Supabase → Edge Functions → Secrets):**
+- `META_ACCESS_TOKEN_BR` — token das 3 contas BR Pneus
+- `META_ACCESS_TOKEN_PEG` — token das contas Peg Pneus
+- `META_ACCOUNT_BR_AMERICANA`, `META_ACCOUNT_BR_SAO_CARLOS`, `META_ACCOUNT_BR_ARARAQUARA`
+- `META_ACCOUNT_PEG_ARARAQUARA`
+
+**Como rodar manualmente:**
+```bash
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-meta-ads \
+  -H "Content-Type: application/json" -d '{}'
+
+# Ou via npm (script local — rodar no PC com .env configurado)
+npm run ads:supabase:meta
+```
+
+### 13b. Google Ads — PM2 local (não portável para Supabase)
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/coletar-ads-supabase.js --google` |
+| Tabelas | `ads_snapshots` (NexusZ) |
+| Agendamento | PM2 cron — toda hora das **08h às 19h BRT** (seg–sáb) |
+| PC necessário | ✅ Sim — usa `google-ads-api` SDK Node.js (incompatível com Deno/Supabase) |
+
+**Como rodar manualmente (requer PC com .env configurado):**
+```bash
+npm run ads:supabase:google      # Google Ads
+npm run ads:supabase             # Meta + Google + recargas (script local completo)
+```
 
 **Contas monitoradas (8 total — jul/2026):**
 - Meta Ads: BR Pneus Americana, São Carlos, Araraquara + Peg Pneus Araraquara
 - Google Ads: BR Pneus Americana, Araraquara, São Carlos + Peg Pneus Araraquara
 
-**⚠️ REGRA CRÍTICA META:** BR Pneus Araraquara → Pix nos **FUNDOS**. Todas as outras 5 contas Meta → Pix no **SALDO**.
+**⚠️ REGRA CRÍTICA META:** BR Pneus Araraquara → Pix nos **FUNDOS**. Todas as outras 3 contas Meta → Pix no **SALDO**.
 
 **Thresholds de alerta:**
 - Meta: saldo < R$100 🔴 / < R$200 🟠 | CTR < 0,5% 🔴 / < 1% 🟡
 - Google: saldo < R$50 🔴 / < R$100 🟠 | CTR < 1% 🔴 / < 2% 🟠 | CPC > R$10 🔴 / > R$5 🟠
-
-**Como rodar manualmente:**
-```bash
-npm run ads:supabase             # Meta + Google + recargas
-npm run ads:supabase:meta        # só Meta
-npm run ads:supabase:google      # só Google
-node tools/coletar-ads-supabase.js --recargas  # só recargas (Meta + Google)
-```
 
 **Detecção automática de recargas:**
 - **Google Ads:** usa `account_budget_proposal` — cada aumento no `proposed_spending_limit_micros` equivale a uma recarga Pix; o ID da proposta (`proposal_XXXX`) é salvo em `descricao` para dedup perfeito. Data e valor individuais por pagamento. Histórico completo desde a criação da conta.
@@ -980,22 +1003,28 @@ node tools/setup-artes-storage.js
 
 ## 18. Vendas de Pneus — Coleta Horária
 
-**O que faz:** Coleta vendas de pneus por item (grupo/descrição/medida/marca) via API OI (`OrdemDeServicoJSON`) para todas as 7 lojas e grava na tabela `vendas_pneus` do Supabase.
+**O que faz:** Coleta vendas de pneus por item (grupo/descrição/medida/marca) via API OI (`OrdemDeServicoJSON`) para todas as lojas ativas e grava na tabela `vendas_pneus` do Supabase. Migrado de GitHub Actions para Supabase Edge Function em ago/2026.
 
 | Campo | Valor |
 |-------|-------|
-| Script | `tools/coletar-vendas-pneus.js` |
+| Edge Function | `trigger-vendas-sync` v44 (projeto `ubiuershczqjnoczcupa`) |
+| Script local (referência) | `tools/coletar-vendas-pneus.js` |
 | Tabela Supabase | `vendas_pneus` (NexusZ) |
-| Agendamento | **GitHub Actions** — **a cada 10 min** das **07h–19h BRT** (seg–sáb) + coleta hoje+ontem |
-| Workflow | `.github/workflows/vendas-auto-update.yml` |
-| Retroativo | `.github/workflows/collect-vendas-retroativo-range.yml` |
-| Manual (botão NexusZ) | Edge Function `trigger-vendas-sync` → `collect-vendas-manual.yml` |
+| Agendamento | pg_cron `trigger-vendas-sync`: **a cada 5 min das 8h–19h BRT** (Seg–Sáb) |
+| Manual (botão NexusZ) | Chama diretamente a edge function `trigger-vendas-sync` |
+| PC necessário | ❌ Não (100% Supabase — HTTP puro para API OI) |
 
 **Lojas coletadas:** BR01, BR03, BR04, PEG1 (4 lojas ativas — BR02, BR05, SOR1 encerradas)
 
+**Secrets Supabase necessários:**
+- `OI_TOKEN_ALT_BR01_CENTRO`, `OI_TOKEN_ALT_BR03_AMERICANA`
+- `OI_TOKEN_BR04_SAO_CARLOS`, `OI_TOKEN_PEG1_ARARAQUARA`
+
 **Como rodar retroativo:**
 ```bash
-gh workflow run collect-vendas-retroativo-range.yml --field data_inicio=2026-06-01 --field data_fim=2026-06-30
+# Via curl (passa a data no body)
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/trigger-vendas-sync \
+  -H "Content-Type: application/json" -d '{"data":"2026-06-15"}'
 ```
 
 **Visualização no NexusZ:** Menu "Vendas de Pneus" — tabelas Sintética/Intermediária/Analítica, gráficos, cards de metas/previsões por grupo.
@@ -1488,7 +1517,7 @@ node tools/sync-cadastro-funcionarios-oi.js --loja=BR01  # filtra uma loja
 |-------|-------|
 | Script | `tools/sync-ponto-inponto.js` |
 | Edge Function | `sync-ponto` (v11) — invocada pelo botão "Atualizar agora" no NexusZ |
-| GitHub Actions | `sync-ponto-inponto.yml` — roda a cada 5 minutos |
+| Agendamento | pg_cron `sync-ponto-inponto` — `*/5 * * * *` (todo minuto — 100% Supabase, sem PC) |
 | API | `pontogoapi-homolog-production.up.railway.app` |
 | Auth | Token estático `INPONTO_TOKEN` no `.env` |
 | Empresas | `INPONTO_COMPANY_1..4` + `INPONTO_USER_1..4` no `.env` |
