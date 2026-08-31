@@ -315,6 +315,12 @@ async function coletarLoja(page, loja, deDisplay, ateDisplay) {
 async function salvarNoSupabase(supabase, osCards) {
   if (!osCards.length) return;
 
+  // Carrega mapa grupo → area_id uma vez antes do loop
+  const { data: gruposData } = await supabase.from('os_grupos').select('grupo, area_id');
+  const grupoToAreaId = new Map(
+    (gruposData ?? []).map(g => [(g.grupo ?? '').toUpperCase().trim(), g.area_id])
+  );
+
   let inseridos = 0, atualizados = 0, erros = 0;
   let colunaPagamentosOk = true; // assume que a coluna existe; detecta se der erro
 
@@ -351,10 +357,14 @@ async function salvarNoSupabase(supabase, osCards) {
 
     const osId = osRow.id;
 
-    // Remove itens antigos e reinserere (mais simples que upsert por código)
+    // Remove itens antigos e reinsere (mais simples que upsert por código)
     if (itens.length > 0) {
       await supabase.from('os_itens').delete().eq('os_vendas_id', osId);
-      const itensComId = itens.map(item => ({ ...item, os_vendas_id: osId }));
+      const itensComId = itens.map(item => ({
+        ...item,
+        os_vendas_id: osId,
+        area_id: grupoToAreaId.get((item.grupo ?? '').toUpperCase().trim()) || null,
+      }));
       const { error: itensErr } = await supabase.from('os_itens').insert(itensComId);
       if (itensErr) console.error(`    ⚠️  Itens OS ${os.os_numero}: ${itensErr.message}`);
     }
