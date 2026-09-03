@@ -4,7 +4,54 @@ Documento de referência para todas as automações ativas. Atualizar sempre que
 
 ---
 
-## 1. Coleta de Enriquecimento de OS (busca + detalhes) → Supabase
+## 1. Coleta de OS Detalhadas via Relatório Gestão Periódica → Supabase Edge Function
+
+**O que faz:** Faz login no OI via HTTP (sem Puppeteer/browser) e acessa o relatório `wfRelatorioOperacao.aspx` (Gestão Periódica, "Mostrar OS: Sim") para cada loja. Parseia o HTML convertendo tabelas em texto tab-separado (simula `innerText`) e salva em `os_vendas` + `os_itens` com todos os campos detalhados. Substitui o script PM2 local `coletar-os-detalhadas.js` que ficava parando.
+
+**Campos coletados:** `responsavel`, `pesquisa`, `tipo`, `executor` (por item), `pagamentos` (JSONB), `hora_inicio`, `hora_fim`, `cliente`, `veiculo`, `placa`, `hodometro`, `totais`, `lucro_bruto_pct`, `observacoes`.
+
+---
+
+### 1a. coleta-os-detalhadas (ATIVA — Supabase Edge Function)
+
+**O que faz:** Faz login no OI, acessa a página de **Busca de OS** (`wfOrdemDeServicoBusca.aspx`) para cada loja e atualiza `os_vendas` com campos que a API JSON não retorna: `hora_inicio`, `hora_fim`, `responsavel`, `pesquisa`. No modo `detalhe:true` (23h), também acessa cada OS individualmente para pegar `executor` (os_itens) e `pagamentos` (JSONB).
+
+| Campo | Valor |
+|-------|-------|
+| Edge Function | `coletar-os-detalhadas` (projeto `ubiuershczqjnoczcupa`) |
+| Agendamento ontem | pg_cron `coleta-os-ontem`: **9h BRT (12h UTC) diário** — coleta data de ontem |
+| Agendamento hoje | pg_cron `coleta-os-hoje`: **a cada 30min 8h–18h BRT (seg–sáb)** — coleta data de hoje |
+| Tabelas Supabase | `os_vendas` (upsert por `loja_key+os_numero`), `os_itens` (delete+insert por `os_vendas_id`) |
+| Secrets Supabase | `OI_EMAIL`, `OI_SENHA` (definir via `npx supabase secrets set`) |
+| Arquivo fonte | `supabase/functions/coletar-os-detalhadas/index.ts` (NexusZ repo) |
+
+**Como invocar manualmente:**
+```bash
+# Ontem (padrão)
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coletar-os-detalhadas \
+  -H "Content-Type: application/json" -d '{}'
+
+# Hoje
+curl -s "https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coletar-os-detalhadas?hoje=1"
+
+# Data específica
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coletar-os-detalhadas \
+  -H "Content-Type: application/json" -d '{"date":"2026-08-20"}'
+
+# Só uma loja
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coletar-os-detalhadas \
+  -H "Content-Type: application/json" -d '{"date":"2026-08-20","lojas":["BR01"]}'
+```
+
+**Regras importantes:**
+- Usa `wfRelatorioOperacao.aspx` (Gestão Periódica com "Mostrar OS: Sim") — retorna todas as OS do período em lista paginada
+- Converte HTML → texto tab-separado (simula `document.body.innerText`) sem Puppeteer
+- Paginação via `__doPostBack` ASP.NET detectado dinamicamente no HTML
+- Sem dependência do PC — roda 100% na nuvem Supabase
+
+---
+
+### 1b. coleta-gestao-periodica (Edge Function legada)
 
 **O que faz:** Faz login no OI, acessa a página de **Busca de OS** (`wfOrdemDeServicoBusca.aspx`) para cada loja e atualiza `os_vendas` com campos que a API JSON não retorna: `hora_inicio`, `hora_fim`, `responsavel`, `pesquisa`. No modo `detalhe:true` (23h), também acessa cada OS individualmente para pegar `executor` (os_itens) e `pagamentos` (JSONB).
 
