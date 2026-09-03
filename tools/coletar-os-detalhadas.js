@@ -39,8 +39,16 @@ function parseArgs() {
     if (args[i] === '--date' || args[i] === '--de') de = args[++i];
     if (args[i] === '--ate') ate = args[++i];
   }
-  if (!de) {
-    // Default: ontem
+  // Resolve palavras-chave
+  const todayISO = () => {
+    const d = new Date();
+    // Ajuste para BRT (UTC-3)
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset() - 180);
+    return d.toISOString().slice(0, 10);
+  };
+  if (!de || de === 'today' || de === 'hoje') {
+    de = todayISO();
+  } else if (de === 'yesterday' || de === 'ontem') {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     de = d.toISOString().slice(0, 10);
@@ -82,33 +90,34 @@ function ensureDebugDir() {
 async function login(page) {
   console.log('  🔐 Login...');
   await page.goto('https://sistemaoficinainteligente.com.br/Entrar.aspx?sair=1', {
-    waitUntil: 'networkidle2', timeout: 45000,
+    waitUntil: 'domcontentloaded', timeout: 45000,
   });
   await page.waitForSelector('#Login1_UserName', { timeout: 20000 });
   await page.type('#Login1_UserName', process.env.OI_EMAIL, { delay: 20 });
   await page.type('#Login1_Password', process.env.OI_SENHA, { delay: 20 });
   await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }),
+    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }),
     page.click('#Login1_btnEntrar'),
   ]);
+  await sleep(800);
   console.log('  ✅ Logado');
 }
 
 async function trocarLoja(page, ddlValue) {
   // Navega ao relatório primeiro (garante que o seletor de loja esteja no DOM)
-  await page.goto(RELATORIO_URL, { waitUntil: 'networkidle2', timeout: 30000 });
-  await page.waitForSelector('#ddlTrocarEmpresa', { timeout: 10000 });
+  await page.goto(RELATORIO_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForSelector('#ddlTrocarEmpresa', { timeout: 15000 });
   await page.select('#ddlTrocarEmpresa', ddlValue);
-  await sleep(300);
+  await sleep(400);
 
   // Clica via JS (ignora visibilidade — botão pode estar oculto em alguns temas)
-  const navPromise = page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
+  const navPromise = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 });
   await page.evaluate(() => {
     const btn = document.querySelector('#ctl00_btnTrocarEmpresa');
     if (btn) btn.click();
   });
   // Se já era a loja atual, a navegação não acontece
-  await navPromise.catch(() => sleep(1000));
+  await navPromise.catch(() => sleep(1500));
   await sleep(800);
 }
 
@@ -245,8 +254,8 @@ function parseOSCards(texto, lojaKey) {
 async function coletarLoja(page, loja, deDisplay, ateDisplay) {
   console.log(`\n  ━━━ ${loja.label} (${loja.key}) ━━━`);
 
-  await page.goto(RELATORIO_URL, { waitUntil: 'networkidle2', timeout: 30000 });
-  await page.waitForSelector('#ctl00_cph_txtDataInicial', { timeout: 10000 });
+  await page.goto(RELATORIO_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForSelector('#ctl00_cph_txtDataInicial', { timeout: 15000 });
 
   // Preenche datas
   await page.evaluate((de, ate) => {
@@ -256,17 +265,18 @@ async function coletarLoja(page, loja, deDisplay, ateDisplay) {
 
   // OS: Sim
   await page.select('#ctl00_cph_ddlMostrarOS', 'True');
+  await sleep(300);
 
   // Clica Gestão Periódica
   try {
     await Promise.all([
-      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 40000 }),
       page.click('#ctl00_cph_btnGestaoPeriodica'),
     ]);
   } catch {
-    await sleep(4000);
+    await sleep(5000);
   }
-  await sleep(1000);
+  await sleep(1500);
 
   let todasOS = [];
   let pagina = 1;
@@ -296,7 +306,7 @@ async function coletarLoja(page, loja, deDisplay, ateDisplay) {
     const proximoSel = 'input[value*="róxim"], input[value*="roxim"], a[href*="Proxim"], button[title*="róxim"]';
     try {
       await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }),
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }),
         page.click(proximoSel),
       ]);
     } catch {
@@ -397,6 +407,7 @@ async function main() {
 
   const browser = await puppeteer.launch({
     headless: true,
+    protocolTimeout: 60000,
     args: [
       ...proxyArgs,
       '--no-sandbox',
@@ -414,15 +425,30 @@ async function main() {
   try {
     await login(page);
 
+    let lojasSucesso = 0, lojasFalha = 0;
     for (const loja of LOJAS) {
-      // Troca para a loja
-      await trocarLoja(page, loja.ddlValue);
-
-      const osCards = await coletarLoja(page, loja, deDisplay, ateDisplay);
-      await salvarNoSupabase(supabase, osCards);
+      try {
+        await trocarLoja(page, loja.ddlValue);
+        const osCards = await coletarLoja(page, loja, deDisplay, ateDisplay);
+        await salvarNoSupabase(supabase, osCards);
+        lojasSucesso++;
+      } catch (lojaErr) {
+        console.error(`\n  ❌ Falha na loja ${loja.key}: ${lojaErr.message}`);
+        lojasFalha++;
+        // Screenshot de debug por loja
+        try {
+          ensureDebugDir();
+          const ss = path.join(DEBUG_DIR, `error-${loja.key}-${Date.now()}.png`);
+          await page.screenshot({ path: ss, fullPage: true });
+          console.error(`  📸 Screenshot: ${ss}`);
+        } catch {}
+        // Tenta renegociar o estado da página antes da próxima loja
+        await page.goto('about:blank', { waitUntil: 'domcontentloaded' }).catch(() => {});
+        await sleep(1000);
+      }
     }
 
-    console.log('\n✅ Coleta concluída!\n');
+    console.log(`\n✅ Coleta concluída! ${lojasSucesso} lojas ok, ${lojasFalha} falhas\n`);
   } catch (err) {
     // Screenshot de debug antes de fechar
     try {
