@@ -14,11 +14,11 @@ Documento de referência para todas as automações ativas. Atualizar sempre que
 
 ### 1a. coleta-os-detalhadas (ATIVA — Supabase Edge Function)
 
-**O que faz:** Faz login no OI, acessa a página de **Busca de OS** (`wfOrdemDeServicoBusca.aspx`) para cada loja e atualiza `os_vendas` com campos que a API JSON não retorna: `hora_inicio`, `hora_fim`, `responsavel`, `pesquisa`. No modo `detalhe:true` (23h), também acessa cada OS individualmente para pegar `executor` (os_itens) e `pagamentos` (JSONB).
+**O que faz (v20 — set/2026):** Faz login no OI, acessa `wfRelatorioOperacao.aspx` (Gestão Periódica, "Mostrar OS: Sim") **uma única vez** — o relatório retorna OS de **todas as lojas** da empresa, independente da loja selecionada. Detecta a qual loja cada OS pertence pelo header do card ("1 - BR01 Araraquara", "Peg Pneus Araraquara" etc.) via `LOJA_PATTERNS`. Salva em `os_vendas` + `os_itens`.
 
 | Campo | Valor |
 |-------|-------|
-| Edge Function | `coletar-os-detalhadas` (projeto `ubiuershczqjnoczcupa`) |
+| Edge Function | `coletar-os-detalhadas` v20 (projeto `ubiuershczqjnoczcupa`) |
 | Agendamento ontem | pg_cron `coleta-os-ontem`: **9h BRT (12h UTC) diário** — coleta data de ontem |
 | Agendamento hoje | pg_cron `coleta-os-hoje`: **a cada 30min 8h–18h BRT (seg–sáb)** — coleta data de hoje |
 | Tabelas Supabase | `os_vendas` (upsert por `loja_key+os_numero`), `os_itens` (delete+insert por `os_vendas_id`) |
@@ -38,15 +38,16 @@ curl -s "https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coletar-os-detalh
 curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coletar-os-detalhadas \
   -H "Content-Type: application/json" -d '{"date":"2026-08-20"}'
 
-# Só uma loja
+# Só uma loja (filtro pós-coleta)
 curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coletar-os-detalhadas \
   -H "Content-Type: application/json" -d '{"date":"2026-08-20","lojas":["BR01"]}'
 ```
 
 **Regras importantes:**
-- Usa `wfRelatorioOperacao.aspx` (Gestão Periódica com "Mostrar OS: Sim") — retorna todas as OS do período em lista paginada
-- Converte HTML → texto tab-separado (simula `document.body.innerText`) sem Puppeteer
-- Paginação via `__doPostBack` ASP.NET detectado dinamicamente no HTML
+- `wfRelatorioOperacao.aspx` (Gestão Periódica) é **empresa-wide** — `trocarLoja` NÃO filtra o relatório; cada OS pertence à loja indicada no seu próprio header
+- Loja detectada por `LOJA_PATTERNS` nos primeiros 300 chars de cada bloco de OS (BR01/BR03/BR04/PEG)
+- Codificação Windows-1252: usa `new TextDecoder("windows-1252").decode(await r.arrayBuffer())` em vez de `.text()`
+- Paginação via `input[type=submit]` com valor "Próxima" ou `__doPostBack` detectado por contexto no HTML
 - Sem dependência do PC — roda 100% na nuvem Supabase
 
 ---
