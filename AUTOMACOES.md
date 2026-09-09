@@ -281,30 +281,56 @@ curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/coleta-col
 
 ---
 
-## 4d. Sync RH Colaboradores OI → NexusZ
+## 4d. Sync RH Colaboradores OI → NexusZ (v48 — set/2026)
 
-**O que faz:** Faz login no OI, lista todos os funcionários via `wfFuncionarioBusca.aspx`, abre o perfil de cada um (PostBack `lkbAbrir`), navega para as abas **Funcionário** e **Dados Bancários**, extrai CPF / datas de admissão-demissão-registro / dados bancários, e faz PATCH na tabela `rh_colaboradores` do NexusZ.
+**O que faz:** Faz login no OI, lista todos os funcionários via `wfFuncionarioBusca.aspx`, abre o perfil de cada um e navega **5 abas** do OI coletando todos os campos cadastrais. PATCH na tabela `rh_colaboradores` do NexusZ.
 
-**Regra crítica:** NUNCA modifica `cargo` nem `unidade_id`. Apenas: `cpf`, `data_admissao`, `data_demissao`, `data_registro`, `banco`, `agencia`, `conta`, `pix`, `sincronizado_oi_em`.
+**Regra crítica:** NUNCA modifica `cargo` nem `unidade_id`. Esses campos são gerenciados manualmente.
+
+**Abas coletadas (v48):**
+
+| Aba OI | Campos coletados |
+|--------|-----------------|
+| **Pessoa** | CPF, RG, data_nascimento, sexo, estado_civil, nome_mae, email (textarea!), telefone_celular, PIS, CTPS |
+| **Endereço** | cep, endereco (logradouro), numero, complemento, bairro, cidade, estado — da tabela grid, não do form de entrada |
+| **Contato** | contatos_dependentes (JSONB array), emergencia_nome, emergencia_telefone (primeiro dependente ativo) |
+| **Funcionário** | data_admissao, data_registro, data_demissao |
+| **Documentos** | documentos_oi (JSONB array com tipo, numero, validade) |
+
+**UI nova (Telerik — Base64 PessoaID) — comportamentos críticos:**
+- POST de navegação de aba REQUER `__VIEWSTATE` no body — sem ele, OI ignora o POST e retorna a aba atual
+- A função `navegarAbaMinimal` recebe `currentHtml` para extrair `__VIEWSTATE` e `__VIEWSTATEGENERATOR`
+- `cepCellRe` usa `<th>` (não `<t[hd]>`): a aba Endereço tem um `<td>CEP</td>` de formulário (form label) ANTES da tabela grid com `<th>CEP</th>` — pegar o grid correto
+- Tabela de dependentes (Contato) usa `<td>` nos headers (não `<th>`): excluir a linha de header do filtro de dataRows
+- Email fica em `<textarea>` na aba Pessoa — `getInputVal` tem estratégia 4 para textarea
 
 | Campo | Valor |
 |-------|-------|
-| Edge Function | `sync-rh-colaboradores` (projeto `ubiuershczqjnoczcupa`) |
+| Edge Function | `sync-rh-colaboradores` v48 (projeto `ubiuershczqjnoczcupa`) |
 | Agendamento | 4 jobs pg_cron, um por loja, seg–sáb: |
 | BR01 | `sync-rh-colaboradores-br01`: **8h BRT (11h UTC)** |
 | BR03 | `sync-rh-colaboradores-br03`: **8h30 BRT (11h30 UTC)** |
 | BR04 | `sync-rh-colaboradores-br04`: **9h BRT (12h UTC)** |
 | PEG1 | `sync-rh-colaboradores-peg1`: **9h30 BRT (12h30 UTC)** |
 | Tabela Supabase | `rh_colaboradores` (PATCH por `id`) |
+| Novos campos | `contatos_dependentes`, `documentos_oi`, `data_registro`, `emergencia_nome`, `emergencia_parentesco`, `emergencia_telefone` (migration 20260909120000) |
 | Secrets Vault | `OI_EMAIL`, `OI_SENHA`, `SUPABASE_SERVICE_ROLE_KEY` |
 
-**Matching:** por CPF (prioritário) ou por nome normalizado (tokenização). Ignora CIBELE ZACHI, FABIO ZACHI, CIBELE REGINA OLIVEIRA.
+**Matching:** por CPF (prioritário) ou por nome normalizado (tokenização). Ignora CIBELE ZACHI, FABIO ZACHI.
 
-**Como rodar manualmente (por loja):**
+**Como rodar manualmente:**
 ```bash
+# Por loja
 curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-rh-colaboradores \
   -H "Content-Type: application/json" -d '{"loja":"BR01"}'
-# Valores válidos: BR01, BR03, BR04, PEG1
+
+# Por pessoaId individual (Base64 do OI)
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-rh-colaboradores \
+  -H "Content-Type: application/json" -d '{"pessoaId":"e5cpst6yAGLrYHJcK7BqpQ=="}'
+
+# Modo debug (mostra HTML das abas, não salva no banco)
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-rh-colaboradores \
+  -H "Content-Type: application/json" -d '{"pessoaId":"e5cpst6yAGLrYHJcK7BqpQ==","debug":true}'
 ```
 
 ---
