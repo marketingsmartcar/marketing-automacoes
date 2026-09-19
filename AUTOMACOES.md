@@ -188,6 +188,17 @@ pm2 restart br-pneus-bot   # reiniciar bot
 pm2 logs br-pneus-bot      # ver logs em tempo real
 ```
 
+**Endpoint `/send-media` — pipeline direto (fix WA Web 2.3000.x):**
+
+A partir de set/2026, o `client.sendMessage()` + `MessageMedia` parou de funcionar com WA Web 2.3000.x para envio de arquivos. O endpoint `/send-media` foi reescrito para usar módulos internos do WA Web diretamente via `pupPage.evaluate`:
+1. `WAWebMediaOpaqueData.createFromData()` → cria OpaqueData a partir do base64
+2. `WAWebPrepRawMedia.prepRawMedia()` → prepara os dados de mídia
+3. `WAWebMediaStorage.getOrCreateMediaObject()` → cria objeto de mídia com hash
+4. `WAWebMediaMmsV4Upload.uploadMedia()` → faz upload encriptado e obtém `mediaEntry`
+5. `WAWebSendMsgChatAction.addAndSendMsgToChat()` → envia a mensagem no chat
+
+Endpoints disponíveis: `/status` (GET), `/send-media` (POST), `/diag-media` (GET), `/test-media-send` (POST).
+
 **Fix quando porta 3099 trava:**
 ```bash
 pm2 stop br-pneus-bot
@@ -1442,7 +1453,7 @@ node tools/bi-reativacao-oi.js --loja=BR01 --dia=14 --mes=7  # data específica
 
 **Tempo estimado:** ~2,5 min/loja → ~10 min para as 4 lojas
 
-*Última atualização: 14/07/2026 — Validado em produção: 20 Excel enviados ao ☎️ Comercial (BR01+BR03+BR04+PEG1). Task Scheduler `BI-Reativacao-OI` criado para 7h diário.*
+*Última atualização: 19/09/2026 — Validado em produção: 20 Excel enviados ao ☎️ Comercial (BR01+BR03+BR04+PEG1). Task Scheduler `BI-Reativacao-OI` criado para 7h diário. Envio de mídia reescrito para pipeline direto via `pupPage.evaluate` (compatível com WA Web 2.3000.x — vide seção WhatsApp Bot).*
 
 ---
 
