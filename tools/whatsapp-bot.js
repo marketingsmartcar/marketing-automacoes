@@ -64,17 +64,21 @@ const estadoConversas = new Map();
 
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: SESSION_DIR }),
+  authTimeoutMs: 300000,
+  webVersion: '2.3000.1023174029',
   webVersionCache: {
     type: 'remote',
-    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1039212651-alpha.html',
+    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1023174029.html',
   },
   puppeteer: {
-    headless: true,
-    protocolTimeout: 120000,
+    headless: 'new',
+    executablePath: 'C:\\Users\\Nick\\.cache\\puppeteer\\chrome\\win64-146.0.7680.153\\chrome-win64\\chrome.exe',
+    protocolTimeout: 300000,
     args: [
       '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
       '--disable-gpu', '--disable-extensions', '--no-first-run',
       '--disable-background-networking', '--disable-default-apps',
+      '--disable-blink-features=AutomationControlled',
     ],
   },
 });
@@ -134,8 +138,8 @@ client.on('qr', async (qr) => {
   console.log('  📱  QR atualizado — acesse http://localhost:3200 ou abra qr-whatsapp.png');
 });
 
-client.on('authenticated', () => {
-  if (_qrServer) { _qrServer.close(); _qrServer = null; }
+client.on('auth_failure', (msg) => {
+  console.error('❌ auth_failure:', msg);
 });
 
 client.on('authenticated', () => {
@@ -143,11 +147,11 @@ client.on('authenticated', () => {
   try { if (fs.existsSync(QR_FILE)) fs.unlinkSync(QR_FILE); } catch {}
   console.log('\n✅ Autenticado! Sessão salva — próximo start não precisará de QR.\n');
 
-  // Watchdog: se 'ready' não disparar em 4 minutos, reinicia
+  // Watchdog: se 'ready' não disparar em 10 minutos, reinicia
   const watchdog = setTimeout(() => {
-    console.error('⏰ Watchdog: ready não disparou em 4 min — reiniciando...');
+    console.error('⏰ Watchdog: ready não disparou em 10 min — reiniciando...');
     process.exit(1);
-  }, 4 * 60 * 1000);
+  }, 10 * 60 * 1000);
   client.once('ready', () => clearTimeout(watchdog));
 });
 
@@ -2505,11 +2509,115 @@ const apiServer = http.createServer((req, res) => {
       try {
         if (req.url === '/send-media') {
           const { chatId, media, caption } = JSON.parse(body);
-          const { MessageMedia } = require('whatsapp-web.js');
-          const m = new MessageMedia(media.mimetype, media.data, media.filename);
-          await client.sendMessage(chatId, m, { caption: caption || '' });
-          res.writeHead(200, CORS_HEADERS);
-          res.end(JSON.stringify({ ok: true }));
+          // Usa pipeline direto via pupPage para compatibilidade com WA Web 2.3000.x
+          const result = await client.pupPage.evaluate(async ({ chatId, mediaInfo, caption }) => {
+            const steps = [];
+            try {
+              const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
+              if (!chat) return { ok: false, erro: 'chat not found' };
+              steps.push('chatOk');
+
+              const file = window.WWebJS.mediaInfoToFile(mediaInfo);
+              const OpaqueData = window.require('WAWebMediaOpaqueData');
+              const opaqueData = await OpaqueData.createFromData(file, mediaInfo.mimetype);
+              steps.push('opaqueDataOk');
+
+              const mediaPrep = window.require('WAWebPrepRawMedia').prepRawMedia(opaqueData, { asDocument: true });
+              const mediaData = await mediaPrep.waitForPrep();
+              steps.push('prepOk hash=' + (mediaData && mediaData.filehash));
+
+              const mediaStorage = window.require('WAWebMediaStorage');
+              const mediaObject = mediaStorage.getOrCreateMediaObject(mediaData.filehash);
+              steps.push('mediaObjectOk');
+
+              const mediaType = window.require('WAWebMmsMediaTypes').msgToMediaType({ type: mediaData.type });
+              steps.push('mediaType=' + mediaType);
+
+              if (mediaData.mediaBlob && !(mediaData.mediaBlob instanceof OpaqueData)) {
+                mediaData.mediaBlob = await OpaqueData.createFromData(mediaData.mediaBlob, mediaData.mediaBlob.type);
+              }
+              if (mediaData.mediaBlob) {
+                mediaData.renderableUrl = mediaData.mediaBlob.url();
+              }
+              steps.push('renderableUrlOk');
+
+              try { mediaObject.consolidate(mediaData.toJSON()); steps.push('consolidateOk'); }
+              catch(e) { steps.push('consolidateWarn'); }
+
+              if (mediaData.mediaBlob) mediaData.mediaBlob.autorelease();
+
+              const { uploadMedia } = window.require('WAWebMediaMmsV4Upload');
+              const uploaded = await uploadMedia({ mimetype: mediaData.mimetype, mediaObject, mediaType });
+              steps.push('uploadOk');
+
+              const mediaEntry = uploaded && uploaded.mediaEntry;
+              if (!mediaEntry) return { ok: false, erro: 'no mediaEntry', steps };
+
+              mediaData.set({
+                clientUrl: mediaEntry.mmsUrl,
+                deprecatedMms3Url: mediaEntry.deprecatedMms3Url,
+                directPath: mediaEntry.directPath,
+                mediaKey: mediaEntry.mediaKey,
+                mediaKeyTimestamp: mediaEntry.mediaKeyTimestamp,
+                filehash: mediaObject.filehash,
+                encFilehash: mediaEntry.encFilehash,
+                uploadhash: mediaEntry.uploadHash,
+                size: mediaObject.size,
+                streamingSidecar: mediaEntry.sidecar,
+                firstFrameSidecar: mediaEntry.firstFrameSidecar,
+                mediaHandle: null,
+              });
+              steps.push('mediaDataSet');
+
+              const { getMaybeMeLidUser, getMaybeMePnUser } = window.require('WAWebUserPrefsMeUser');
+              const meUser = getMaybeMePnUser() || getMaybeMeLidUser();
+              const WAWebWidFactory = window.require('WAWebWidFactory');
+              const WAWebMsgKey = window.require('WAWebMsgKey');
+              const newId = await WAWebMsgKey.newId();
+              const from = meUser;
+              const participant = (chat.id && chat.id.isGroup && chat.id.isGroup())
+                ? WAWebWidFactory.asUserWidOrThrow(from)
+                : undefined;
+
+              const msgKey = new WAWebMsgKey({ from, to: chat.id, id: newId, participant, selfDir: 'out' });
+              steps.push('msgKeyOk');
+
+              const ephemeralFields = window.require('WAWebGetEphemeralFieldsMsgActionsUtils').getEphemeralFields(chat);
+              const mediaJSON = mediaData.toJSON ? mediaData.toJSON() : {};
+
+              const message = {
+                id: msgKey,
+                ack: 0,
+                body: mediaData.preview || null,
+                from,
+                to: chat.id,
+                local: true,
+                self: 'out',
+                t: parseInt(Date.now() / 1000),
+                isNewMsg: true,
+                type: mediaJSON.type || 'document',
+                caption: caption || '',
+                ...ephemeralFields,
+                ...mediaJSON,
+              };
+              steps.push('messageBuilt');
+
+              const [msgPromise] = window.require('WAWebSendMsgChatAction').addAndSendMsgToChat(chat, message);
+              await msgPromise;
+              steps.push('SENT');
+              return { ok: true, steps };
+            } catch(e) {
+              return { ok: false, erro: e.message, steps };
+            }
+          }, { chatId, mediaInfo: media, caption: caption || '' });
+
+          if (!result.ok) {
+            res.writeHead(500, CORS_HEADERS);
+            res.end(JSON.stringify({ ok: false, erro: result.erro }));
+          } else {
+            res.writeHead(200, CORS_HEADERS);
+            res.end(JSON.stringify({ ok: true }));
+          }
           return;
         }
         const { chatId, message } = JSON.parse(body);
@@ -2544,6 +2652,212 @@ const apiServer = http.createServer((req, res) => {
     return;
   }
 
+  // Status do bot
+  if (req.method === 'GET' && req.url === '/status') {
+    const ready = !!(client && client.info);
+    res.writeHead(200, CORS_HEADERS);
+    res.end(JSON.stringify({ ok: ready }));
+    return;
+  }
+
+  // Teste de envio de mídia com step-by-step logging
+  if (req.method === 'POST' && req.url === '/test-media-send') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { chatId, media } = JSON.parse(body);
+        const result = await client.pupPage.evaluate(async ({ chatId, media }) => {
+          const steps = [];
+          try {
+            steps.push('getChat');
+            const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
+            if (!chat) return { error: 'chat not found', steps };
+            steps.push('chatOk');
+
+            const mediaInfo = media;
+            const file = window.WWebJS.mediaInfoToFile(mediaInfo);
+            steps.push('fileCreated');
+
+            const OpaqueData = window.require('WAWebMediaOpaqueData');
+            const opaqueData = await OpaqueData.createFromData(file, mediaInfo.mimetype);
+            steps.push('opaqueDataOk');
+
+            const mediaPrep = window.require('WAWebPrepRawMedia').prepRawMedia(opaqueData, { asDocument: true });
+            steps.push('prepStarted');
+
+            const mediaData = await mediaPrep.waitForPrep();
+            steps.push('waitForPrepOk filehash=' + (mediaData && mediaData.filehash));
+
+            const mediaStorage = window.require('WAWebMediaStorage');
+            const mediaObject = mediaStorage.getOrCreateMediaObject(mediaData.filehash);
+            steps.push('mediaObjectOk id=' + (mediaObject && mediaObject.id));
+
+            const mediaType = window.require('WAWebMmsMediaTypes').msgToMediaType({ type: mediaData.type });
+            steps.push('mediaType=' + mediaType);
+
+            if (mediaData.mediaBlob && !(mediaData.mediaBlob instanceof OpaqueData)) {
+              mediaData.mediaBlob = await OpaqueData.createFromData(mediaData.mediaBlob, mediaData.mediaBlob.type);
+            }
+            mediaData.renderableUrl = mediaData.mediaBlob.url();
+            steps.push('renderableUrlOk');
+
+            try { mediaObject.consolidate(mediaData.toJSON()); steps.push('consolidateOk'); }
+            catch(e) { steps.push('consolidateWarn:' + e.message.substring(0, 60)); }
+
+            mediaData.mediaBlob.autorelease();
+            steps.push('autoreleaseOk');
+
+            const { uploadMedia } = window.require('WAWebMediaMmsV4Upload');
+            const uploaded = await uploadMedia({ mimetype: mediaData.mimetype, mediaObject, mediaType });
+            steps.push('uploadOk mediaEntry=' + (uploaded && uploaded.mediaEntry ? 'ok' : 'null'));
+
+            const mediaEntry = uploaded.mediaEntry;
+            if (!mediaEntry) return { error: 'no mediaEntry', steps };
+
+            mediaData.set({
+              clientUrl: mediaEntry.mmsUrl,
+              deprecatedMms3Url: mediaEntry.deprecatedMms3Url,
+              directPath: mediaEntry.directPath,
+              mediaKey: mediaEntry.mediaKey,
+              mediaKeyTimestamp: mediaEntry.mediaKeyTimestamp,
+              filehash: mediaObject.filehash,
+              encFilehash: mediaEntry.encFilehash,
+              uploadhash: mediaEntry.uploadHash,
+              size: mediaObject.size,
+              streamingSidecar: mediaEntry.sidecar,
+              firstFrameSidecar: mediaEntry.firstFrameSidecar,
+              mediaHandle: null,
+            });
+            steps.push('mediaDataSet');
+
+            // Build message
+            const { getMaybeMeLidUser, getMaybeMePnUser } = window.require('WAWebUserPrefsMeUser');
+            const meUser = getMaybeMePnUser() || getMaybeMeLidUser();
+            const WAWebWidFactory = window.require('WAWebWidFactory');
+            const WAWebMsgKey = window.require('WAWebMsgKey');
+            const newId = await WAWebMsgKey.newId();
+            const from = meUser;
+            const participant = chat.id.isGroup() ? WAWebWidFactory.asUserWidOrThrow(from) : undefined;
+            steps.push('identityOk from=' + String(from));
+
+            const msgKey = new WAWebMsgKey({ from, to: chat.id, id: newId, participant, selfDir: 'out' });
+            steps.push('msgKeyOk=' + msgKey._serialized);
+
+            const { getEphemeralFields } = window.require('WAWebGetEphemeralFieldsMsgActionsUtils');
+            const ephemeralFields = getEphemeralFields(chat);
+
+            const message = {
+              id: msgKey,
+              ack: 0,
+              body: mediaData.preview || null,
+              from,
+              to: chat.id,
+              local: true,
+              self: 'out',
+              t: parseInt(Date.now() / 1000),
+              isNewMsg: true,
+              type: 'document',
+              caption: '🎂 BR01 - Aniversariantes 19/09 (TESTE)',
+              ...ephemeralFields,
+              ...mediaData.toJSON ? mediaData.toJSON() : {},
+            };
+            steps.push('messageBuilt type=' + message.type);
+
+            const [msgPromise] = window.require('WAWebSendMsgChatAction').addAndSendMsgToChat(chat, message);
+            await msgPromise;
+            steps.push('SENT!');
+            return { ok: true, steps };
+          } catch(e) {
+            return { error: e.message.substring(0, 300), steps };
+          }
+        }, { chatId, media });
+
+        res.writeHead(result.ok ? 200 : 500, CORS_HEADERS);
+        res.end(JSON.stringify(result));
+      } catch(e) {
+        res.writeHead(500, CORS_HEADERS);
+        res.end(JSON.stringify({ ok: false, erro: e.message }));
+      }
+    });
+    return;
+  }
+
+  // Diagnóstico interno para debug de envio de mídia
+  if (req.method === 'GET' && req.url === '/diag-media') {
+    (async () => {
+      const result = await client.pupPage.evaluate(async () => {
+        const results = {};
+        try {
+          const { getMaybeMeLidUser, getMaybeMePnUser } = window.require('WAWebUserPrefsMeUser');
+          const lidUser = getMaybeMeLidUser();
+          const meUser = getMaybeMePnUser();
+          const WAWebWidFactory = window.require('WAWebWidFactory');
+          const chatWid = WAWebWidFactory.createWid('120363429155837879@g.us');
+          const chat = window.require('WAWebCollections').Chat.get(chatWid);
+
+          results.meUser = meUser ? String(meUser) : null;
+          results.lidUser = lidUser ? String(lidUser) : null;
+          results.chatFound = !!chat;
+          results.chatIdSerialized = chat && chat.id ? chat.id._serialized : null;
+          results.chatIdIsGroup = chat && chat.id && chat.id.isGroup ? chat.id.isGroup() : null;
+
+          // Testar WAWebMsgKey
+          try {
+            const WAWebMsgKey = window.require('WAWebMsgKey');
+            const newId = await WAWebMsgKey.newId();
+            results.newId = newId;
+
+            // Testar com participant (group message)
+            try {
+              const from = meUser || lidUser;
+              const participant = WAWebWidFactory.asUserWidOrThrow(from);
+              results.participant = String(participant);
+
+              const mk = new WAWebMsgKey({
+                from: from,
+                to: chat.id,
+                id: newId,
+                participant: participant,
+                selfDir: 'out',
+              });
+              results.msgKeyOk = true;
+              results.msgKeyId = mk._serialized;
+            } catch(e) {
+              results.msgKeyWithParticipantErr = e.message;
+
+              // Testar sem participant
+              try {
+                const from = meUser || lidUser;
+                const mk2 = new WAWebMsgKey({
+                  from: from,
+                  to: chat.id,
+                  id: newId,
+                  selfDir: 'out',
+                });
+                results.msgKeyWithoutParticipantOk = true;
+                results.msgKeyWithoutParticipantId = mk2._serialized;
+              } catch(e2) {
+                results.msgKeyWithoutParticipantErr = e2.message;
+              }
+            }
+          } catch(e) {
+            results.msgKeyBaseErr = e.message;
+          }
+        } catch(e) {
+          results.error = e.message;
+        }
+        return results;
+      });
+      res.writeHead(200, CORS_HEADERS);
+      res.end(JSON.stringify(result, null, 2));
+    })().catch(e => {
+      res.writeHead(500, CORS_HEADERS);
+      res.end(JSON.stringify({ ok: false, erro: e.message }));
+    });
+    return;
+  }
+
   res.writeHead(404, CORS_HEADERS); res.end(JSON.stringify({ ok: false }));
 });
 apiServer.on('error', (err) => {
@@ -2560,8 +2874,14 @@ apiServer.listen(3099, '127.0.0.1', () =>
 // ─── Error handlers ────────────────────────────────────────────────────────────
 
 process.on('unhandledRejection', (reason) => {
-  console.error('[BOT] UnhandledRejection:', reason instanceof Error ? reason.message : reason);
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  console.error('[BOT] UnhandledRejection:', msg);
   if (reason instanceof Error) console.error(reason.stack);
+  // auth timeout: reiniciar para tentar novamente
+  if (msg === 'auth timeout') {
+    console.error('⏰ Auth timeout — reiniciando processo...');
+    process.exit(1);
+  }
 });
 
 // Graceful shutdown: garante que o Chrome filho é morto antes do PM2 reiniciar
@@ -2584,10 +2904,10 @@ async function iniciarBot(tentativasRestantes = 3) {
       e.message?.includes('Protocol error');
 
     if (sessaoCorrempida) {
-      console.warn('⚠️  Sessão corrompida detectada — limpando e reiniciando...');
-      try { fs.rmSync(SESSION_DIR, { recursive: true, force: true }); } catch {}
-      await new Promise(r => setTimeout(r, 3000));
-      return iniciarBot(3); // reinicia com tentativas cheias após limpar
+      // Execution context was destroyed = navegação normal do WA Web durante inject — NÃO apagar sessão
+      console.warn('⚠️  Contexto destruído durante initialize — reiniciando sem limpar sessão...');
+      await new Promise(r => setTimeout(r, 5000));
+      return iniciarBot(tentativasRestantes > 0 ? tentativasRestantes - 1 : 3);
     }
 
     if (e.message?.includes('already running') && tentativasRestantes > 0) {
