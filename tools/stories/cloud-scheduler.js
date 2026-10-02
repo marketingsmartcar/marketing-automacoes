@@ -35,6 +35,28 @@ function carregarSchedule() {
   try { return JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf8')); } catch { return null; }
 }
 
+// ─── Automações do NexusZ ─────────────────────────────────────────────────────
+
+async function buscarAutomacoesNexusZ(dataHoje) {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseKey) {
+    console.log('  ⚠️  SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurados — pulando automações NexusZ.');
+    return [];
+  }
+  try {
+    const url = `${supabaseUrl}/rest/v1/stories_automacoes?select=*&ativa=eq.true&data_inicio=lte.${dataHoje}&or=(data_fim.is.null,data_fim.gte.${dataHoje})`;
+    const res = await fetch(url, {
+      headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+    });
+    if (!res.ok) { console.error('  ❌ Erro ao buscar automações NexusZ:', res.status); return []; }
+    return await res.json();
+  } catch (e) {
+    console.error('  ❌ Erro de rede ao buscar automações NexusZ:', e.message);
+    return [];
+  }
+}
+
 // ─── Configuração das contas ──────────────────────────────────────────────────
 
 // Lojas encerradas — nunca postar vídeos destas pastas, mesmo que estejam no schedule
@@ -167,6 +189,12 @@ async function publicarStories() {
   const estado      = carregarEstado();
   const schedule    = carregarSchedule();
   const diaPlano    = schedule?.[hoje] ?? null;
+
+  // Automações criadas pelo NexusZ
+  const automacoesNexusZ = await buscarAutomacoesNexusZ(hoje);
+  if (automacoesNexusZ.length > 0) {
+    console.log(`   Automações NexusZ ativas hoje: ${automacoesNexusZ.length}`);
+  }
 
   console.log(`\n📱 [${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}] Cloud Stories Scheduler`);
   console.log(`   Data: ${hoje} | Plano mensal: ${diaPlano ? 'Sim ✅' : 'Não (modo aleatório)'}`);
@@ -318,6 +346,62 @@ async function publicarStories() {
     }
 
     estado[conta.key] = st;
+  }
+
+  // ── Automações NexusZ ────────────────────────────────────────────────────────
+  for (const aut of automacoesNexusZ) {
+    const conta = CONTAS.find(c => c.key === aut.marca && !c.paused);
+    if (!conta) {
+      console.log(`\n⏭️  Automação "${aut.nome}" (${aut.marca}) ignorada — conta pausada ou não encontrada.`);
+      continue;
+    }
+
+    const stateKey = `nexusz_${aut.id}`;
+    if (estado[stateKey]?.ultima === hoje) {
+      console.log(`\n⏭️  Automação "${aut.nome}" já postada hoje — pulando.`);
+      continue;
+    }
+
+    console.log(`\n🤖 Automação NexusZ: "${aut.nome}" (${aut.tipo} · ${aut.marca})`);
+    if (!estado[stateKey]) estado[stateKey] = { ultima: null, index: 0 };
+    const stEntry = estado[stateKey];
+
+    const videos = (aut.videos || []);
+    if (videos.length === 0) { console.log('  ⚠️  Sem vídeos configurados — pulando.'); continue; }
+
+    if (aut.tipo === 'arte') {
+      // Arte: 1ª = fixa, 2ª = rotativa
+      for (let i = 0; i < Math.min(2, videos.length); i++) {
+        const v = videos[i];
+        const local = await baixarArquivo(v.id, v.name);
+        await postarArquivo(conta, local, v.name, i === 0 ? 'Arte fixa (NexusZ)' : 'Arte rotativa (NexusZ)');
+        try { fs.unlinkSync(local); } catch {}
+      }
+    } else if (aut.tipo === 'regular') {
+      // Regular: embaralha e posta até 3 (respeitando cooldown)
+      const historico = estado[conta.key]?.historico || {};
+      const disponiveis = videos.filter(v => !emCooldown(v.id, historico));
+      const selecionados = (disponiveis.length > 0 ? disponiveis : videos)
+        .sort(() => Math.random() - 0.5).slice(0, 3);
+      for (const v of selecionados) {
+        const local = await baixarArquivo(v.id, v.name);
+        const ok = await postarArquivo(conta, local, v.name, 'Regular (NexusZ)');
+        if (ok && estado[conta.key]) estado[conta.key].historico[v.id] = hoje;
+        try { fs.unlinkSync(local); } catch {}
+      }
+    } else {
+      // Sazonal / Arraia: rotativo entre os vídeos da automação
+      const idx = stEntry.index % videos.length;
+      const v = videos[idx];
+      const local = await baixarArquivo(v.id, v.name);
+      const ok = await postarArquivo(conta, local, v.name, `${aut.tipo} (NexusZ)`);
+      if (ok) stEntry.index = (idx + 1) % videos.length;
+      try { fs.unlinkSync(local); } catch {}
+    }
+
+    stEntry.ultima = hoje;
+    estado[stateKey] = stEntry;
+    salvarEstado(estado);
   }
 
   salvarEstado(estado);
