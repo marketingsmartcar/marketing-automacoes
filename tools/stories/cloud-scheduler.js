@@ -362,43 +362,30 @@ async function publicarStories() {
       continue;
     }
 
-    console.log(`\n🤖 Automação NexusZ: "${aut.nome}" (${aut.tipo} · ${aut.marca})`);
+    console.log(`\n🤖 Automação NexusZ: "${aut.nome}" (${aut.marca})`);
     if (!estado[stateKey]) estado[stateKey] = { ultima: null, index: 0 };
     const stEntry = estado[stateKey];
 
-    const videos = (aut.videos || []);
-    if (videos.length === 0) { console.log('  ⚠️  Sem vídeos configurados — pulando.'); continue; }
+    // Lista arquivos da pasta do Drive configurada na automação
+    const arquivos = await listarPasta(aut.drive_folder_id, ['.mp4', '.mov', '.avi', '.png', '.jpg', '.jpeg']);
+    if (arquivos.length === 0) {
+      console.log(`  ⚠️  Pasta do Drive vazia — coloque vídeos/imagens em: ${aut.drive_folder_url}`);
+      continue;
+    }
 
-    if (aut.tipo === 'arte') {
-      // Arte: 1ª = fixa, 2ª = rotativa
-      for (let i = 0; i < Math.min(2, videos.length); i++) {
-        const v = videos[i];
-        const local = await baixarArquivo(v.id, v.name);
-        await postarArquivo(conta, local, v.name, i === 0 ? 'Arte fixa (NexusZ)' : 'Arte rotativa (NexusZ)');
-        try { fs.unlinkSync(local); } catch {}
-      }
-    } else if (aut.tipo === 'regular') {
-      // Regular: embaralha e posta até 3 (respeitando cooldown)
-      const historico = estado[conta.key]?.historico || {};
-      const disponiveis = videos.filter(v => !emCooldown(v.id, historico));
-      const selecionados = (disponiveis.length > 0 ? disponiveis : videos)
-        .sort(() => Math.random() - 0.5).slice(0, 3);
-      for (const v of selecionados) {
-        const local = await baixarArquivo(v.id, v.name);
-        const ok = await postarArquivo(conta, local, v.name, 'Regular (NexusZ)');
-        if (ok && estado[conta.key]) estado[conta.key].historico[v.id] = hoje;
-        try { fs.unlinkSync(local); } catch {}
-      }
-    } else {
-      // Sazonal / Arraia: rotativo entre os vídeos da automação
-      const idx = stEntry.index % videos.length;
-      const v = videos[idx];
+    // Rotativo: avança o índice a cada dia
+    const idx = stEntry.index % arquivos.length;
+    const selecionados = arquivos.slice(idx, idx + 3).concat(
+      idx + 3 > arquivos.length ? arquivos.slice(0, (idx + 3) - arquivos.length) : []
+    );
+
+    for (const v of selecionados) {
       const local = await baixarArquivo(v.id, v.name);
-      const ok = await postarArquivo(conta, local, v.name, `${aut.tipo} (NexusZ)`);
-      if (ok) stEntry.index = (idx + 1) % videos.length;
+      await postarArquivo(conta, local, v.name, `NexusZ: ${aut.nome}`);
       try { fs.unlinkSync(local); } catch {}
     }
 
+    stEntry.index = (idx + selecionados.length) % arquivos.length;
     stEntry.ultima = hoje;
     estado[stateKey] = stEntry;
     salvarEstado(estado);
