@@ -50,7 +50,28 @@ async function buscarAutomacoesNexusZ(dataHoje) {
       headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
     });
     if (!res.ok) { console.error('  ❌ Erro ao buscar automações NexusZ:', res.status); return []; }
-    return await res.json();
+    const todas = await res.json();
+
+    // Filtra pelo dia da semana atual (BRT)
+    const diaSemanaHoje = brt().getDay(); // 0=Dom 1=Seg ... 6=Sáb
+    const horaAtual = brt().getHours();
+    const minAtual  = brt().getMinutes();
+
+    return todas.filter(a => {
+      // Verifica dia da semana
+      const dias = a.dias_semana ?? [0,1,2,3,4,5,6];
+      if (!dias.includes(diaSemanaHoje)) return false;
+
+      // Verifica janela de hora: executa até 59 min depois do horário configurado
+      if (a.hora_postagem) {
+        const [h, m] = a.hora_postagem.split(':').map(Number);
+        const minutosConfig  = h * 60 + m;
+        const minutosAtual   = horaAtual * 60 + minAtual;
+        if (minutosAtual < minutosConfig || minutosAtual > minutosConfig + 59) return false;
+      }
+
+      return true;
+    });
   } catch (e) {
     console.error('  ❌ Erro de rede ao buscar automações NexusZ:', e.message);
     return [];
