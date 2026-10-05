@@ -442,18 +442,20 @@ node tools/stories/completar-stories-hoje.js # completa posts faltantes (BR Pneu
 | Vídeos campanha | `Campanhas/Videos/BR Pneus/` | `1DCT88iiD692PDXVaB966nLvUCfkHRXbn` |
 | Sazonais | `Videos Sazonais/BR Pneus/` | `1MDS-_yrPOXiNOYewyiXjEOjVhncO2619` |
 
-**Setup inicial no HostGator (fazer uma vez):**
-```bash
-# Da sua máquina local (requer chave SSH configurada):
-bash tools/stories/setup-hostgator-cron.sh
+**Setup no HostGator — CONCLUÍDO em 05/10/2026:**
+- Node.js 20.20.2 instalado via NVM em `/home3/brpneu76/.nvm/`
+- Dependências instaladas em `/home3/brpneu76/marketing-automation/`
+- Cron ativo: `0 11 * * 1-6` (8h BRT, seg a sáb)
+- SSH: `ssh -p 2222 -i ~/.ssh/hostgator_key brpneu76@162.241.61.90`
 
-# Para testar manualmente no servidor:
-ssh -p 2222 -i ~/.ssh/hostgator_key brpneu76@sh-pro44.hostgator.com.br \
-  'cd ~/marketing-automation && node tools/stories/cloud-scheduler.js'
+```bash
+# Testar manualmente no servidor:
+ssh -p 2222 -i ~/.ssh/hostgator_key brpneu76@162.241.61.90 \
+  'export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && cd ~/marketing-automation && node tools/stories/cloud-scheduler.js'
 
 # Ver logs:
-ssh -p 2222 -i ~/.ssh/hostgator_key brpneu76@sh-pro44.hostgator.com.br \
-  'ls ~/marketing-automation/logs/ && tail -50 ~/marketing-automation/logs/stories-$(date +%Y-%m-%d).log'
+ssh -p 2222 -i ~/.ssh/hostgator_key brpneu76@162.241.61.90 \
+  'tail -50 ~/marketing-automation/logs/stories-$(date +%Y-%m-%d).log'
 ```
 
 **Como atualizar o mês:**
