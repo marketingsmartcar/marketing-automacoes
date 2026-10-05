@@ -96,7 +96,6 @@ const CONTAS = [
   },
   {
     key: 'peg', nome: 'Peg Pneus',
-    paused: true, // desativado — reativar removendo esta linha
     instagram: { igUserId: process.env.META_IG_ID_PEG_ARQ,   pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ },
     facebook:  { pageId:   process.env.META_PAGE_ID_PEG_ARQ, pageToken: process.env.META_PAGE_TOKEN_PEG_ARQ },
     pastasLojas:     PASTAS_PEG,
@@ -239,9 +238,6 @@ async function publicarStories() {
     if (st.ultima_regular === hoje) {
       console.log(`  ⏭️  Vídeos regulares já postados hoje — pulando.`);
     } else {
-      st.ultima_regular = hoje;
-      salvarEstado(estado);
-
       // Se há plano para hoje: usa vídeos pré-definidos (filtrando lojas fechadas); senão: sorteia
       let videos;
       if (plano) {
@@ -257,14 +253,14 @@ async function publicarStories() {
         videos = await proxVideosLojas(conta, st, conta.videosPorDia);
       }
 
+      let algumOk = false;
       for (const v of videos) {
         const local = await baixarArquivo(v.id, v.name);
         const ok = await postarArquivo(conta, local, v.name, 'Regular');
-        if (ok) st.historico[v.id] = hoje;
-        // Limpa arquivo baixado
+        if (ok) { st.historico[v.id] = hoje; algumOk = true; }
         try { fs.unlinkSync(local); } catch {}
       }
-      salvarEstado(estado);
+      if (algumOk) { st.ultima_regular = hoje; salvarEstado(estado); }
     }
 
     // ── Arte fixa (1.png) + arte rotativa ────────────────────────────────────
@@ -272,20 +268,21 @@ async function publicarStories() {
       if (st.ultima_arte === hoje) {
         console.log(`  ⏭️  Artes Arraia já postadas hoje — pulando.`);
       } else {
-        st.ultima_arte = hoje;
-        salvarEstado(estado);
+        let arteOk = false;
 
         if (plano?.arte) {
           // Modo plano: usa as artes pré-definidas
           const { fixa, rotativa } = plano.arte;
           if (fixa) {
             const local = await baixarArquivo(fixa.id, fixa.name);
-            await postarArquivo(conta, local, fixa.name, 'Arte fixa');
+            const ok = await postarArquivo(conta, local, fixa.name, 'Arte fixa');
+            if (ok) arteOk = true;
             try { fs.unlinkSync(local); } catch {}
           }
           if (rotativa) {
             const local = await baixarArquivo(rotativa.id, rotativa.name);
-            await postarArquivo(conta, local, rotativa.name, 'Arte rotativa');
+            const ok = await postarArquivo(conta, local, rotativa.name, 'Arte rotativa');
+            if (ok) arteOk = true;
             try { fs.unlinkSync(local); } catch {}
           }
         } else {
@@ -294,7 +291,8 @@ async function publicarStories() {
           artes.sort((a,b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
           if (artes[0]) {
             const local = await baixarArquivo(artes[0].id, artes[0].name);
-            await postarArquivo(conta, local, artes[0].name, 'Arte fixa');
+            const ok = await postarArquivo(conta, local, artes[0].name, 'Arte fixa');
+            if (ok) arteOk = true;
             try { fs.unlinkSync(local); } catch {}
           }
           if (artes.length > 1) {
@@ -302,11 +300,11 @@ async function publicarStories() {
             const arteRot = artes[idx];
             const local = await baixarArquivo(arteRot.id, arteRot.name);
             const ok = await postarArquivo(conta, local, arteRot.name, `Arte ${idx+1}`);
-            if (ok) { let next = idx + 1; if (next >= artes.length) next = 1; st.arraia_arte_index = next; }
+            if (ok) { arteOk = true; let next = idx + 1; if (next >= artes.length) next = 1; st.arraia_arte_index = next; }
             try { fs.unlinkSync(local); } catch {}
           }
         }
-        salvarEstado(estado);
+        if (arteOk) { st.ultima_arte = hoje; salvarEstado(estado); }
       }
     }
 
