@@ -409,25 +409,29 @@ node tools/stories/completar-stories-hoje.js # completa posts faltantes (BR Pneu
 
 ---
 
-## 5c. Stories Cloud — GitHub Actions (SISTEMA ATUAL a partir de Jul/2026)
+## 5c. Stories Cloud — HostGator Cron (SISTEMA ATUAL a partir de Out/2026)
 
-**O que faz:** Substitui os sistemas 5 e 5b. Publica stories diários no IG e FB para BR Pneus sem depender do PC local. Plano mensal pré-gerado por `agendar-mes.js` e salvo no git.
+**O que faz:** Substitui os sistemas 5 e 5b. Publica stories diários no IG e FB para BR Pneus e Peg Pneus sem depender do PC local e sem GitHub Actions.
 
 | Campo | Valor |
 |-------|-------|
 | Script | `tools/stories/cloud-scheduler.js` |
-| Workflow | `.github/workflows/stories-diarios.yml` |
-| Horário | Todo dia às **06h BRT** (Seg–Sáb) |
-| Estado | `data/stories-cloud-state.json` (commitado automaticamente pelo workflow) |
-| Plano mensal | `data/stories-schedule.json` (commitado manualmente ao gerar novo mês) |
+| Executor | HostGator `sh-pro44` — cron Node.js (sem GitHub Actions, sem PC) |
+| Horário | Todo dia às **8h BRT** (`0 11 * * 1-6` UTC) |
+| Estado | Tabela `stories_estado` no Supabase (substitui `data/stories-cloud-state.json`) |
+| Plano mensal | `data/stories-schedule.json` (gerado localmente, commitado manualmente) |
+| Migration | `supabase/migrations/create_stories_estado.sql` |
+| Setup cron | `tools/stories/setup-hostgator-cron.sh` |
 
 **Regras de postagem:**
 - **3 vídeos das lojas** por dia (rotativos, cooldown 2 dias por vídeo)
-- **1.png** sempre fixa (todo dia)
-- **Arte rotativa** (2.png, 3.png… em sequência) — todo dia
-- **Vídeo de campanha** (Seg/Qua/Sex) — ex: Férias, promoção do mês
-- **Vídeo Sazonal** (Ter/Qui/Sáb) — se disponível na pasta Sazonais/BR Pneus
-- Peg Pneus: **pausado** (`paused: true` em `cloud-scheduler.js`)
+- **Arte fixa** (1.png) + **arte rotativa** — todo dia
+- **Vídeo de campanha** (Seg/Qua/Sex, apenas junho) — ex: Arraia
+- **Vídeo Sazonal** (Ter/Qui/Sáb, apenas junho) — BR Pneus
+
+**Estado no Supabase (tabela `stories_estado`):**
+- Colunas: `conta` (pk), `ultima_regular`, `ultima_arte`, `arraia_arte_index`, `arraia_video_index`, `sazonal_index`, `historico` (JSONB)
+- Nunca mais usar `data/stories-cloud-state.json` — arquivo descontinuado
 
 **Fontes de conteúdo (Google Drive):**
 
@@ -438,14 +442,33 @@ node tools/stories/completar-stories-hoje.js # completa posts faltantes (BR Pneu
 | Vídeos campanha | `Campanhas/Videos/BR Pneus/` | `1DCT88iiD692PDXVaB966nLvUCfkHRXbn` |
 | Sazonais | `Videos Sazonais/BR Pneus/` | `1MDS-_yrPOXiNOYewyiXjEOjVhncO2619` |
 
+**Setup inicial no HostGator (fazer uma vez):**
+```bash
+# Da sua máquina local (requer chave SSH configurada):
+bash tools/stories/setup-hostgator-cron.sh
+
+# Para testar manualmente no servidor:
+ssh -p 2222 -i ~/.ssh/hostgator_key brpneu76@sh-pro44.hostgator.com.br \
+  'cd ~/marketing-automation && node tools/stories/cloud-scheduler.js'
+
+# Ver logs:
+ssh -p 2222 -i ~/.ssh/hostgator_key brpneu76@sh-pro44.hostgator.com.br \
+  'ls ~/marketing-automation/logs/ && tail -50 ~/marketing-automation/logs/stories-$(date +%Y-%m-%d).log'
+```
+
 **Como atualizar o mês:**
 ```bash
-# 1. Atualizar conteúdo no Drive (Campanhas/Artes e Campanhas/Videos/BR Pneus)
+# 1. Atualizar conteúdo no Drive
 # 2. Gerar schedule:
 node tools/stories/agendar-mes.js 2026-MM-01
-# 3. Commitar e dar push:
-git add -f data/stories-schedule.json && git commit -m "chore: schedule stories MM/2026" && git push
+# 3. Fazer rsync para o HostGator (ou commitar e re-rodar o setup):
+bash tools/stories/setup-hostgator-cron.sh
 ```
+
+**⚠️ AÇÃO NECESSÁRIA (pendente):**
+1. Executar migration `create_stories_estado.sql` no Supabase Dashboard
+2. Rodar `setup-hostgator-cron.sh` para configurar o cron no servidor
+3. Adicionar variáveis do `.env` no servidor via SSH
 
 ---
 
