@@ -145,8 +145,10 @@ async function executarAutomacao(auto, hoje) {
 
       console.log(`   📤 Postando ${tipo}: ${arquivo.name}`);
 
+      const redes = auto.redes_sociais ?? ['instagram', 'facebook'];
+
       // Instagram
-      if (meta.instagram.igUserId && meta.instagram.pageToken) {
+      if (redes.includes('instagram') && meta.instagram.igUserId && meta.instagram.pageToken) {
         try {
           await postarInstagramStory(tmpPath, meta.instagram.igUserId, meta.instagram.pageToken);
           console.log(`      ✅ Instagram OK`);
@@ -154,7 +156,7 @@ async function executarAutomacao(auto, hoje) {
       }
 
       // Facebook
-      if (meta.facebook.pageId && meta.facebook.pageToken) {
+      if (redes.includes('facebook') && meta.facebook.pageId && meta.facebook.pageToken) {
         try {
           await postarFacebookStory(tmpPath, meta.facebook.pageId, meta.facebook.pageToken);
           console.log(`      ✅ Facebook OK`);
