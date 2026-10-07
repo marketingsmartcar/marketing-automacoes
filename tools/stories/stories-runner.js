@@ -150,7 +150,7 @@ async function executarAutomacao(auto, hoje) {
       // Instagram
       if (redes.includes('instagram') && meta.instagram.igUserId && meta.instagram.pageToken) {
         try {
-          await postarInstagramStory(tmpPath, meta.instagram.igUserId, meta.instagram.pageToken);
+          await postarInstagramStory(meta.instagram.igUserId, meta.instagram.pageToken, tmpPath);
           console.log(`      ✅ Instagram OK`);
         } catch (e) { console.error(`      ❌ Instagram:`, e.message); }
       }
@@ -158,7 +158,7 @@ async function executarAutomacao(auto, hoje) {
       // Facebook
       if (redes.includes('facebook') && meta.facebook.pageId && meta.facebook.pageToken) {
         try {
-          await postarFacebookStory(tmpPath, meta.facebook.pageId, meta.facebook.pageToken);
+          await postarFacebookStory(meta.facebook.pageId, meta.facebook.pageToken, tmpPath);
           console.log(`      ✅ Facebook OK`);
         } catch (e) { console.error(`      ❌ Facebook:`, e.message); }
       }
