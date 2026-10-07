@@ -1723,3 +1723,42 @@ curl -X POST \
 **Página que consome:** NexusZ → Conferências (`/admin/conferencia-os`) → `AdminConferenciaOS.tsx`
 
 *Criado: agosto/2026 — v43 com campos orcamento_id, cliente_oi_id, cpf.*
+
+---
+
+## 16. Sincronização de Fotos de Pneus OI → Drive → CRM (Manual)
+
+**O que faz:** Percorre os grupos de pneu no OI via Puppeteer, abre a aba Fotos de cada produto, baixa a primeira foto disponível, faz upload ao Google Drive (pasta `CRM / Catalogo Pneus / Fotos`) e atualiza `estoque_pneus.foto_url` no Supabase. A foto fica disponível na busca rápida do CRM (BuscarPneuDrawer) e é enviada junto com a mensagem de info do pneu.
+
+| Campo | Valor |
+|-------|-------|
+| Script | `tools/sincronizar-fotos-pneus-oi.js` |
+| Execução | **Manual** — não pode ser automatizado via cloud (requer Chrome local autenticado) |
+| Chrome | Porta 9222 (sessão persistente — NUNCA browser.close(), usar disconnect()) |
+| Drive | Pasta `CRM / Catalogo Pneus / Fotos` via edge function `upload-to-drive` |
+| Tabela Supabase | `estoque_pneus` — coluna `foto_url` |
+| Coluna | `foto_url TEXT` — URL pública no Drive: `https://drive.google.com/uc?export=view&id={fileId}` |
+
+**Como rodar (uma loja por vez, Chrome deve estar logado na loja correta):**
+```bash
+node tools/sincronizar-fotos-pneus-oi.js BR01
+node tools/sincronizar-fotos-pneus-oi.js BR03
+node tools/sincronizar-fotos-pneus-oi.js BR04
+node tools/sincronizar-fotos-pneus-oi.js PEG1
+```
+
+**Comportamento:**
+- Idempotente: pula automaticamente produtos que já têm `foto_url` no banco
+- Processa apenas pneus com `estoque > 0` e `foto_url IS NULL`
+- Exibe progresso: `[HH:MM:SS] [LOJA] [N/total] descrição...`
+- Ao final: relatório com processados / com foto / sem foto OI / erros
+
+**Regras importantes:**
+- OI só disponibiliza fotos na interface web (não via API XML `ProdutoXML`) — por isso não pode ser automatizado via pg_cron ou edge function
+- Uma sessão Chrome por vez — garanta estar logado na loja correta antes de rodar
+- O script lê o `oi-browser-ws.txt` para conectar ao Chrome existente (nunca abre Chrome novo)
+- Grupos processados: 22 grupos exatos de pneus (PNEU IMPORTADO * e PNEU NACIONAL *)
+
+**Onde o status aparece:** NexusZ → CRM → Catálogo de Pneus → rodapé mostra `N com foto · N sem foto` + botão "Como sincronizar?" com os comandos corretos por loja.
+
+*Criado: outubro/2026.*
