@@ -42,6 +42,8 @@ async function listarPasta(folderId, exts = ['.mp4', '.mov', '.avi', '.png', '.j
     fields: 'files(id,name,mimeType,size)',
     pageSize: 200,
     orderBy: 'name',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
   return (res.data.files || []).filter(f => {
     if (f.mimeType === 'application/vnd.google-apps.folder') return false;
