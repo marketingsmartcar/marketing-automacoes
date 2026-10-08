@@ -92,8 +92,8 @@ async function main() {
       console.log(`   ⚠️  Já está em execução — pulando para evitar duplicata.`); continue;
     }
 
-    // Marca como em execução
-    await sbPatch('stories_automacoes', auto.id, { em_execucao: true });
+    // Marca como em execução E já registra ultima_execucao para evitar double-run
+    await sbPatch('stories_automacoes', auto.id, { em_execucao: true, ultima_execucao: hoje });
 
     try {
       await executarAutomacao(auto, hoje);
