@@ -1726,41 +1726,39 @@ curl -X POST \
 
 ---
 
-## 16. Sincronização de Fotos de Pneus OI → Drive → CRM (Automatizada PM2)
+## 16. Sincronização de Fotos de Pneus OI → Drive → CRM (Cloud — Supabase Edge Function)
 
-**O que faz:** Abre Chromium headless (sem janela visível), faz login no OI com as credenciais do `.env`, percorre todos os grupos PNEU IMPORTADO* e PNEU NACIONAL* filtrando por "Com estoque", abre a aba Fotos de cada produto, baixa a foto, faz upload ao Google Drive (pasta `CRM / Catalogo Pneus / Fotos`) e atualiza `estoque_pneus.foto_url` no Supabase. Processa apenas produtos sem `foto_url`. Roda 3x/dia via PM2.
+**O que faz:** Edge Function `sync-fotos-pneus` faz login no OI via HTTP puro (sem Puppeteer, sem PC), percorre grupos PNEU IMPORTADO* e PNEU NACIONAL* via AJAX UpdatePanel, baixa a foto de cada produto, faz upload ao Google Drive (`CRM / Catalogo Pneus / Fotos`) e atualiza `estoque_pneus.foto_url`. Processa 6 produtos por invocação, a cada 5 minutos. Totalmente na nuvem — sem dependência do PC.
 
 | Campo | Valor |
 |-------|-------|
-| Script | `tools/sincronizar-fotos-headless.js` |
-| PM2 | `fotos-pneus` — cron `0 8,13,18 * * 1-6` (8h, 13h, 18h seg-sáb) |
-| Execução | **Automática** — Puppeteer headless, sem janela visível |
+| Edge Function | `sync-fotos-pneus` (projeto `ubiuershczqjnoczcupa`) |
+| Arquivo fonte | `supabase/functions/sync-fotos-pneus/index.ts` (NexusZ repo) |
+| Agendamento | pg_cron `sync-fotos-pneus` — `*/5 * * * *` (a cada 5 min, 24/7) |
 | Drive | Pasta `CRM / Catalogo Pneus / Fotos` via edge function `upload-to-drive` |
 | Tabela Supabase | `estoque_pneus` — coluna `foto_url` |
 | Coluna | `foto_url TEXT` — URL Drive: `https://drive.google.com/uc?export=view&id={fileId}` |
-| Credenciais | `OI_EMAIL` e `OI_SENHA` no `.env` |
+| Secrets | `OI_EMAIL`, `OI_SENHA` (Supabase Edge Function secrets) |
+| PM2 legado | `fotos-pneus` ainda existe no ecosystem — pode ser desativado |
 
-**Como rodar manualmente:**
+**Como invocar manualmente:**
 ```bash
-node tools/sincronizar-fotos-headless.js           # somente sem foto
-node tools/sincronizar-fotos-headless.js --force   # re-baixa tudo
-
-# Logs em tempo real
-pm2 logs fotos-pneus
+curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-fotos-pneus \
+  -H "Content-Type: application/json" -d '{}'
 ```
 
 **Comportamento:**
-- Idempotente: pula produtos que já têm `foto_url` (a menos que `--force`)
-- Headless: Chromium sem janela, gerenciado pelo PM2
-- Faz login próprio no OI (não depende de Chrome aberto)
-- Ao final: relatório processados / com foto / sem foto OI / erros
+- Idempotente: só processa produtos com `foto_url IS NULL`
+- 6 produtos por invocação (ajustável via `LIMIT` no código)
+- Atualiza VIEWSTATE do UpdatePanel após cada AJAX call (evita erro 500)
+- Sem PC, sem Puppeteer, sem Chrome — HTTP puro via Deno fetch
 
 **Regras importantes:**
-- OI bloqueia requisições HTTP de IPs de hospedagem (HostGator, Supabase) — por isso roda localmente via PM2
-- Não fechar o Chrome explicitamente (`browser.close()` OK aqui pois é headless próprio, não o Chrome compartilhado)
-- Grupos: qualquer grupo começando com "PNEU IMPORTADO" ou "PNEU NACIONAL" (detectado dinamicamente)
-- Se o login falhar: verificar OI_EMAIL e OI_SENHA no `.env`
+- IP Supabase (54.20.46.77) tem acesso ao OI (HTTP 200) — confirmado
+- HostGator é bloqueado pelo OI (HTTP 403) — não usar HostGator para esta automação
+- Grupos detectados dinamicamente: qualquer `<option>` começando com "PNEU IMPORTADO" ou "PNEU NACIONAL"
+- Se login falhar: verificar secrets `OI_EMAIL` e `OI_SENHA` no painel Supabase
 
-**Onde o status aparece:** NexusZ → CRM → Catálogo de Pneus → rodapé mostra `N com foto · N sem foto`.
+**Onde o status aparece:** NexusZ → CRM → Catálogo de Pneus → rodapé mostra `N com foto · N sem foto (sincronizando automaticamente a cada 5 min)`.
 
-*Criado: outubro/2026. Atualizado: outubro/2026 — migrado de manual para PM2 headless.*
+*Criado: outubro/2026. Atualizado: outubro/2026 — migrado de PM2 headless local para Supabase Edge Function + pg_cron (sem dependência do PC).*
