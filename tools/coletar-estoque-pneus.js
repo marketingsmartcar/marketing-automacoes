@@ -28,32 +28,12 @@ const LOJAS = [
   { key: 'PEG1', tokenVar: 'OI_TOKEN_PEG1_ARARAQUARA' },
 ];
 
-// Lista EXATA de grupos do OI a coletar (definida pelo usuário — não alterar sem autorização)
-// Fonte: imagem dos checkboxes marcados na tela "Análise de Estoque" do OI
-const GRUPOS_PNEU = new Set([
-  'PNEU IMPORTADO (CURVA A)',
-  'PNEU IMPORTADO (PROMOCIONAL)',
-  'PNEU IMPORTADO AGRICOLA',
-  'PNEU IMPORTADO ALL TERRAIN',
-  'PNEU IMPORTADO CAMIONETE',
-  'PNEU IMPORTADO CARGA LEVE',
-  'PNEU IMPORTADO CARGA PESADA',
-  'PNEU IMPORTADO INDUSTRIAL',
-  'PNEU IMPORTADO MOTO',
-  'PNEU IMPORTADO PASSEIO/SUV',
-  'PNEU IMPORTADO PERFIL BAIXO',
-  'PNEU IMPORTADO RUNFLAT',
-  'PNEU NACIONAL AGRICOLA',
-  'PNEU NACIONAL ALL TERRAIN',
-  'PNEU NACIONAL CAMIONETE',
-  'PNEU NACIONAL CARGA LEVE',
-  'PNEU NACIONAL CARGA PESADA',
-  'PNEU NACIONAL INDUSTRIAL',
-  'PNEU NACIONAL MOTO',
-  'PNEU NACIONAL PASSEIO/SUV',
-  'PNEU NACIONAL PERFIL BAIXO',
-  'PNEU NACIONAL RUNFLAT',
-]);
+// Coleta todos os grupos que começam com "PNEU IMPORTADO" ou "PNEU NACIONAL"
+// (exclui serviços como .CONSERTO PNEU, .MONTAGEM PNEU, PNEU USADO, REMENDO PNEU, VÁLVULA AR, etc.)
+function isGrupoPneu(grupo) {
+  const g = grupo.trim().toUpperCase();
+  return g.startsWith('PNEU IMPORTADO') || g.startsWith('PNEU NACIONAL');
+}
 
 // ── API OI ────────────────────────────────────────────────────────────────────
 
@@ -141,7 +121,7 @@ async function coletarLoja(lojaKey, tokenVar) {
   const gruposVistos = new Set();
 
   for (const p of produtos) {
-    if (!GRUPOS_PNEU.has(p.grupo.trim())) continue;
+    if (!isGrupoPneu(p.grupo)) continue;
 
     gruposVistos.add(p.grupo);
 
@@ -221,14 +201,62 @@ function sbJob(jobId, campos) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+async function listarGrupos(lojaKey, tokenVar) {
+  const token = process.env[tokenVar];
+  if (!token) throw new Error(`Token não encontrado: ${tokenVar}`);
+  console.log(`\n📦 ${lojaKey} — chamando ProdutoXML...`);
+  const { status, body } = await apiPost('ProdutoXML', { token, produtoID: '', somenteAtivo: '1' });
+  if (status !== 200) throw new Error(`HTTP ${status}: ${body.slice(0, 200)}`);
+  const produtos = parseXmlProducts(body);
+
+  // Agrupa por grupo, conta itens e estoque total
+  const grupos = {};
+  for (const p of produtos) {
+    const g = p.grupo.trim() || '(sem grupo)';
+    if (!grupos[g]) grupos[g] = { total: 0, comEstoque: 0, coletado: isGrupoPneu(g) };
+    grupos[g].total++;
+    if (p.estoque > 0) grupos[g].comEstoque++;
+  }
+
+  const linhas = Object.entries(grupos)
+    .filter(([g]) => g.toUpperCase().includes('PNEU'))
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  console.log(`\n  ${'GRUPO'.padEnd(50)} TOTAL  ESTOQUE  COLETADO`);
+  console.log('  ' + '─'.repeat(78));
+  for (const [g, info] of linhas) {
+    const marca = info.coletado ? '✅' : '❌';
+    console.log(`  ${marca} ${g.padEnd(48)} ${String(info.total).padStart(5)}  ${String(info.comEstoque).padStart(7)}`);
+  }
+  console.log(`\n  Total de grupos com PNEU: ${linhas.length}`);
+  console.log(`  ✅ já coletados: ${linhas.filter(([,i]) => i.coletado).length}`);
+  console.log(`  ❌ faltando:     ${linhas.filter(([,i]) => !i.coletado).length}`);
+
+  const faltando = linhas.filter(([,i]) => !i.coletado && i.comEstoque > 0).map(([g]) => g);
+  if (faltando.length) {
+    console.log(`\n  ⚠️  Grupos com estoque NÃO coletados:`);
+    for (const g of faltando) console.log(`    '${g}',`);
+  }
+}
+
 async function main() {
   const args        = process.argv.slice(2);
   const lojaFiltro  = args.find(a => !a.startsWith('--'));
   const inspecionar = args.includes('--inspecionar');
+  const verGrupos   = args.includes('--listar-grupos');
   const jobId       = args.find(a => a.startsWith('--job-id='))?.split('=')[1];
 
   const lojas = lojaFiltro ? LOJAS.filter(l => l.key === lojaFiltro.toUpperCase()) : LOJAS;
   if (!lojas.length) { console.error('Loja não encontrada:', lojaFiltro); process.exit(1); }
+
+  if (verGrupos) {
+    console.log('🔍 Listando todos os grupos de pneu disponíveis na API OI...');
+    for (const loja of lojas) {
+      try { await listarGrupos(loja.key, loja.tokenVar); } catch (e) { console.error(`  ❌ ${loja.key}:`, e.message); }
+      await sleep(1000);
+    }
+    return;
+  }
 
   console.log(`🚀 Estoque de pneus — ${lojas.length} loja(s) | API OI (ProdutoXML)`);
   await sbJob(jobId, { status: 'rodando', progresso: 0, mensagem: 'Iniciando...' });

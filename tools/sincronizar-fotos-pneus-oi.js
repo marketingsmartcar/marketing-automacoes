@@ -45,17 +45,11 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Grupos de pneus que o sistema sincroniza (mesmo conjunto da edge function)
-const GRUPOS_PNEU = new Set([
-  'PNEU IMPORTADO (CURVA A)', 'PNEU IMPORTADO (PROMOCIONAL)', 'PNEU IMPORTADO AGRICOLA',
-  'PNEU IMPORTADO ALL TERRAIN', 'PNEU IMPORTADO CAMIONETE', 'PNEU IMPORTADO CARGA LEVE',
-  'PNEU IMPORTADO CARGA PESADA', 'PNEU IMPORTADO INDUSTRIAL', 'PNEU IMPORTADO MOTO',
-  'PNEU IMPORTADO PASSEIO/SUV', 'PNEU IMPORTADO PERFIL BAIXO', 'PNEU IMPORTADO RUNFLAT',
-  'PNEU NACIONAL AGRICOLA', 'PNEU NACIONAL ALL TERRAIN', 'PNEU NACIONAL CAMIONETE',
-  'PNEU NACIONAL CARGA LEVE', 'PNEU NACIONAL CARGA PESADA', 'PNEU NACIONAL INDUSTRIAL',
-  'PNEU NACIONAL MOTO', 'PNEU NACIONAL PASSEIO/SUV', 'PNEU NACIONAL PERFIL BAIXO',
-  'PNEU NACIONAL RUNFLAT',
-]);
+// Grupos de pneus: todos que começam com "PNEU IMPORTADO" ou "PNEU NACIONAL"
+function isGrupoPneu(grupo) {
+  const g = (grupo || '').trim().toUpperCase();
+  return g.startsWith('PNEU IMPORTADO') || g.startsWith('PNEU NACIONAL');
+}
 
 function log(msg) { console.log(`[${new Date().toISOString().slice(11,19)}] [${LOJA}] ${msg}`); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -252,7 +246,7 @@ async function buscarFoto(browser, empresaId, produtoId) {
     log(`Grupos no OI: ${gruposOI.length} encontrados`);
 
     // Filtra só os grupos que são de pneu
-    const gruposPneu = gruposOI.filter(g => GRUPOS_PNEU.has(g.text));
+    const gruposPneu = gruposOI.filter(g => isGrupoPneu(g.text));
     log(`Grupos de pneu: ${gruposPneu.length}`);
 
     if (!gruposPneu.length) {
