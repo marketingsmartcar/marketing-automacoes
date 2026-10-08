@@ -1728,7 +1728,7 @@ curl -X POST \
 
 ## 16. Sincronização de Fotos de Pneus OI → Drive → CRM (Cloud — Supabase Edge Function)
 
-**O que faz:** Edge Function `sync-fotos-pneus` faz login no OI via HTTP puro (sem Puppeteer, sem PC), percorre grupos PNEU IMPORTADO* e PNEU NACIONAL* via AJAX UpdatePanel, baixa a foto de cada produto, faz upload ao Google Drive (`CRM / Catalogo Pneus / Fotos`) e atualiza `estoque_pneus.foto_url`. Processa 6 produtos por invocação, a cada 5 minutos. Totalmente na nuvem — sem dependência do PC.
+**O que faz:** Edge Function `sync-fotos-pneus` faz login no OI via HTTP puro (sem Puppeteer, sem PC), percorre grupos PNEU IMPORTADO* e PNEU NACIONAL* com POST mínimo (sem rblEstoque/rblProdutoOuServico — ASP.NET EVENTVALIDATION rejeita), baixa a foto de cada produto (GET direto + tab POST como fallback), faz upload ao Google Drive (`CRM / Catalogo Pneus / Fotos`) e atualiza `estoque_pneus.foto_url`. Processa 6 produtos por invocação, a cada 5 minutos. Totalmente na nuvem — sem dependência do PC. O botão "Atualizar agora" em CrmCatalogoPneus também dispara a função (fire-and-forget) após coleta de estoque.
 
 | Campo | Valor |
 |-------|-------|
@@ -1750,7 +1750,9 @@ curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-fotos
 **Comportamento:**
 - Idempotente: só processa produtos com `foto_url IS NULL`
 - 6 produtos por invocação (ajustável via `LIMIT` no código)
-- Atualiza VIEWSTATE do UpdatePanel após cada AJAX call (evita erro 500)
+- POST mínimo para busca: só `ddlGrupoDeProduto` + `btnBuscar` + hidden fields (sem rblEstoque/rblProdutoOuServico)
+- Foto: estratégia 1 = HTML direto da página do produto; estratégia 2 = POST tab via `__EVENTTARGET`
+- Login com `redirect:manual` para capturar `.ASPXAUTH` cookie do 302 ASP.NET
 - Sem PC, sem Puppeteer, sem Chrome — HTTP puro via Deno fetch
 
 **Regras importantes:**
@@ -1761,4 +1763,4 @@ curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-fotos
 
 **Onde o status aparece:** NexusZ → CRM → Catálogo de Pneus → rodapé mostra `N com foto · N sem foto (sincronizando automaticamente a cada 5 min)`.
 
-*Criado: outubro/2026. Atualizado: outubro/2026 — migrado de PM2 headless local para Supabase Edge Function + pg_cron (sem dependência do PC).*
+*Criado: outubro/2026. Atualizado: outubro/2026 — v16: debug removido, botão "Atualizar agora" dispara fire-and-forget, POST mínimo sem EVENTVALIDATION, login redirect:manual.*
