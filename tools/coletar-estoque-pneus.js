@@ -78,6 +78,12 @@ function parseXmlProducts(xml) {
 // Extrai medida da descrição (ex: "PNEU 185 65 15 GOODYEAR..." → "185/65R15")
 function extrairMedida(desc) {
   const stripped = desc.replace(/^PNEU\s+/i, '');
+  // Decimal com traço: "17.50-25" ou "17.50 - 25" (agrícola/industrial)
+  const mDecDash = stripped.match(/^(\d+\.\d+)\s*[-–]\s*(\d+)\b/);
+  if (mDecDash) return `${mDecDash[1]}-${mDecDash[2]}`;
+  // Decimal + 2 números: "10.5 80 18" (agrícola/industrial)
+  const mDecThree = stripped.match(/^(\d+\.\d+)\s+(\d+)\s+(\d+)\b/);
+  if (mDecThree) return `${mDecThree[1]}/${mDecThree[2]}-${mDecThree[3]}`;
   // 3 números com espaço: "185 65 15" ou "185 65 R15"
   const m3 = stripped.match(/^(\d{2,3})\s+(\d{2,3})\s+[Rr]?(\d{1,2}(?:\.\d)?)\b/);
   if (m3) {
@@ -90,6 +96,9 @@ function extrairMedida(desc) {
     const isMoto = parseInt(m2[1], 10) <= 130;
     return isMoto ? `${m2[1]}/${m2[2]}-${m2[3]}` : `${m2[1]}/${m2[2]}R${m2[3]}`;
   }
+  // Moto 2 números: "250 17" → "250/17"
+  const mMoto = stripped.match(/^(\d{2,3})\s+(\d{1,2})(?:\s|$)/);
+  if (mMoto) return `${mMoto[1]}/${mMoto[2]}`;
   return null;
 }
 
