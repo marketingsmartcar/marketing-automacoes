@@ -232,5 +232,17 @@ module.exports = {
       env_file: '.env',
     },
 
+    {
+      // Fotos Pneus: OI headless → Drive → estoque_pneus.foto_url, 3x/dia
+      // Roda headless (sem janela visível), processa apenas produtos sem foto
+      name: 'fotos-pneus',
+      script: 'tools/sincronizar-fotos-headless.js',
+      cwd: CWD,
+      cron_restart: '0 8,13,18 * * 1-6',
+      autorestart: false,
+      watch: false,
+      env_file: '.env',
+    },
+
   ],
 };

@@ -1726,39 +1726,41 @@ curl -X POST \
 
 ---
 
-## 16. Sincronização de Fotos de Pneus OI → Drive → CRM (Manual)
+## 16. Sincronização de Fotos de Pneus OI → Drive → CRM (Automatizada PM2)
 
-**O que faz:** Percorre os grupos de pneu no OI via Puppeteer, abre a aba Fotos de cada produto, baixa a primeira foto disponível, faz upload ao Google Drive (pasta `CRM / Catalogo Pneus / Fotos`) e atualiza `estoque_pneus.foto_url` no Supabase. A foto fica disponível na busca rápida do CRM (BuscarPneuDrawer) e é enviada junto com a mensagem de info do pneu.
+**O que faz:** Abre Chromium headless (sem janela visível), faz login no OI com as credenciais do `.env`, percorre todos os grupos PNEU IMPORTADO* e PNEU NACIONAL* filtrando por "Com estoque", abre a aba Fotos de cada produto, baixa a foto, faz upload ao Google Drive (pasta `CRM / Catalogo Pneus / Fotos`) e atualiza `estoque_pneus.foto_url` no Supabase. Processa apenas produtos sem `foto_url`. Roda 3x/dia via PM2.
 
 | Campo | Valor |
 |-------|-------|
-| Script | `tools/sincronizar-fotos-pneus-oi.js` |
-| Execução | **Manual** — não pode ser automatizado via cloud (requer Chrome local autenticado) |
-| Chrome | Porta 9222 (sessão persistente — NUNCA browser.close(), usar disconnect()) |
+| Script | `tools/sincronizar-fotos-headless.js` |
+| PM2 | `fotos-pneus` — cron `0 8,13,18 * * 1-6` (8h, 13h, 18h seg-sáb) |
+| Execução | **Automática** — Puppeteer headless, sem janela visível |
 | Drive | Pasta `CRM / Catalogo Pneus / Fotos` via edge function `upload-to-drive` |
 | Tabela Supabase | `estoque_pneus` — coluna `foto_url` |
-| Coluna | `foto_url TEXT` — URL pública no Drive: `https://drive.google.com/uc?export=view&id={fileId}` |
+| Coluna | `foto_url TEXT` — URL Drive: `https://drive.google.com/uc?export=view&id={fileId}` |
+| Credenciais | `OI_EMAIL` e `OI_SENHA` no `.env` |
 
-**Como rodar (uma loja por vez, Chrome deve estar logado na loja correta):**
+**Como rodar manualmente:**
 ```bash
-node tools/sincronizar-fotos-pneus-oi.js BR01
-node tools/sincronizar-fotos-pneus-oi.js BR03
-node tools/sincronizar-fotos-pneus-oi.js BR04
-node tools/sincronizar-fotos-pneus-oi.js PEG1
+node tools/sincronizar-fotos-headless.js           # somente sem foto
+node tools/sincronizar-fotos-headless.js --force   # re-baixa tudo
+
+# Logs em tempo real
+pm2 logs fotos-pneus
 ```
 
 **Comportamento:**
-- Idempotente: pula automaticamente produtos que já têm `foto_url` no banco
-- Processa apenas pneus com `estoque > 0` e `foto_url IS NULL`
-- Exibe progresso: `[HH:MM:SS] [LOJA] [N/total] descrição...`
-- Ao final: relatório com processados / com foto / sem foto OI / erros
+- Idempotente: pula produtos que já têm `foto_url` (a menos que `--force`)
+- Headless: Chromium sem janela, gerenciado pelo PM2
+- Faz login próprio no OI (não depende de Chrome aberto)
+- Ao final: relatório processados / com foto / sem foto OI / erros
 
 **Regras importantes:**
-- OI só disponibiliza fotos na interface web (não via API XML `ProdutoXML`) — por isso não pode ser automatizado via pg_cron ou edge function
-- Uma sessão Chrome por vez — garanta estar logado na loja correta antes de rodar
-- O script lê o `oi-browser-ws.txt` para conectar ao Chrome existente (nunca abre Chrome novo)
-- Grupos processados: 22 grupos exatos de pneus (PNEU IMPORTADO * e PNEU NACIONAL *)
+- OI bloqueia requisições HTTP de IPs de hospedagem (HostGator, Supabase) — por isso roda localmente via PM2
+- Não fechar o Chrome explicitamente (`browser.close()` OK aqui pois é headless próprio, não o Chrome compartilhado)
+- Grupos: qualquer grupo começando com "PNEU IMPORTADO" ou "PNEU NACIONAL" (detectado dinamicamente)
+- Se o login falhar: verificar OI_EMAIL e OI_SENHA no `.env`
 
-**Onde o status aparece:** NexusZ → CRM → Catálogo de Pneus → rodapé mostra `N com foto · N sem foto` + botão "Como sincronizar?" com os comandos corretos por loja.
+**Onde o status aparece:** NexusZ → CRM → Catálogo de Pneus → rodapé mostra `N com foto · N sem foto`.
 
-*Criado: outubro/2026.*
+*Criado: outubro/2026. Atualizado: outubro/2026 — migrado de manual para PM2 headless.*
