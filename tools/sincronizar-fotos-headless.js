@@ -171,7 +171,7 @@ async function buscarFoto(browser, empresaId, produtoId) {
       const panel = document.getElementById('tab_tabDocumento') || document;
       const imgs = Array.from(panel.querySelectorAll('img')).filter(img =>
         img.src && img.naturalWidth > 50 &&
-        !/spacer|logo|bg\.|btn|icon/i.test(img.src)
+        !/spacer|logo|bg\.|btn|icon|qr|qrcode|barcode|codigo|codbarra|WebResource|ScriptResource/i.test(img.src)
       );
       return imgs[0]?.src || null;
     });
