@@ -1,54 +1,37 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * sincronizar-fotos-todas-lojas.js
- * Baixa fotos de pneus do OI (todas as lojas) → Google Drive → estoque_pneus.foto_url
+ * sincronizar-fotos-todas-lojas.js  v2
+ * Sincroniza fotos de pneus do OI → Google Drive → estoque_pneus.foto_url
+ *
+ * Melhoria v2: detecta na LISTA quais produtos têm foto (input btnFoto),
+ * só abre o produto quando a lista confirma que existe foto. Evita abrir
+ * centenas de produtos vazios.
  *
  * USO:
  *   node tools/sincronizar-fotos-todas-lojas.js
- *   node tools/sincronizar-fotos-todas-lojas.js --force   (re-baixa mesmo quem já tem foto)
- *
- * Pré-requisito:
- *   - Chrome aberto na porta 9222 com OI logado
- *   - .env com SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
- *
- * Como funciona:
- *   - Uma conta OI vê produtos das 4 lojas (BR01, BR03, BR04, PEG1)
- *   - Uma única passagem pelos grupos de pneu retorna produtos de todas as lojas
- *   - Só processa produtos sem foto_url (a menos que --force seja passado)
- *   - Integra naturalmente com o estoque: basta rodar periodicamente
+ *   node tools/sincronizar-fotos-todas-lojas.js --force
  */
 
 require('dotenv').config();
 const puppeteer = require('puppeteer');
-const fs        = require('fs');
-const path      = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-// ── Config ─────────────────────────────────────────────────────────────────────
+const BASE_OI  = 'https://sistemaoficinainteligente.com.br';
+const OI_EMAIL = process.env.OI_EMAIL;
+const OI_SENHA  = process.env.OI_SENHA;
+const FORCE    = process.argv.includes('--force');
 
-const WS_FILE    = 'C:/Users/Nick/AppData/Local/Temp/oi-browser-ws.txt';
-const BASE_OI    = 'https://sistemaoficinainteligente.com.br';
-const FORCE      = process.argv.includes('--force');
-
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const EDGE_DRIVE   = `${SUPABASE_URL}/functions/v1/upload-to-drive`;
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('❌ SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não definidos no .env');
-  process.exit(1);
-}
+if (!SUPABASE_URL || !SUPABASE_KEY) { console.error('❌ SUPABASE_URL/KEY não definidos'); process.exit(1); }
+if (!OI_EMAIL || !OI_SENHA)         { console.error('❌ OI_EMAIL/OI_SENHA não definidos'); process.exit(1); }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-function isGrupoPneu(grupo) {
-  const g = (grupo || '').trim().toUpperCase();
-  return g.startsWith('PNEU IMPORTADO') || g.startsWith('PNEU NACIONAL');
-}
-
-function log(msg) { console.log(`[${new Date().toISOString().slice(11,19)}] ${msg}`); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function log(msg) { console.log(`[${new Date().toISOString().slice(11,19)}] ${msg}`); }
 
 // ── Drive upload ───────────────────────────────────────────────────────────────
 
@@ -61,24 +44,19 @@ async function uploadToDrive(imageBuffer, fileName) {
   form.append('subcategory_name', 'Fotos');
 
   const res = await fetch(EDGE_DRIVE, {
-    method:  'POST',
+    method: 'POST',
     headers: { Authorization: `Bearer ${SUPABASE_KEY}` },
-    body:    form,
+    body: form,
   });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(`Drive upload HTTP ${res.status}: ${txt.slice(0, 120)}`);
-  }
+  if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(`Drive ${res.status}: ${t.slice(0,120)}`); }
   const data = await res.json();
-  if (!data.success || !data.file_url) throw new Error('Drive retornou sem file_url: ' + JSON.stringify(data));
-
+  if (!data.success || !data.file_url) throw new Error('Drive sem file_url: ' + JSON.stringify(data));
   const fileId = data.file_url.match(/\/d\/([^\/]+)\//)?.[1];
   if (!fileId) return data.file_url;
-  return `https://drive.google.com/uc?export=view&id=${fileId}`;
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
 }
 
-// ── Baixar imagem via sessão autenticada ───────────────────────────────────────
+// ── Download de imagem via sessão autenticada ──────────────────────────────────
 
 async function baixarImagem(page, src) {
   const bytes = await page.evaluate(async (url) => {
@@ -92,200 +70,290 @@ async function baixarImagem(page, src) {
   return bytes ? Buffer.from(bytes) : null;
 }
 
-// ── Coletar produtos de um grupo no OI ────────────────────────────────────────
+// ── Coletar produtos COM foto de um grupo ─────────────────────────────────────
+// Retorna apenas os que têm <input id="*btnFoto*"> na coluna td[8]
 
-async function coletarProdutosDoGrupo(page, grupValor) {
+async function coletarProdutosComFoto(page, grupoValue) {
   await page.goto(`${BASE_OI}/wfProdutoBusca.aspx`, { waitUntil: 'domcontentloaded', timeout: 20000 });
-  await sleep(1500);
-
-  if (page.url().includes('Entrar') || page.url().includes('Login')) {
-    throw new Error('Sessão expirada — faça login no OI antes de rodar o script');
-  }
-
-  // Seleciona o grupo
-  await page.evaluate((val) => {
-    const s = document.getElementById('ctl00_cph_ddlGrupoDeProduto');
-    if (s) { s.value = val; s.dispatchEvent(new Event('change', { bubbles: true })); if (s.onchange) s.onchange(); }
-  }, grupValor);
   await sleep(1200);
 
-  // Status "Ambos"
+  if (page.url().includes('Entrar') || page.url().includes('Login') || page.url().includes('CoreExterno')) {
+    throw new Error('Sessão expirada');
+  }
+
+  await page.evaluate((val) => {
+    const s = document.getElementById('ctl00_cph_ddlGrupoDeProduto');
+    if (s) { s.value = val; s.dispatchEvent(new Event('change', { bubbles: true })); }
+  }, grupoValue);
+  await sleep(800);
+
+  // Status "Com Estoque" para focar em produtos ativos
   await page.evaluate(() => {
     const s = document.getElementById('ctl00_cph_ddlStatusProduto');
     if (s) {
-      const opt = Array.from(s.options).find(o => o.text.toUpperCase().includes('AMBOS'));
+      const opt = Array.from(s.options).find(o => o.text.toUpperCase().includes('ESTOQUE'));
       if (opt) { s.value = opt.value; s.dispatchEvent(new Event('change', { bubbles: true })); }
     }
   });
   await sleep(400);
 
-  // Buscar
   await page.evaluate(() => {
     const btn = document.querySelector('#ctl00_cph_btnBuscar, input[id*="btnBuscar"]');
     if (btn) btn.click();
   });
   await sleep(4000);
 
-  // Coleta resultados: {desc, produtoId, empresaId}
-  const produtos = await page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('table tr')).slice(1);
-    return rows.flatMap(tr => {
-      const tds = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
-      if (!tds[2]) return [];
-      const link = tr.querySelector('a');
-      const href = link?.href || '';
-      const onclick = link?.getAttribute('onclick') || '';
-      const src = href + onclick;
+  // Coleta apenas produtos que têm btnFoto na coluna td[8]
+  return await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#ctl00_cph_grd tr')).slice(1);
+    const found = [];
+    for (const tr of rows) {
+      const tds = Array.from(tr.querySelectorAll('td'));
+      if (tds.length < 9) continue;
+      const btnFoto = tds[8].querySelector('input[id*="btnFoto"]');
+      if (!btnFoto) continue;
+
+      const link = tr.querySelector('a[onclick*="ProdutoID"], a[href*="ProdutoID"]');
+      const src = (link?.href || '') + (link?.getAttribute('onclick') || '');
       const pid = src.match(/ProdutoID=([^&'"]+)/)?.[1];
       const eid = src.match(/EmpresaID=([^&'"]+)/)?.[1];
-      if (!pid || !eid) return [];
-      return [{ desc: tds[2].trim(), produtoId: decodeURIComponent(pid), empresaId: decodeURIComponent(eid) }];
-    });
+      const desc = tds[2]?.innerText?.trim() || '';
+      if (!pid || !eid || !desc) continue;
+
+      found.push({
+        desc,
+        produtoId: decodeURIComponent(pid),
+        empresaId: decodeURIComponent(eid),
+      });
+    }
+    return found;
   });
-  return produtos;
 }
 
-// ── Buscar foto de um produto ──────────────────────────────────────────────────
+// ── Buscar URL de foto via aba Fotos e Documentos ────────────────────────────
+// Lê o onclick de lkbVisualizar para obter URL direta do arquivo
 
 async function buscarFoto(browser, empresaId, produtoId) {
   const pg = await browser.newPage();
+  await pg.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
   pg.on('dialog', async d => { try { await d.dismiss(); } catch (e) {} });
   try {
     const url = `${BASE_OI}/wfProduto.aspx?EmpresaID=${encodeURIComponent(empresaId)}&ProdutoID=${encodeURIComponent(produtoId)}`;
     await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    await sleep(1000);
+    await sleep(800);
 
-    const clicou = await pg.evaluate(() => {
+    // Clica na aba Fotos e Documentos
+    await pg.evaluate(() => {
       const tab = document.getElementById('__tab_tab_tabDocumento');
-      if (tab) { tab.click(); return true; }
-      const link = Array.from(document.querySelectorAll('a')).find(a => /fotos?/i.test(a.textContent?.trim()));
-      if (link) { link.click(); return true; }
-      return false;
+      if (tab) tab.click();
     });
-    if (!clicou) return null;
-    await sleep(1200);
+    await sleep(1500);
 
-    const imgSrc = await pg.evaluate(() => {
-      const panel = document.getElementById('tab_tabDocumento') || document;
-      const imgs = Array.from(panel.querySelectorAll('img')).filter(img =>
-        img.src &&
-        img.naturalWidth > 50 &&
-        !img.src.includes('spacer') &&
-        !img.src.includes('logo') &&
-        !img.src.includes('bg') &&
-        !img.src.includes('btn') &&
-        !img.src.includes('icon')
-      );
-      return imgs[0]?.src || null;
-    });
-    if (!imgSrc) return null;
+    // Extrai URLs dos documentos via onclick="fncNovaAba('/DocumentoAlternativo/...')"
+    const urlsFoto = await pg.evaluate((base) => {
+      const links = Array.from(document.querySelectorAll('[id*="lkbVisualizar"]'));
+      const urls = [];
+      for (const a of links) {
+        const onclick = a.getAttribute('onclick') || '';
+        const match = onclick.match(/fncNovaAba\('([^']+)'\)/);
+        if (!match) continue;
+        const caminho = match[1];
+        // Só aceita imagens (png, jpg, jpeg, gif, webp) — antes de query params
+        if (!/\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(caminho)) continue;
+        // Se caminho já é URL absoluta, usa direto; senão, concatena base do OI
+        const imgFullUrl = caminho.startsWith('http') ? caminho : `${base}${caminho}`;
+        urls.push(imgFullUrl);
+      }
+      return urls;
+    }, BASE_OI);
 
-    return await baixarImagem(pg, imgSrc);
+    if (!urlsFoto.length) return null;
+
+    const imgUrl = urlsFoto[0];
+    const isS3  = imgUrl.includes('amazonaws.com') || imgUrl.includes('s3.');
+    const isInternal = imgUrl.includes('sistemaoficinainteligente.com.br');
+
+    if (isS3) {
+      // URLs S3 presigned: download direto do Node.js (sem CORS)
+      try {
+        const { https, http } = (() => {
+          const h = require('https');
+          const ht = require('http');
+          return { https: h, http: ht };
+        })();
+        const buf = await new Promise((resolve, reject) => {
+          const mod = imgUrl.startsWith('https') ? require('https') : require('http');
+          mod.get(imgUrl, res => {
+            if (res.statusCode !== 200) { resolve(null); return; }
+            const chunks = [];
+            res.on('data', c => chunks.push(c));
+            res.on('end', () => resolve(Buffer.concat(chunks)));
+            res.on('error', reject);
+          }).on('error', reject);
+        });
+        return buf;
+      } catch (e) {
+        log(`  ⚠️  S3 download falhou: ${e.message.slice(0,60)}`);
+        return null;
+      }
+    }
+
+    // URLs internas: fetch via puppeteer com cookies de sessão
+    const bytes = await pg.evaluate(async (url) => {
+      try {
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok) return null;
+        const buf = await res.arrayBuffer();
+        return [...new Uint8Array(buf)];
+      } catch (e) { return null; }
+    }, imgUrl);
+
+    return bytes ? Buffer.from(bytes) : null;
   } catch (e) {
-    log(`  ⚠️  Erro ao buscar foto de ProdutoID ${produtoId.slice(0, 20)}: ${e.message.slice(0, 60)}`);
+    log(`  ⚠️  Erro ProdutoID ${produtoId.slice(0, 20)}: ${e.message.slice(0, 60)}`);
     return null;
   } finally {
     await pg.close().catch(() => {});
   }
 }
 
+// ── Login ──────────────────────────────────────────────────────────────────────
+
+async function login(browser) {
+  const page = await browser.newPage();
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
+  await page.evaluateOnNewDocument(() => { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); });
+  page.on('dialog', async d => { try { await d.dismiss(); } catch (e) {} });
+
+  await page.goto(`${BASE_OI}/Entrar.aspx?sair=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await sleep(2000);
+  await page.type('#Login1_UserName', OI_EMAIL, { delay: 40 });
+  await page.type('#Login1_Password', OI_SENHA, { delay: 40 });
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+    page.click('#Login1_btnEntrar'),
+  ]);
+  await sleep(2000);
+  log('Login: ' + page.url());
+  return page;
+}
+
 // ── Principal ──────────────────────────────────────────────────────────────────
 
 (async () => {
-  log(`Iniciando sincronização de fotos — ${FORCE ? 'MODO FORCE (re-baixa tudo)' : 'apenas sem foto'}`);
+  log(`Sync de fotos de pneus — ${FORCE ? 'MODO FORCE' : 'apenas sem foto'}`);
 
-  // 1. Busca todos os produtos sem foto de todas as lojas
+  // 1. Busca produtos sem foto no Supabase
   let query = supabase.from('estoque_pneus').select('id, descricao, grupo, loja');
-  if (!FORCE) {
-    query = query.is('foto_url', null);
-  }
+  if (!FORCE) query = query.is('foto_url', null);
   const { data: semFoto, error: dbErr } = await query;
+  if (dbErr) { log('❌ Erro BD: ' + dbErr.message); process.exit(1); }
+  if (!semFoto?.length) { log('✅ Todos os produtos já têm foto!'); process.exit(0); }
 
-  if (dbErr) { log('❌ Erro ao consultar banco: ' + dbErr.message); process.exit(1); }
-  if (!semFoto?.length) { log('✅ Nenhum produto sem foto — tudo sincronizado!'); process.exit(0); }
+  const porLoja = semFoto.reduce((a, p) => { a[p.loja] = (a[p.loja] || 0) + 1; return a; }, {});
+  log(`${semFoto.length} produto(s) sem foto: ${Object.entries(porLoja).map(([l, n]) => `${l}=${n}`).join(', ')}`);
 
-  // Agrupa por loja para exibir resumo
-  const porLoja = semFoto.reduce((acc, p) => { acc[p.loja] = (acc[p.loja] || 0) + 1; return acc; }, {});
-  log(`📋 ${semFoto.length} produto(s) sem foto: ${Object.entries(porLoja).map(([l, n]) => `${l}=${n}`).join(', ')}`);
-
-  // Mapa descrição → id (case insensitive) — cobre todas as lojas de uma vez
+  // Índice: descricao → {id, loja}
   const semFotoMap = new Map(semFoto.map(p => [p.descricao.toUpperCase(), { id: p.id, loja: p.loja }]));
 
-  // 2. Conecta ao Chrome existente
-  if (!fs.existsSync(WS_FILE)) {
-    log('❌ Arquivo de WebSocket não encontrado. Chrome está aberto na porta 9222?');
+  // 2. Conecta ao OI
+  let browser;
+  let connected = false;
+  try {
+    const res = await fetch('http://localhost:9222/json/version');
+    const data = await res.json();
+    browser = await puppeteer.connect({ browserWSEndpoint: data.webSocketDebuggerUrl, defaultViewport: null });
+    connected = true;
+    log('Conectado ao Chrome existente (porta 9222)');
+  } catch (e) {
+    log('Chrome 9222 não disponível, lançando headless...');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-blink-features=AutomationControlled'],
+      defaultViewport: { width: 1280, height: 900 },
+    });
+  }
+
+  let page;
+  try {
+    page = await login(browser);
+  } catch (e) {
+    log('❌ Falha no login: ' + e.message);
+    connected ? browser.disconnect() : await browser.close();
     process.exit(1);
   }
-  const ws = fs.readFileSync(WS_FILE, 'utf8').trim();
-  const browser = await puppeteer.connect({ browserWSEndpoint: ws, defaultViewport: null });
-  const page = await browser.newPage();
+
   page.on('dialog', async d => { try { await d.dismiss(); } catch (e) {} });
+
+  // 3. Lista grupos de pneu
+  await page.goto(`${BASE_OI}/wfProdutoBusca.aspx`, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  await sleep(1200);
+
+  const gruposPneu = await page.evaluate(() => {
+    const s = document.getElementById('ctl00_cph_ddlGrupoDeProduto');
+    return Array.from(s?.options || [])
+      .map(o => ({ value: o.value, text: o.text.trim() }))
+      .filter(o => o.text.toUpperCase().startsWith('PNEU IMPORTADO') || o.text.toUpperCase().startsWith('PNEU NACIONAL'));
+  });
+  log(`Grupos de pneu: ${gruposPneu.length}`);
 
   let processados = 0, comFoto = 0, semFotoOi = 0, erros = 0;
 
   try {
-    // 3. Lê grupos disponíveis no OI (uma passagem = todas as lojas)
-    await page.goto(`${BASE_OI}/wfProdutoBusca.aspx`, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await sleep(1500);
-
-    if (page.url().includes('Entrar') || page.url().includes('Login')) {
-      log('❌ Chrome não está logado no OI — faça login primeiro');
-      browser.disconnect(); process.exit(1);
-    }
-
-    const gruposOI = await page.evaluate(() => {
-      const s = document.getElementById('ctl00_cph_ddlGrupoDeProduto');
-      return Array.from(s?.options || []).map(o => ({ value: o.value, text: o.text.trim() }));
-    });
-
-    const gruposPneu = gruposOI.filter(g => isGrupoPneu(g.text));
-    log(`Grupos de pneu no OI: ${gruposPneu.length}`);
-
-    if (!gruposPneu.length) {
-      log('⚠️  Nenhum grupo de pneu encontrado — verifique se está logado no OI');
-      browser.disconnect(); process.exit(1);
-    }
-
-    // 4. Para cada grupo, coleta produtos e baixa fotos dos que precisam
     for (const grupo of gruposPneu) {
       log(`→ Grupo: ${grupo.text}`);
 
-      let produtosGrupo;
+      let produtosComFoto;
       try {
-        produtosGrupo = await coletarProdutosDoGrupo(page, grupo.value);
+        produtosComFoto = await coletarProdutosComFoto(page, grupo.value);
       } catch (e) {
-        log(`  ⚠️  Erro ao coletar grupo ${grupo.text}: ${e.message.slice(0, 80)}`);
+        log(`  ⚠️  Erro ao coletar grupo: ${e.message.slice(0, 80)}`);
         continue;
       }
-      log(`   ${produtosGrupo.length} produtos no grupo`);
 
-      for (const prod of produtosGrupo) {
-        const descUp = prod.desc.toUpperCase();
+      if (!produtosComFoto.length) {
+        log(`   ○ Nenhum produto com foto neste grupo`);
+        continue;
+      }
+      log(`   ${produtosComFoto.length} produto(s) com foto neste grupo`);
 
-        // Busca correspondência exata ou parcial (OI pode truncar ~40 chars na lista)
+      for (const prod of produtosComFoto) {
+        // Limpa descrição do OI: remove "()" vazios e espaços extras do final
+        const descLimpa = prod.desc.replace(/\s*\(\s*\)\s*$/, '').trim();
+        const descUp = descLimpa.toUpperCase();
+
+        // Match exato, depois parcial (OI lista pode truncar em ~40 chars)
         let match = semFotoMap.get(descUp);
         if (!match) {
+          // Testa também com a versão crua (sem limpeza)
+          match = semFotoMap.get(prod.desc.toUpperCase());
+        }
+        if (!match) {
           for (const [dbDesc, info] of semFotoMap) {
-            if (dbDesc.startsWith(descUp) || descUp.startsWith(dbDesc.slice(0, 35))) {
+            const minLen = Math.min(descUp.length, 40);
+            if (dbDesc.startsWith(descUp.slice(0, minLen)) || descUp.startsWith(dbDesc.slice(0, minLen))) {
               match = info;
               break;
             }
           }
         }
-        if (!match) continue;
+        if (!match) {
+          log(`  [skip] ${prod.desc.slice(0, 55)} — não encontrado no BD`);
+          continue;
+        }
 
         processados++;
-        log(`  [${processados}/${semFoto.length}] [${match.loja}] ${prod.desc.slice(0, 55)}`);
+        log(`  [${processados}] [${match.loja}] ${prod.desc.slice(0, 55)}`);
 
         const imgBuffer = await buscarFoto(browser, prod.empresaId, prod.produtoId);
-        if (!imgBuffer) { semFotoOi++; log(`    ↳ Sem foto no OI`); continue; }
+        if (!imgBuffer) { semFotoOi++; log(`    ↳ Sem foto acessível no OI`); continue; }
 
         const fileName = `pneu-${match.id}.jpg`;
         let driveUrl;
         try {
           driveUrl = await uploadToDrive(imgBuffer, fileName);
         } catch (e) {
-          log(`    ↳ ❌ Erro Drive: ${e.message.slice(0, 80)}`);
+          log(`    ↳ ❌ Drive: ${e.message.slice(0, 80)}`);
           erros++; continue;
         }
 
@@ -295,31 +363,30 @@ async function buscarFoto(browser, empresaId, produtoId) {
           .eq('id', match.id);
 
         if (upErr) {
-          log(`    ↳ ❌ Erro banco: ${upErr.message}`);
+          log(`    ↳ ❌ BD: ${upErr.message}`);
           erros++;
         } else {
-          log(`    ↳ ✅ Foto salva (${match.loja})`);
+          log(`    ↳ ✅ OK (${match.loja})`);
           semFotoMap.delete(descUp);
           comFoto++;
         }
 
-        await sleep(800);
+        await sleep(600);
       }
 
-      await sleep(500);
+      await sleep(400);
     }
-
   } finally {
     await page.close().catch(() => {});
-    browser.disconnect();
+    if (connected) browser.disconnect(); else await browser.close().catch(() => {});
   }
 
   log('');
   log('=== RESULTADO ===');
-  log(`Processados:    ${processados}`);
-  log(`Fotos salvas:   ${comFoto}`);
-  log(`Sem foto no OI: ${semFotoOi}`);
-  log(`Erros:          ${erros}`);
-  log(`Ainda sem foto: ${semFoto.length - comFoto}`);
-  log('Pronto.');
-})();
+  log(`Processados:       ${processados}`);
+  log(`Fotos salvas:      ${comFoto}`);
+  log(`Sem foto no OI:    ${semFotoOi}`);
+  log(`Erros:             ${erros}`);
+  log(`Ainda sem foto BD: ${semFoto.length - comFoto}`);
+  log('Concluído.');
+})().catch(err => { console.error('❌ Fatal:', err.message || err); process.exit(1); });
