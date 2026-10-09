@@ -1763,4 +1763,12 @@ curl -s -X POST https://ubiuershczqjnoczcupa.supabase.co/functions/v1/sync-fotos
 
 **Onde o status aparece:** NexusZ → CRM → Catálogo de Pneus → rodapé mostra `N com foto · N sem foto (sincronizando automaticamente a cada 5 min)`.
 
-*Criado: outubro/2026. Atualizado: outubro/2026 — v16: debug removido, botão "Atualizar agora" dispara fire-and-forget, POST mínimo sem EVENTVALIDATION, login redirect:manual.*
+**Bug crítico corrigido (out/2026):** A função usava `extractImgFoto` (buscava `<img>` tags) mas as fotos no OI ficam em `onclick="fncNovaAba('...')"` nos links `lkbVisualizar` da aba "Fotos e Documentos". Função corrigida para `extractFotoUrl` que usa o padrão `fncNovaAba`. Também adicionado:
+- Filtro de `btnFoto` na lista (só abre produtos que têm câmera)
+- Tentativa AJAX async postback antes do postback síncrono
+- Limpeza de sufixo "()" em descrições ("PNEU X 91H ()" → "PNEU X 91H")
+- Suporte a S3 presigned URLs (`amazonaws.com`)
+
+**Script local (sincronização inicial):** `tools/sincronizar-fotos-todas-lojas.js` — usa Puppeteer (Chrome headless) para varrer os 57 grupos de pneu e salvar fotos. Roda uma vez para popular o banco; edge function mantém atualizado depois. Comando: `node tools/sincronizar-fotos-todas-lojas.js`
+
+*Criado: outubro/2026. Atualizado: outubro/2026 — v17: extractFotoUrl (fncNovaAba onclick), btnFoto filter, asyncpost + sync postback fallback, "()" normalization.*
