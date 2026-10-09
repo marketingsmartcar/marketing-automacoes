@@ -130,10 +130,45 @@ async function coletarProdutosComFoto(page, grupoValue) {
   });
 }
 
-// ── Buscar URL de foto via aba Fotos e Documentos ────────────────────────────
-// Lê o onclick de lkbVisualizar para obter URL direta do arquivo
+// ── Download de imagem (S3 via Node https, interno via Puppeteer fetch) ───────
 
-async function buscarFoto(browser, empresaId, produtoId) {
+async function downloadImagem(browser, imgUrl) {
+  if (imgUrl.includes('amazonaws.com') || imgUrl.includes('s3.')) {
+    try {
+      return await new Promise((resolve, reject) => {
+        const mod = imgUrl.startsWith('https') ? require('https') : require('http');
+        mod.get(imgUrl, res => {
+          if (res.statusCode !== 200) { resolve(null); return; }
+          const chunks = [];
+          res.on('data', c => chunks.push(c));
+          res.on('end', () => resolve(Buffer.concat(chunks)));
+          res.on('error', reject);
+        }).on('error', reject);
+      });
+    } catch (e) {
+      log(`  ⚠️  S3 download falhou: ${e.message.slice(0, 60)}`);
+      return null;
+    }
+  }
+  // URL interna OI: usa sessão do browser (cookies compartilhados)
+  const pg = await browser.newPage();
+  try {
+    const bytes = await pg.evaluate(async (url) => {
+      try {
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok) return null;
+        return [...new Uint8Array(await res.arrayBuffer())];
+      } catch { return null; }
+    }, imgUrl);
+    return bytes ? Buffer.from(bytes) : null;
+  } finally {
+    await pg.close().catch(() => {});
+  }
+}
+
+// ── Buscar TODAS as URLs de foto via aba Fotos e Documentos ──────────────────
+
+async function buscarFotos(browser, empresaId, produtoId) {
   const pg = await browser.newPage();
   await pg.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
   pg.on('dialog', async d => { try { await d.dismiss(); } catch (e) {} });
@@ -142,15 +177,13 @@ async function buscarFoto(browser, empresaId, produtoId) {
     await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
     await sleep(800);
 
-    // Clica na aba Fotos e Documentos
     await pg.evaluate(() => {
       const tab = document.getElementById('__tab_tab_tabDocumento');
       if (tab) tab.click();
     });
     await sleep(1500);
 
-    // Extrai URLs dos documentos via onclick="fncNovaAba('/DocumentoAlternativo/...')"
-    const urlsFoto = await pg.evaluate((base) => {
+    return await pg.evaluate((base) => {
       const links = Array.from(document.querySelectorAll('[id*="lkbVisualizar"]'));
       const urls = [];
       for (const a of links) {
@@ -158,60 +191,14 @@ async function buscarFoto(browser, empresaId, produtoId) {
         const match = onclick.match(/fncNovaAba\('([^']+)'\)/);
         if (!match) continue;
         const caminho = match[1];
-        // Só aceita imagens (png, jpg, jpeg, gif, webp) — antes de query params
         if (!/\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(caminho)) continue;
-        // Se caminho já é URL absoluta, usa direto; senão, concatena base do OI
-        const imgFullUrl = caminho.startsWith('http') ? caminho : `${base}${caminho}`;
-        urls.push(imgFullUrl);
+        urls.push(caminho.startsWith('http') ? caminho : `${base}${caminho}`);
       }
       return urls;
     }, BASE_OI);
-
-    if (!urlsFoto.length) return null;
-
-    const imgUrl = urlsFoto[0];
-    const isS3  = imgUrl.includes('amazonaws.com') || imgUrl.includes('s3.');
-    const isInternal = imgUrl.includes('sistemaoficinainteligente.com.br');
-
-    if (isS3) {
-      // URLs S3 presigned: download direto do Node.js (sem CORS)
-      try {
-        const { https, http } = (() => {
-          const h = require('https');
-          const ht = require('http');
-          return { https: h, http: ht };
-        })();
-        const buf = await new Promise((resolve, reject) => {
-          const mod = imgUrl.startsWith('https') ? require('https') : require('http');
-          mod.get(imgUrl, res => {
-            if (res.statusCode !== 200) { resolve(null); return; }
-            const chunks = [];
-            res.on('data', c => chunks.push(c));
-            res.on('end', () => resolve(Buffer.concat(chunks)));
-            res.on('error', reject);
-          }).on('error', reject);
-        });
-        return buf;
-      } catch (e) {
-        log(`  ⚠️  S3 download falhou: ${e.message.slice(0,60)}`);
-        return null;
-      }
-    }
-
-    // URLs internas: fetch via puppeteer com cookies de sessão
-    const bytes = await pg.evaluate(async (url) => {
-      try {
-        const res = await fetch(url, { credentials: 'include' });
-        if (!res.ok) return null;
-        const buf = await res.arrayBuffer();
-        return [...new Uint8Array(buf)];
-      } catch (e) { return null; }
-    }, imgUrl);
-
-    return bytes ? Buffer.from(bytes) : null;
   } catch (e) {
     log(`  ⚠️  Erro ProdutoID ${produtoId.slice(0, 20)}: ${e.message.slice(0, 60)}`);
-    return null;
+    return [];
   } finally {
     await pg.close().catch(() => {});
   }
@@ -345,28 +332,33 @@ async function login(browser) {
         processados++;
         log(`  [${processados}] [${match.loja}] ${prod.desc.slice(0, 55)}`);
 
-        const imgBuffer = await buscarFoto(browser, prod.empresaId, prod.produtoId);
-        if (!imgBuffer) { semFotoOi++; log(`    ↳ Sem foto acessível no OI`); continue; }
+        const oiUrls = await buscarFotos(browser, prod.empresaId, prod.produtoId);
+        if (!oiUrls.length) { semFotoOi++; log(`    ↳ Sem foto acessível no OI`); continue; }
 
-        const fileName = `pneu-${match.id}.jpg`;
-        let driveUrl;
-        try {
-          driveUrl = await uploadToDrive(imgBuffer, fileName);
-        } catch (e) {
-          log(`    ↳ ❌ Drive: ${e.message.slice(0, 80)}`);
-          erros++; continue;
+        const driveUrls = [];
+        for (let i = 0; i < oiUrls.length; i++) {
+          const buf = await downloadImagem(browser, oiUrls[i]);
+          if (!buf) continue;
+          try {
+            const url = await uploadToDrive(buf, `pneu-${match.id}-${i + 1}.jpg`);
+            driveUrls.push(url);
+          } catch (e) {
+            log(`    ↳ ⚠️  Drive foto ${i + 1}: ${e.message.slice(0, 60)}`);
+          }
         }
+
+        if (!driveUrls.length) { erros++; log(`    ↳ ❌ Nenhuma foto enviada ao Drive`); continue; }
 
         const { error: upErr } = await supabase
           .from('estoque_pneus')
-          .update({ foto_url: driveUrl })
+          .update({ foto_url: driveUrls.join(',') })
           .eq('id', match.id);
 
         if (upErr) {
           log(`    ↳ ❌ BD: ${upErr.message}`);
           erros++;
         } else {
-          log(`    ↳ ✅ OK (${match.loja})`);
+          log(`    ↳ ✅ OK (${match.loja}) — ${driveUrls.length} foto(s)`);
           semFotoMap.delete(descUp);
           comFoto++;
         }
