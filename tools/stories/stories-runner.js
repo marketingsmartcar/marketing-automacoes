@@ -72,6 +72,9 @@ async function main() {
     return;
   }
 
+  // Rastreia marcas que já postaram nesta rodada (evita múltiplas automações no mesmo dia)
+  const marcasQueJaPostaram = new Set();
+
   for (const auto of automacoes) {
     console.log(`\n📋 Automação: "${auto.nome}" (${auto.marca})`);
 
@@ -86,10 +89,16 @@ async function main() {
       console.log(`   ⏭  Após a data de fim (${auto.data_fim}).`); continue;
     }
     if (auto.ultima_execucao === hoje) {
-      console.log(`   ⏭  Já executou hoje (${hoje}).`); continue;
+      console.log(`   ⏭  Já executou hoje (${hoje}).`);
+      marcasQueJaPostaram.add(auto.marca); // conta como postada mesmo que esta instância não rode
+      continue;
     }
     if (auto.em_execucao) {
       console.log(`   ⚠️  Já está em execução — pulando para evitar duplicata.`); continue;
+    }
+    // Impede que outra automação da mesma marca rode no mesmo dia
+    if (marcasQueJaPostaram.has(auto.marca)) {
+      console.log(`   ⏭  Marca "${auto.marca}" já postou hoje — pulando "${auto.nome}" para evitar repetição.`); continue;
     }
 
     // Marca como em execução E já registra ultima_execucao para evitar double-run
@@ -97,6 +106,7 @@ async function main() {
 
     try {
       await executarAutomacao(auto, hoje);
+      marcasQueJaPostaram.add(auto.marca);
     } catch (err) {
       console.error(`   ❌ Erro na automação "${auto.nome}":`, err.message);
     } finally {
