@@ -9,6 +9,21 @@ const { getVideoDurationInSeconds } = require('get-video-duration');
 const { getProximosVideos, registrarPostagem, restituirVideo } = require('./video-queue');
 const { postarInstagramStory, postarFacebookStory } = require('./story-poster');
 
+// ─── Verifica se o stories-runner.js (novo sistema) já postou hoje ────────────
+async function novoSistemaJaPostouHoje() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return false;
+  const hoje = new Date().toISOString().slice(0, 10);
+  try {
+    const res = await axios.get(`${url}/rest/v1/stories_automacoes`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      params: { marca: 'eq.br', ativa: 'eq.true', ultima_execucao: `eq.${hoje}`, select: 'id', limit: 1 },
+    });
+    return Array.isArray(res.data) && res.data.length > 0;
+  } catch { return false; }
+}
+
 const BASE_GRAPH  = 'https://graph.facebook.com/v19.0';
 const MAX_SEG_POOL = 60;
 const LIMIAR_FB_ONLY = 30;
@@ -133,6 +148,13 @@ async function main() {
   console.log('═══════════════════════════════════════════════');
   console.log('  COMPLETAR STORIES BR PNEUS (com retry)');
   console.log('═══════════════════════════════════════════════');
+
+  // Não rodar se o novo sistema (stories-runner) já postou hoje
+  const jaPostou = await novoSistemaJaPostouHoje();
+  if (jaPostou) {
+    console.log('⏭  Novo sistema (stories-runner) já postou hoje. Saindo para evitar duplicatas.');
+    return;
+  }
 
   // Verificar contagem IG atual antes de começar
   const igAtual = await contarStoriesIG();
