@@ -67,7 +67,6 @@ function marcarEnviado(estado, chave) {
 
 const LOJAS_CONFIG = [
   { key: 'BR01', value: '469',  nome: 'BR Pneus Araraquara', sigla: 'BR1' },
-  { key: 'BR03', value: '2202', nome: 'BR Pneus Americana',  sigla: 'BR3' },
   { key: 'BR04', value: '1524', nome: 'BR Pneus São Carlos', sigla: 'BR4' },
   { key: 'PEG1', value: '3098', nome: 'Peg Pneus Araraquara',sigla: 'PEG1'},
 ];
