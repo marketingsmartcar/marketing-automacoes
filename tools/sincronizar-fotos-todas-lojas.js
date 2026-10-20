@@ -195,21 +195,28 @@ async function buscarFotos(browser, empresaId, produtoId) {
     return await pg.evaluate((base) => {
       const results = [];
 
-      // Detecta QR code / imagem sem cor (>90% pixels quase preto ou branco)
+      // Detecta QR code / imagem monocromática sem cor real
+      // Estratégia dupla: pouca saturação de cor E baixa variância de cinza (bimodal)
       function isQRCode(img) {
         try {
-          const sz = 80;
+          const sz = 120;
           const canvas = document.createElement('canvas');
           canvas.width = sz; canvas.height = sz;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, sz, sz);
           const data = ctx.getImageData(0, 0, sz, sz).data;
-          let bw = 0;
+          const total = sz * sz;
+          let semSaturacao = 0; // pixels sem cor (R≈G≈B)
+          let bw = 0;           // pixels quase preto ou branco puro
           for (let i = 0; i < data.length; i += 4) {
-            const lum = (data[i] + data[i+1] + data[i+2]) / 3;
-            if (lum < 40 || lum > 215) bw++;
+            const r = data[i], g = data[i+1], b = data[i+2];
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            if (max - min < 20) semSaturacao++; // sem saturação de cor
+            const lum = (r + g + b) / 3;
+            if (lum < 50 || lum > 200) bw++;
           }
-          return bw / (sz * sz) > 0.88;
+          // QR code: >80% sem cor E >65% pixels extremos (bimodal preto/branco)
+          return (semSaturacao / total > 0.80) && (bw / total > 0.65);
         } catch { return false; }
       }
 
