@@ -90,15 +90,23 @@ async function main() {
     }
     if (auto.ultima_execucao === hoje) {
       console.log(`   ⏭  Já executou hoje (${hoje}).`);
-      marcasQueJaPostaram.add(auto.marca); // conta como postada mesmo que esta instância não rode
+      marcasQueJaPostaram.add(auto.marca);
       continue;
     }
     if (auto.em_execucao) {
       console.log(`   ⚠️  Já está em execução — pulando para evitar duplicata.`); continue;
     }
-    // Impede que outra automação da mesma marca rode no mesmo dia
+    // Impede que outra automação da mesma marca rode no mesmo dia (guarda em memória)
     if (marcasQueJaPostaram.has(auto.marca)) {
-      console.log(`   ⏭  Marca "${auto.marca}" já postou hoje — pulando "${auto.nome}" para evitar repetição.`); continue;
+      console.log(`   ⏭  Marca "${auto.marca}" já postou hoje (mesma execução) — pulando "${auto.nome}".`); continue;
+    }
+    // Guarda cross-execução: checa no Supabase se QUALQUER automação da marca já rodou hoje
+    const outrasHoje = await sbGet('stories_automacoes',
+      `?marca=eq.${auto.marca}&ativa=eq.true&ultima_execucao=eq.${hoje}&id=neq.${auto.id}&select=id,nome&limit=1`);
+    if (outrasHoje.length > 0) {
+      console.log(`   ⏭  Automação "${outrasHoje[0].nome}" da marca "${auto.marca}" já rodou hoje — pulando "${auto.nome}".`);
+      marcasQueJaPostaram.add(auto.marca);
+      continue;
     }
 
     // Marca como em execução E já registra ultima_execucao para evitar double-run
@@ -139,12 +147,19 @@ async function executarAutomacao(auto, hoje) {
 
   // Monta lista: fixados primeiro, depois rotativos a partir do índice
   const fila = [...fixados, ...rotativos];
+
+  // Seleciona sem repetição — limita ao tamanho real da fila para não repetir arquivos
+  const maxPostavel = Math.min(quantidade, fila.length);
   const selecionados = [];
-  for (let i = 0; i < quantidade; i++) {
+  for (let i = 0; selecionados.length < maxPostavel; i++) {
     selecionados.push(fila[(indice + i) % fila.length]);
   }
 
-  console.log(`   📂 ${total} arquivo(s) na pasta | postando ${quantidade} | índice atual: ${indice}`);
+  if (maxPostavel < quantidade) {
+    console.log(`   ⚠️  Pasta tem apenas ${fila.length} arquivo(s) — postando ${maxPostavel} (sem repetir).`);
+  }
+
+  console.log(`   📂 ${total} arquivo(s) na pasta | postando ${maxPostavel} | índice atual: ${indice}`);
 
   let postados = 0;
   for (const arquivo of selecionados) {
@@ -180,7 +195,7 @@ async function executarAutomacao(auto, hoje) {
   }
 
   // Atualiza índice e data de execução
-  const novoIndice = (indice + quantidade) % fila.length;
+  const novoIndice = fila.length > 0 ? (indice + maxPostavel) % fila.length : 0;
   await sbPatch('stories_automacoes', auto.id, {
     ultimo_index:    novoIndice,
     ultima_execucao: hoje,
