@@ -195,12 +195,31 @@ async function buscarFotos(browser, empresaId, produtoId) {
     return await pg.evaluate((base) => {
       const results = [];
 
+      // Detecta QR code / imagem sem cor (>90% pixels quase preto ou branco)
+      function isQRCode(img) {
+        try {
+          const sz = 80;
+          const canvas = document.createElement('canvas');
+          canvas.width = sz; canvas.height = sz;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, sz, sz);
+          const data = ctx.getImageData(0, 0, sz, sz).data;
+          let bw = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            const lum = (data[i] + data[i+1] + data[i+2]) / 3;
+            if (lum < 40 || lum > 215) bw++;
+          }
+          return bw / (sz * sz) > 0.88;
+        } catch { return false; }
+      }
+
       // 1. PRIORIDADE: img base64 embedded na aba (não expira, disponível sempre)
       const tab = document.getElementById('tab_tabDocumento');
       if (tab) {
         for (const img of tab.querySelectorAll('img')) {
           if (!img.src?.startsWith('data:image/')) continue;
           if (img.naturalWidth < 100 || img.naturalHeight < 100) continue;
+          if (isQRCode(img)) continue; // pula QR codes / imagens monocromáticas
           const mm = img.src.match(/^data:(image\/[^;]+);base64,(.+)$/s);
           if (!mm) continue;
           const ext = mm[1].split('/')[1].replace('jpeg', 'jpg');
