@@ -70,8 +70,9 @@ async function baixarImagem(page, src) {
   return bytes ? Buffer.from(bytes) : null;
 }
 
-// ── Coletar produtos COM foto de um grupo ─────────────────────────────────────
-// Retorna apenas os que têm <input id="*btnFoto*"> na coluna td[8]
+// ── Coletar produtos de um grupo ──────────────────────────────────────────────
+// Retorna TODOS os produtos do grupo (com ou sem btnFoto)
+// hasFoto=true → tem foto S3 | hasFoto=false → pode ter foto base64 (verificar ao abrir)
 
 async function coletarProdutosComFoto(page, grupoValue) {
   await page.goto(`${BASE_OI}/wfProdutoBusca.aspx`, { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -103,15 +104,14 @@ async function coletarProdutosComFoto(page, grupoValue) {
   });
   await sleep(4000);
 
-  // Coleta apenas produtos que têm btnFoto na coluna td[8]
+  // Coleta TODOS os produtos — hasFoto indica se tem btnFoto (S3 certamente)
+  // Produtos sem btnFoto podem ter foto base64; descuberto só ao abrir a página
   return await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('#ctl00_cph_grd tr')).slice(1);
     const found = [];
     for (const tr of rows) {
       const tds = Array.from(tr.querySelectorAll('td'));
-      if (tds.length < 9) continue;
-      const btnFoto = tds[8].querySelector('input[id*="btnFoto"]');
-      if (!btnFoto) continue;
+      if (tds.length < 3) continue;
 
       const link = tr.querySelector('a[onclick*="ProdutoID"], a[href*="ProdutoID"]');
       const src = (link?.href || '') + (link?.getAttribute('onclick') || '');
@@ -124,6 +124,7 @@ async function coletarProdutosComFoto(page, grupoValue) {
         desc,
         produtoId: decodeURIComponent(pid),
         empresaId: decodeURIComponent(eid),
+        hasFoto: !!(tds[8]?.querySelector('input[id*="btnFoto"]')),
       });
     }
     return found;
@@ -166,7 +167,10 @@ async function downloadImagem(browser, imgUrl) {
   }
 }
 
-// ── Buscar TODAS as URLs de foto via aba Fotos e Documentos ──────────────────
+// ── Buscar foto via aba Fotos ─────────────────────────────────────────────────
+// Estratégia: sempre prioriza img base64 embedded (não expira, sempre disponível)
+// Fallback: URL S3 fresca via lkbVisualizar (funciona se < 8h desde upload)
+// Retorna array de { type: 'base64'|'s3', data?, ext?, url? }
 
 async function buscarFotos(browser, empresaId, produtoId) {
   const pg = await browser.newPage();
@@ -181,20 +185,38 @@ async function buscarFotos(browser, empresaId, produtoId) {
       const tab = document.getElementById('__tab_tab_tabDocumento');
       if (tab) tab.click();
     });
-    await sleep(1500);
+    await sleep(2000);
 
     return await pg.evaluate((base) => {
-      const links = Array.from(document.querySelectorAll('[id*="lkbVisualizar"]'));
-      const urls = [];
-      for (const a of links) {
-        const onclick = a.getAttribute('onclick') || '';
-        const match = onclick.match(/fncNovaAba\('([^']+)'\)/);
-        if (!match) continue;
-        const caminho = match[1];
-        if (!/\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(caminho)) continue;
-        urls.push(caminho.startsWith('http') ? caminho : `${base}${caminho}`);
+      const results = [];
+
+      // 1. PRIORIDADE: img base64 embedded na aba (não expira, disponível sempre)
+      const tab = document.getElementById('tab_tabDocumento');
+      if (tab) {
+        for (const img of tab.querySelectorAll('img')) {
+          if (!img.src?.startsWith('data:image/')) continue;
+          if (img.naturalWidth < 100 || img.naturalHeight < 100) continue;
+          const mm = img.src.match(/^data:(image\/[^;]+);base64,(.+)$/s);
+          if (!mm) continue;
+          const ext = mm[1].split('/')[1].replace('jpeg', 'jpg');
+          results.push({ type: 'base64', data: mm[2], ext });
+        }
       }
-      return urls;
+
+      // 2. FALLBACK: URLs S3 via lkbVisualizar (só usadas se não houver base64)
+      if (results.length === 0) {
+        for (const a of document.querySelectorAll('[id*="lkbVisualizar"]')) {
+          const onclick = a.getAttribute('onclick') || '';
+          const m = onclick.match(/fncNovaAba\('([^']+)'\)/);
+          if (!m) continue;
+          // Decodificar &amp; → & (HTML encoding nas URLs S3 no atributo onclick)
+          const caminho = m[1].replace(/&amp;/g, '&');
+          if (!/\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(caminho)) continue;
+          results.push({ type: 's3', url: caminho.startsWith('http') ? caminho : `${base}${caminho}` });
+        }
+      }
+
+      return results;
     }, BASE_OI);
   } catch (e) {
     log(`  ⚠️  Erro ProdutoID ${produtoId.slice(0, 20)}: ${e.message.slice(0, 60)}`);
@@ -299,10 +321,11 @@ async function login(browser) {
       }
 
       if (!produtosComFoto.length) {
-        log(`   ○ Nenhum produto com foto neste grupo`);
+        log(`   ○ Nenhum produto neste grupo`);
         continue;
       }
-      log(`   ${produtosComFoto.length} produto(s) com foto neste grupo`);
+      const comBtnFoto = produtosComFoto.filter(p => p.hasFoto).length;
+      log(`   ${produtosComFoto.length} produto(s) no grupo (${comBtnFoto} com btnFoto/S3)`);
 
       for (const prod of produtosComFoto) {
         // Limpa descrição do OI: remove "()" vazios e espaços extras do final
@@ -332,15 +355,26 @@ async function login(browser) {
         processados++;
         log(`  [${processados}] [${match.loja}] ${prod.desc.slice(0, 55)}`);
 
-        const oiUrls = await buscarFotos(browser, prod.empresaId, prod.produtoId);
-        if (!oiUrls.length) { semFotoOi++; log(`    ↳ Sem foto acessível no OI`); continue; }
+        const oiFotos = await buscarFotos(browser, prod.empresaId, prod.produtoId);
+        if (!oiFotos.length) { semFotoOi++; log(`    ↳ Sem foto acessível no OI`); continue; }
 
         const driveUrls = [];
-        for (let i = 0; i < oiUrls.length; i++) {
-          const buf = await downloadImagem(browser, oiUrls[i]);
-          if (!buf) continue;
+        for (let i = 0; i < oiFotos.length; i++) {
+          const foto = oiFotos[i];
+          let buf = null;
           try {
-            const url = await uploadToDrive(buf, `pneu-${match.id}-${i + 1}.jpg`);
+            if (foto.type === 'base64') {
+              buf = Buffer.from(foto.data, 'base64');
+            } else {
+              buf = await downloadImagem(browser, foto.url);
+            }
+          } catch (e) {
+            log(`    ↳ ⚠️  Download foto ${i + 1}: ${e.message.slice(0, 60)}`);
+          }
+          if (!buf) continue;
+          const ext = foto.ext || (foto.url?.endsWith('.png') ? 'png' : 'jpg');
+          try {
+            const url = await uploadToDrive(buf, `pneu-${match.id}-${i + 1}.${ext}`);
             driveUrls.push(url);
           } catch (e) {
             log(`    ↳ ⚠️  Drive foto ${i + 1}: ${e.message.slice(0, 60)}`);
