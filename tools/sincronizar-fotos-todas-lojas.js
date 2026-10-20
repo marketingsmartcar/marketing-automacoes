@@ -185,7 +185,12 @@ async function buscarFotos(browser, empresaId, produtoId) {
       const tab = document.getElementById('__tab_tab_tabDocumento');
       if (tab) tab.click();
     });
-    await sleep(2000);
+    await sleep(1500);
+    // Aguarda a img base64 aparecer (até 5s), ou continua se não aparecer
+    try {
+      await pg.waitForSelector('#tab_tabDocumento img[src^="data:image/"]', { timeout: 5000 });
+    } catch {}
+    await sleep(500);
 
     return await pg.evaluate((base) => {
       const results = [];
@@ -235,7 +240,8 @@ async function login(browser) {
   page.on('dialog', async d => { try { await d.dismiss(); } catch (e) {} });
 
   await page.goto(`${BASE_OI}/Entrar.aspx?sair=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await sleep(2000);
+  await page.waitForSelector('#Login1_UserName', { timeout: 15000 });
+  await sleep(500);
   await page.type('#Login1_UserName', OI_EMAIL, { delay: 40 });
   await page.type('#Login1_Password', OI_SENHA, { delay: 40 });
   await Promise.all([
