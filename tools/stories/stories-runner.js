@@ -53,6 +53,56 @@ const META_CONFIG = {
   },
 };
 
+// ─── Apaga stories anteriores ─────────────────────────────────────────────────
+
+async function apagarStoriesAtuais(meta) {
+  const { igUserId, pageToken: igToken } = meta.instagram;
+  if (igUserId && igToken) {
+    try {
+      const res = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/stories?access_token=${igToken}`);
+      const json = await res.json();
+      const lista = json.data || [];
+      if (lista.length) {
+        console.log(`   🗑️  Apagando ${lista.length} story(ies) IG anterior(es)...`);
+        for (const s of lista) {
+          try {
+            await fetch(`https://graph.facebook.com/v19.0/${s.id}`, {
+              method: 'DELETE',
+              body: new URLSearchParams({ access_token: igToken }),
+            });
+            console.log(`      ✅ IG ${s.id} removido`);
+          } catch {}
+        }
+      } else {
+        console.log(`   ℹ️  Nenhum story IG anterior para apagar.`);
+      }
+    } catch (e) { console.log(`   ⚠️ Erro ao apagar stories IG: ${e.message}`); }
+  }
+
+  const { pageId, pageToken: fbToken } = meta.facebook;
+  if (pageId && fbToken) {
+    try {
+      const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/stories?access_token=${fbToken}`);
+      const json = await res.json();
+      const lista = json.data || [];
+      if (lista.length) {
+        console.log(`   🗑️  Apagando ${lista.length} story(ies) FB anterior(es)...`);
+        for (const s of lista) {
+          try {
+            await fetch(`https://graph.facebook.com/v19.0/${s.id}`, {
+              method: 'DELETE',
+              body: new URLSearchParams({ access_token: fbToken }),
+            });
+            console.log(`      ✅ FB ${s.id} removido`);
+          } catch {}
+        }
+      } else {
+        console.log(`   ℹ️  Nenhum story FB anterior para apagar.`);
+      }
+    } catch (e) { console.log(`   ⚠️ Erro ao apagar stories FB: ${e.message}`); }
+  }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -128,6 +178,9 @@ async function main() {
 async function executarAutomacao(auto, hoje) {
   const meta = META_CONFIG[auto.marca];
   if (!meta) throw new Error(`Marca desconhecida: ${auto.marca}`);
+
+  // Apaga stories do dia anterior antes de postar novos
+  await apagarStoriesAtuais(meta);
 
   // Lista arquivos na pasta do Drive
   const arquivos = await listarPasta(auto.drive_folder_id);
