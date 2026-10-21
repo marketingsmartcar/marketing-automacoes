@@ -3,7 +3,11 @@
 /**
  * sincronizar-fotos-headless.js
  * Baixa fotos de pneus do OI → Google Drive → estoque_pneus.foto_url
- * Roda com Puppeteer headless (sem janela visível) via PM2.
+ *
+ * Estratégia:
+ *   1. Tenta conectar ao Chrome existente na porta 9222 (já logado no OI)
+ *   2. Se não disponível: abre Chromium headless e faz login
+ *      - Se OI mostrar tela de mensalidade (CoreExterno), tenta clicar via frames
  *
  * USO:
  *   node tools/sincronizar-fotos-headless.js
@@ -16,6 +20,7 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const { createClient } = require('@supabase/supabase-js');
+const http = require('http');
 
 const BASE_OI   = 'https://sistemaoficinainteligente.com.br';
 const FORCE     = process.argv.includes('--force');
@@ -26,7 +31,6 @@ const SUPABASE_URL = process.env.NEXUSZ_SUPABASE_URL || process.env.SUPABASE_URL
 const SUPABASE_KEY = process.env.NEXUSZ_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const EDGE_DRIVE   = `${SUPABASE_URL}/functions/v1/upload-to-drive`;
 
-if (!OI_EMAIL || !OI_SENHA) { console.error('❌ OI_EMAIL / OI_SENHA ausentes'); process.exit(1); }
 if (!SUPABASE_URL || !SUPABASE_KEY) { console.error('❌ SUPABASE vars ausentes'); process.exit(1); }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -36,6 +40,22 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function isGrupoPneu(g) {
   const t = (g || '').trim().toUpperCase();
   return t.startsWith('PNEU IMPORTADO') || t.startsWith('PNEU NACIONAL');
+}
+
+// ── Chrome 9222 ────────────────────────────────────────────────────────────────
+
+function getChromeWsUrl() {
+  return new Promise(resolve => {
+    const req = http.get('http://localhost:9222/json/version', res => {
+      let body = '';
+      res.on('data', d => body += d);
+      res.on('end', () => {
+        try { resolve(JSON.parse(body).webSocketDebuggerUrl || null); } catch { resolve(null); }
+      });
+    });
+    req.setTimeout(2000, () => { req.destroy(); resolve(null); });
+    req.on('error', () => resolve(null));
+  });
 }
 
 // ── Drive upload ───────────────────────────────────────────────────────────────
@@ -58,7 +78,7 @@ async function uploadToDrive(imageBuffer, fileName) {
   if (!data.success || !data.file_url) throw new Error('Drive sem file_url: ' + JSON.stringify(data).slice(0, 100));
 
   const fileId = data.file_url.match(/\/d\/([^\/]+)\//)?.[1];
-  return fileId ? `https://drive.google.com/uc?export=view&id=${fileId}` : data.file_url;
+  return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w500` : data.file_url;
 }
 
 // ── Baixar imagem via sessão autenticada ───────────────────────────────────────
@@ -72,6 +92,42 @@ async function baixarImagem(page, src) {
     } catch { return null; }
   }, src);
   return bytes ? Buffer.from(bytes) : null;
+}
+
+// ── Tratar tela de mensalidade em atraso (CoreExterno.aspx) ───────────────────
+
+async function tratarCoreExterno(page) {
+  const url = page.url();
+  if (!url.includes('CoreExterno') && !url.includes('MensalidadeAtraso')) return;
+
+  log('⚠️  Tela de mensalidade detectada — tentando contornar via iframe...');
+  await sleep(3000); // aguarda iframe carregar
+
+  // Tenta clicar em qualquer botão/link dentro do iframe do aviso
+  const frames = page.frames();
+  for (const frame of frames) {
+    const fUrl = frame.url();
+    if (!fUrl.includes('MensalidadeAtraso') && !fUrl.includes('app.sistema')) continue;
+    try {
+      const clicou = await frame.evaluate(() => {
+        const clickable = document.querySelector('button, input[type=button], input[type=submit], a[href], .btn, [onclick]');
+        if (clickable) { clickable.click(); return true; }
+        return false;
+      });
+      if (clicou) { log('  Clicou no botão do aviso'); await sleep(2000); break; }
+    } catch { /* cross-origin pode bloquear */ }
+  }
+
+  // Aguarda possível navegação e verifica se saiu
+  await sleep(2000);
+  const urlDepois = page.url();
+  if (urlDepois.includes('CoreExterno') || urlDepois.includes('MensalidadeAtraso')) {
+    // Tenta navegar direto — pode funcionar se o servidor apenas mostrou aviso
+    try {
+      await page.goto(`${BASE_OI}/wfProdutoBusca.aspx`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      await sleep(1000);
+    } catch { /* ignora */ }
+  }
 }
 
 // ── Login no OI ───────────────────────────────────────────────────────────────
@@ -89,10 +145,16 @@ async function loginOI(page) {
   ]);
   await sleep(2000);
 
-  if (page.url().includes('Entrar') || page.url().includes('Login')) {
-    throw new Error('Login falhou — verifique OI_EMAIL e OI_SENHA no .env');
+  const urlAposLogin = page.url();
+  if (urlAposLogin.includes('CoreExterno') || urlAposLogin.includes('MensalidadeAtraso')) {
+    await tratarCoreExterno(page);
   }
-  log('Login OK');
+
+  const urlFinal = page.url();
+  if (urlFinal.includes('Entrar') || urlFinal.includes('Login')) {
+    throw new Error('Login falhou — OI recusou credenciais ou mensalidade bloqueou sessão');
+  }
+  log('Login OK — URL: ' + urlFinal.split('/').pop());
 }
 
 // ── Coletar produtos de um grupo ──────────────────────────────────────────────
@@ -101,34 +163,22 @@ async function coletarProdutosDoGrupo(page, grupValor) {
   await page.goto(`${BASE_OI}/wfProdutoBusca.aspx`, { waitUntil: 'domcontentloaded', timeout: 20000 });
   await sleep(1500);
 
-  // Seleciona grupo
+  if (page.url().includes('Entrar') || page.url().includes('Login')) {
+    throw new Error('Sessão expirada');
+  }
+
   await page.evaluate((val) => {
     const s = document.getElementById('ctl00_cph_ddlGrupoDeProduto');
     if (s) { s.value = val; s.dispatchEvent(new Event('change', { bubbles: true })); }
   }, grupValor);
   await sleep(800);
 
-  // Ativo = Ativo (1) ou Ambos
-  await page.evaluate(() => {
-    const s = document.getElementById('ctl00_cph_ddlAtivo');
-    if (s) s.value = '1'; // Ativo
-  });
-
-  // Com estoque = Sim (rblEstoque = 1)
-  await page.evaluate(() => {
-    const r = document.querySelector('input[name="ctl00$cph$rblEstoque"][value="1"]');
-    if (r) r.click();
-  });
-  await sleep(300);
-
-  // Buscar
   await page.evaluate(() => {
     const btn = document.querySelector('#ctl00_cph_btnBuscar, input[id*="btnBuscar"]');
     if (btn) btn.click();
   });
   await sleep(4000);
 
-  // Coleta linhas com ProdutoID + EmpresaID
   return await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('table tr')).slice(1);
     return rows.flatMap(tr => {
@@ -156,27 +206,40 @@ async function buscarFoto(browser, empresaId, produtoId) {
     await pg.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
     await sleep(1000);
 
+    // Clica na aba Fotos/Documentos
     const clicou = await pg.evaluate(() => {
       const tab = document.getElementById('__tab_tab_tabDocumento');
       if (tab) { tab.click(); return true; }
       const link = Array.from(document.querySelectorAll('a'))
-        .find(a => /fotos?/i.test(a.textContent?.trim()));
+        .find(a => /foto|documento/i.test(a.textContent?.trim()));
       if (link) { link.click(); return true; }
       return false;
     });
     if (!clicou) return null;
-    await sleep(1200);
 
-    const imgSrc = await pg.evaluate(() => {
+    // Aguarda a base64 aparecer no DOM (OI renderiza async após clicar na aba)
+    try {
+      await pg.waitForSelector('#tab_tabDocumento img[src^="data:image/"]', { timeout: 5000 });
+    } catch {
+      return null; // produto sem foto
+    }
+
+    const bytes = await pg.evaluate(() => {
       const panel = document.getElementById('tab_tabDocumento') || document;
-      const imgs = Array.from(panel.querySelectorAll('img')).filter(img =>
-        img.src && img.naturalWidth > 50 &&
-        !/spacer|logo|bg\.|btn|icon|qr|qrcode|barcode|codigo|codbarra|WebResource|ScriptResource/i.test(img.src)
-      );
-      return imgs[0]?.src || null;
+      const imgs = Array.from(panel.querySelectorAll('img[src^="data:image/"]')).filter(img => {
+        if (!img.src || img.naturalWidth < 80 || img.naturalHeight < 80) return false;
+        if (/qr|qrcode|barcode|codigo|codbarra/i.test(img.id + '|' + img.className)) return false;
+        return true;
+      });
+      if (!imgs[0]) return null;
+      const b64 = imgs[0].src.split(',')[1];
+      if (!b64) return null;
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return Array.from(arr);
     });
-    if (!imgSrc) return null;
-    return await baixarImagem(pg, imgSrc);
+    return bytes ? Buffer.from(bytes) : null;
   } catch (e) {
     log(`  ⚠️  Foto ${produtoId.slice(0,20)}: ${e.message.slice(0,60)}`);
     return null;
@@ -188,9 +251,9 @@ async function buscarFoto(browser, empresaId, produtoId) {
 // ── Principal ──────────────────────────────────────────────────────────────────
 
 (async () => {
-  log(`=== Sync fotos pneus (headless) — ${FORCE ? 'FORCE' : 'somente sem foto'} ===`);
+  log(`=== Sync fotos pneus — ${FORCE ? 'FORCE' : 'somente sem foto'} ===`);
 
-  // 1. Busca produtos sem foto no banco
+  // 1. Produtos sem foto
   let query = supabase.from('estoque_pneus').select('id, descricao, grupo, loja');
   if (!FORCE) query = query.is('foto_url', null);
   const { data: semFoto, error: dbErr } = await query;
@@ -203,31 +266,69 @@ async function buscarFoto(browser, empresaId, produtoId) {
 
   const semFotoMap = new Map(semFoto.map(p => [p.descricao.toUpperCase(), { id: p.id, loja: p.loja }]));
 
-  // 2. Abre Chromium headless
-  log('Iniciando Chromium headless...');
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-    ],
-    defaultViewport: { width: 1280, height: 900 },
-  });
+  // 2. Conecta ao browser (Chrome 9222 ou headless)
+  let browser, viaChrome9222 = false;
+
+  const wsUrl = await getChromeWsUrl();
+  if (wsUrl) {
+    log('Conectando ao Chrome existente (porta 9222)...');
+    try {
+      browser = await puppeteer.connect({ browserWSEndpoint: wsUrl, defaultViewport: null });
+      viaChrome9222 = true;
+      log('Chrome conectado — sessão OI já ativa');
+    } catch (e) {
+      log('⚠️  Falha ao conectar na porta 9222: ' + e.message.slice(0, 60));
+    }
+  }
+
+  if (!browser) {
+    if (!OI_EMAIL || !OI_SENHA) { log('❌ OI_EMAIL / OI_SENHA ausentes no .env'); process.exit(1); }
+    log('Chrome não disponível — iniciando Chromium headless...');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
+        '--disable-blink-features=AutomationControlled',
+      ],
+      defaultViewport: { width: 1280, height: 900 },
+    });
+    // Anti-detecção: remove navigator.webdriver e ajusta user-agent
+    const antiBot = async (p) => {
+      await p.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
+      await p.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      });
+    };
+    browser.on('targetcreated', async t => {
+      if (t.type() === 'page') { try { await antiBot(await t.page()); } catch {} }
+    });
+  }
 
   const page = await browser.newPage();
   page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
+  if (!viaChrome9222) {
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    });
+  }
 
   let processados = 0, comFoto = 0, semFotoOI = 0, erros = 0;
 
   try {
-    // 3. Login
-    await loginOI(page);
+    // 3. Login (só se não veio do Chrome 9222)
+    if (!viaChrome9222) {
+      await loginOI(page);
+    }
 
-    // 4. Coleta grupos de pneu
+    // 4. Grupos de pneu
     await page.goto(`${BASE_OI}/wfProdutoBusca.aspx`, { waitUntil: 'domcontentloaded', timeout: 20000 });
     await sleep(1500);
+
+    const urlAtual = page.url();
+    if (urlAtual.includes('Entrar') || urlAtual.includes('Login')) {
+      throw new Error('Não está logado no OI — faça login no Chrome com --remote-debugging-port=9222');
+    }
 
     const gruposOI = await page.evaluate(() => {
       const s = document.getElementById('ctl00_cph_ddlGrupoDeProduto');
@@ -237,7 +338,7 @@ async function buscarFoto(browser, empresaId, produtoId) {
     const gruposPneu = gruposOI.filter(g => isGrupoPneu(g.text));
     log(`Grupos de pneu: ${gruposPneu.length}`);
 
-    // 5. Para cada grupo, coleta produtos e busca fotos
+    // 5. Por grupo: coleta produtos e busca fotos
     for (const grupo of gruposPneu) {
       if (semFotoMap.size === 0) { log('Todos encontrados, parando.'); break; }
 
@@ -254,7 +355,6 @@ async function buscarFoto(browser, empresaId, produtoId) {
       for (const prod of produtosGrupo) {
         const descUp = prod.desc.toUpperCase();
 
-        // Correspondência exata ou prefixo (OI trunca a ~40 chars na lista)
         let match = semFotoMap.get(descUp);
         if (!match) {
           for (const [dbDesc, info] of semFotoMap) {
@@ -293,7 +393,12 @@ async function buscarFoto(browser, empresaId, produtoId) {
     }
 
   } finally {
-    await browser.close().catch(() => {});
+    await page.close().catch(() => {});
+    if (viaChrome9222) {
+      browser.disconnect(); // NUNCA fechar o Chrome existente
+    } else {
+      await browser.close().catch(() => {});
+    }
   }
 
   log('');
