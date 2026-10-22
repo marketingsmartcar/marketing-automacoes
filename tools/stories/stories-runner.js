@@ -53,54 +53,18 @@ const META_CONFIG = {
   },
 };
 
-// ─── Apaga stories anteriores ─────────────────────────────────────────────────
+// ─── Conta stories IG ativos ──────────────────────────────────────────────────
+// A Graph API NÃO suporta deleção de stories — eles expiram em 24h naturalmente.
+// Contamos os existentes para não duplicar quando o runner roda próximo das 24h.
 
-async function apagarStoriesAtuais(meta) {
-  const { igUserId, pageToken: igToken } = meta.instagram;
-  if (igUserId && igToken) {
-    try {
-      const res = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/stories?access_token=${igToken}`);
-      const json = await res.json();
-      const lista = json.data || [];
-      if (lista.length) {
-        console.log(`   🗑️  Apagando ${lista.length} story(ies) IG anterior(es)...`);
-        for (const s of lista) {
-          try {
-            await fetch(`https://graph.facebook.com/v19.0/${s.id}`, {
-              method: 'DELETE',
-              body: new URLSearchParams({ access_token: igToken }),
-            });
-            console.log(`      ✅ IG ${s.id} removido`);
-          } catch {}
-        }
-      } else {
-        console.log(`   ℹ️  Nenhum story IG anterior para apagar.`);
-      }
-    } catch (e) { console.log(`   ⚠️ Erro ao apagar stories IG: ${e.message}`); }
-  }
-
-  const { pageId, pageToken: fbToken } = meta.facebook;
-  if (pageId && fbToken) {
-    try {
-      const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/stories?access_token=${fbToken}`);
-      const json = await res.json();
-      const lista = json.data || [];
-      if (lista.length) {
-        console.log(`   🗑️  Apagando ${lista.length} story(ies) FB anterior(es)...`);
-        for (const s of lista) {
-          try {
-            await fetch(`https://graph.facebook.com/v19.0/${s.id}`, {
-              method: 'DELETE',
-              body: new URLSearchParams({ access_token: fbToken }),
-            });
-            console.log(`      ✅ FB ${s.id} removido`);
-          } catch {}
-        }
-      } else {
-        console.log(`   ℹ️  Nenhum story FB anterior para apagar.`);
-      }
-    } catch (e) { console.log(`   ⚠️ Erro ao apagar stories FB: ${e.message}`); }
-  }
+async function contarStoriesIG(igUserId, igToken) {
+  try {
+    const res  = await fetch(`https://graph.facebook.com/v19.0/${igUserId}/stories?access_token=${igToken}`);
+    const json = await res.json();
+    const qtd  = (json.data || []).length;
+    if (qtd > 0) console.log(`   📊 IG já tem ${qtd} story(ies) ativos.`);
+    return qtd;
+  } catch { return 0; }
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -179,9 +143,6 @@ async function executarAutomacao(auto, hoje) {
   const meta = META_CONFIG[auto.marca];
   if (!meta) throw new Error(`Marca desconhecida: ${auto.marca}`);
 
-  // Apaga stories do dia anterior antes de postar novos
-  await apagarStoriesAtuais(meta);
-
   // Lista arquivos na pasta do Drive
   const arquivos = await listarPasta(auto.drive_folder_id);
   if (!arquivos.length) {
@@ -214,19 +175,26 @@ async function executarAutomacao(auto, hoje) {
   const usarIG = redes.includes('instagram') && !!meta.instagram.igUserId && !!meta.instagram.pageToken;
   const usarFB = redes.includes('facebook')  && !!meta.facebook.pageId   && !!meta.facebook.pageToken;
 
+  // Desconta stories que já existem no IG para evitar duplicatas (stories duram 24h e não podem ser deletados via API)
+  const igJaExistem = usarIG ? await contarStoriesIG(meta.instagram.igUserId, meta.instagram.pageToken) : 0;
+  const igMeta = Math.max(0, quantidade - igJaExistem);
+  const fbMeta = quantidade;
+
+  if (igJaExistem > 0) console.log(`   ℹ️  IG: precisam de ${igMeta} novos (${igJaExistem} já existentes).`);
+
   let igPostados = 0;
   let fbPostados = 0;
   let postados   = 0; // conta arquivos processados (para atualizar índice)
 
-  for (let i = 0; i < maxPool && (igPostados < quantidade || fbPostados < quantidade); i++) {
+  for (let i = 0; i < maxPool && (igPostados < igMeta || fbPostados < fbMeta); i++) {
     const arquivo  = fila[(indice + i) % fila.length];
     const tmpPath  = await baixarArquivo(arquivo.id, arquivo.name);
     const isVideo  = /\.(mp4|mov|avi)$/i.test(arquivo.name);
     const tipo     = isVideo ? 'video' : 'imagem';
-    const igNeed   = usarIG && igPostados < quantidade;
-    const fbNeed   = usarFB && fbPostados < quantidade;
+    const igNeed   = usarIG && igPostados < igMeta;
+    const fbNeed   = usarFB && fbPostados < fbMeta;
 
-    console.log(`   📤 [${i + 1}/${maxPool}] ${tipo}: ${arquivo.name} | IG ${igPostados}/${quantidade} FB ${fbPostados}/${quantidade}`);
+    console.log(`   📤 [${i + 1}/${maxPool}] ${tipo}: ${arquivo.name} | IG ${igPostados}/${igMeta} FB ${fbPostados}/${fbMeta}`);
 
     try {
       // Instagram
@@ -234,7 +202,7 @@ async function executarAutomacao(auto, hoje) {
         try {
           await postarInstagramStory(meta.instagram.igUserId, meta.instagram.pageToken, tmpPath);
           igPostados++;
-          console.log(`      ✅ Instagram OK (${igPostados}/${quantidade})`);
+          console.log(`      ✅ Instagram OK (${igPostados}/${igMeta})`);
         } catch (e) { console.error(`      ❌ Instagram: ${e.message} — tentará próximo vídeo`); }
       }
 
@@ -243,7 +211,7 @@ async function executarAutomacao(auto, hoje) {
         try {
           await postarFacebookStory(meta.facebook.pageId, meta.facebook.pageToken, tmpPath);
           fbPostados++;
-          console.log(`      ✅ Facebook OK (${fbPostados}/${quantidade})`);
+          console.log(`      ✅ Facebook OK (${fbPostados}/${fbMeta})`);
         } catch (e) { console.error(`      ❌ Facebook: ${e.message}`); }
       }
 
@@ -261,7 +229,8 @@ async function executarAutomacao(auto, hoje) {
     ultima_execucao: hoje,
   });
 
-  console.log(`   ✅ IG ${igPostados}/${quantidade} | FB ${fbPostados}/${quantidade} | próximo índice: ${novoIndice}`);
+  const igTotal = igJaExistem + igPostados;
+  console.log(`   ✅ IG ${igTotal}/${quantidade} (${igJaExistem} existiam + ${igPostados} novos) | FB ${fbPostados}/${fbMeta} | próximo índice: ${novoIndice}`);
 }
 
 main().catch(err => {
