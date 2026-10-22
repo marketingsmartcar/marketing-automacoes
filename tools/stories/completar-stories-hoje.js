@@ -26,7 +26,7 @@ async function novoSistemaJaPostouHoje() {
 
 const BASE_GRAPH  = 'https://graph.facebook.com/v19.0';
 const MAX_SEG_POOL = 60;
-const LIMIAR_FB_ONLY = 30;
+const LIMIAR_FB_ONLY = 0; // todos os vídeos elegíveis para IG (sem filtro por duração)
 
 // ─── Config do que falta postar ──────────────────────────────────────────────
 // Ajuste se a situação mudar

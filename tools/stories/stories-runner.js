@@ -201,44 +201,50 @@ async function executarAutomacao(auto, hoje) {
   // Monta lista: fixados primeiro, depois rotativos a partir do índice
   const fila = [...fixados, ...rotativos];
 
-  // Seleciona sem repetição — limita ao tamanho real da fila para não repetir arquivos
-  const maxPostavel = Math.min(quantidade, fila.length);
-  const selecionados = [];
-  for (let i = 0; selecionados.length < maxPostavel; i++) {
-    selecionados.push(fila[(indice + i) % fila.length]);
+  // Pool maior que o necessário para compensar falhas do IG (IG é mais exigente que FB)
+  const maxPool = Math.min(quantidade * 3, fila.length);
+
+  if (maxPool < quantidade) {
+    console.log(`   ⚠️  Pasta tem apenas ${fila.length} arquivo(s) — meta: ${quantidade}.`);
   }
 
-  if (maxPostavel < quantidade) {
-    console.log(`   ⚠️  Pasta tem apenas ${fila.length} arquivo(s) — postando ${maxPostavel} (sem repetir).`);
-  }
+  console.log(`   📂 ${total} arquivo(s) na pasta | meta: ${quantidade} | pool: ${maxPool} | índice: ${indice}`);
 
-  console.log(`   📂 ${total} arquivo(s) na pasta | postando ${maxPostavel} | índice atual: ${indice}`);
+  const redes = auto.redes_sociais ?? ['instagram', 'facebook'];
+  const usarIG = redes.includes('instagram') && !!meta.instagram.igUserId && !!meta.instagram.pageToken;
+  const usarFB = redes.includes('facebook')  && !!meta.facebook.pageId   && !!meta.facebook.pageToken;
 
-  let postados = 0;
-  for (const arquivo of selecionados) {
-    const tmpPath = await baixarArquivo(arquivo.id, arquivo.name);
+  let igPostados = 0;
+  let fbPostados = 0;
+  let postados   = 0; // conta arquivos processados (para atualizar índice)
+
+  for (let i = 0; i < maxPool && (igPostados < quantidade || fbPostados < quantidade); i++) {
+    const arquivo  = fila[(indice + i) % fila.length];
+    const tmpPath  = await baixarArquivo(arquivo.id, arquivo.name);
+    const isVideo  = /\.(mp4|mov|avi)$/i.test(arquivo.name);
+    const tipo     = isVideo ? 'video' : 'imagem';
+    const igNeed   = usarIG && igPostados < quantidade;
+    const fbNeed   = usarFB && fbPostados < quantidade;
+
+    console.log(`   📤 [${i + 1}/${maxPool}] ${tipo}: ${arquivo.name} | IG ${igPostados}/${quantidade} FB ${fbPostados}/${quantidade}`);
+
     try {
-      const isVideo = /\.(mp4|mov|avi)$/i.test(arquivo.name);
-      const tipo    = isVideo ? 'video' : 'imagem';
-
-      console.log(`   📤 Postando ${tipo}: ${arquivo.name}`);
-
-      const redes = auto.redes_sociais ?? ['instagram', 'facebook'];
-
       // Instagram
-      if (redes.includes('instagram') && meta.instagram.igUserId && meta.instagram.pageToken) {
+      if (igNeed) {
         try {
           await postarInstagramStory(meta.instagram.igUserId, meta.instagram.pageToken, tmpPath);
-          console.log(`      ✅ Instagram OK`);
-        } catch (e) { console.error(`      ❌ Instagram:`, e.message); }
+          igPostados++;
+          console.log(`      ✅ Instagram OK (${igPostados}/${quantidade})`);
+        } catch (e) { console.error(`      ❌ Instagram: ${e.message} — tentará próximo vídeo`); }
       }
 
       // Facebook
-      if (redes.includes('facebook') && meta.facebook.pageId && meta.facebook.pageToken) {
+      if (fbNeed) {
         try {
           await postarFacebookStory(meta.facebook.pageId, meta.facebook.pageToken, tmpPath);
-          console.log(`      ✅ Facebook OK`);
-        } catch (e) { console.error(`      ❌ Facebook:`, e.message); }
+          fbPostados++;
+          console.log(`      ✅ Facebook OK (${fbPostados}/${quantidade})`);
+        } catch (e) { console.error(`      ❌ Facebook: ${e.message}`); }
       }
 
       postados++;
@@ -247,14 +253,15 @@ async function executarAutomacao(auto, hoje) {
     }
   }
 
-  // Atualiza índice e data de execução
-  const novoIndice = fila.length > 0 ? (indice + maxPostavel) % fila.length : 0;
+  // Avança índice pelo número de arquivos que realmente entrariam na rotação normal
+  const avanco = Math.min(quantidade, fila.length);
+  const novoIndice = fila.length > 0 ? (indice + avanco) % fila.length : 0;
   await sbPatch('stories_automacoes', auto.id, {
     ultimo_index:    novoIndice,
     ultima_execucao: hoje,
   });
 
-  console.log(`   ✅ ${postados}/${quantidade} postado(s) | próximo índice: ${novoIndice}`);
+  console.log(`   ✅ IG ${igPostados}/${quantidade} | FB ${fbPostados}/${quantidade} | próximo índice: ${novoIndice}`);
 }
 
 main().catch(err => {
